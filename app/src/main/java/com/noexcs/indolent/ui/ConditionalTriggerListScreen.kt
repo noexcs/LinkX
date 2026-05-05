@@ -77,7 +77,7 @@ fun ConditionalTriggerListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 )
@@ -177,7 +177,7 @@ private fun ConditionalTriggerCard(
                 Text(
                     if (trigger.enabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (trigger.enabled) Color(0xFF4CAF50) else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (trigger.enabled) Color(0xFF43A047) else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     "cooldown: ${trigger.cooldownMs / 1000}s",
@@ -275,7 +275,7 @@ private fun ConditionalHistoryItem(
                             Icons.Default.CheckCircle else Icons.Default.Error,
                         contentDescription = null,
                         tint = if (record.status == ExecutionStatus.SUCCESS)
-                            Color(0xFF4CAF50) else Color(0xFFF44336),
+                            Color(0xFF43A047) else Color(0xFFE53935),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -293,7 +293,7 @@ private fun ConditionalHistoryItem(
                 Text(
                     record.errorMessage,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFF44336),
+                    color = MaterialTheme.colorScheme.error,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis
                 )

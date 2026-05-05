@@ -104,7 +104,7 @@ fun ScheduledTaskListScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
                     }
                 },
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 )
@@ -491,7 +491,7 @@ private fun HistoryItem(
                             Icons.Default.CheckCircle else Icons.Default.Error,
                         contentDescription = null,
                         tint = if (record.status == ExecutionStatus.SUCCESS)
-                            Color(0xFF4CAF50) else Color(0xFFF44336),
+                            Color(0xFF43A047) else Color(0xFFE53935),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -509,7 +509,7 @@ private fun HistoryItem(
                 Text(
                     record.errorMessage,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFF44336),
+                    color = MaterialTheme.colorScheme.error,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis
                 )

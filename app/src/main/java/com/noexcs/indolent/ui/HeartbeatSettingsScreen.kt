@@ -107,7 +107,7 @@ fun HeartbeatSettingsScreen(
             MediumTopAppBar(
                 title = { Text(stringResource(R.string.section_heartbeat)) },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),

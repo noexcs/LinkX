@@ -77,7 +77,7 @@ fun MemorySettingsScreen(
             MediumTopAppBar(
                 title = { Text(stringResource(R.string.section_memory)) },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),

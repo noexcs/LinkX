@@ -34,16 +34,16 @@ fun MarkdownContent(
     )
 
     val mdTypography = markdownTypography(
-        h1 = typography.titleLarge,
-        h2 = typography.titleMedium,
-        h3 = typography.titleSmall,
-        h4 = typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-        h5 = typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-        h6 = typography.bodySmall.copy(
-            fontWeight = FontWeight.Medium,
+        h1 = typography.headlineMedium,
+        h2 = typography.titleLarge,
+        h3 = typography.titleMedium,
+        h4 = typography.titleSmall,
+        h5 = typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+        h6 = typography.bodyMedium.copy(
+            fontWeight = FontWeight.SemiBold,
             fontStyle = FontStyle.Italic,
         ),
-        text = typography.bodySmall,
+        text = typography.bodyMedium,
         code = typography.bodySmall.copy(
             fontFamily = FontFamily.Monospace,
             lineHeight = 18.sp,
@@ -52,16 +52,17 @@ fun MarkdownContent(
             fontFamily = FontFamily.Monospace,
             color = colorScheme.onSurfaceVariant,
         ),
-        quote = typography.bodySmall.copy(
+        quote = typography.bodyMedium.copy(
             color = colorScheme.onSurfaceVariant,
         ),
-        paragraph = typography.bodySmall,
-        ordered = typography.bodySmall,
-        bullet = typography.bodySmall,
-        list = typography.bodySmall,
+        paragraph = typography.bodyMedium,
+        ordered = typography.bodyMedium,
+        bullet = typography.bodyMedium,
+        list = typography.bodyMedium,
         textLink = TextLinkStyles(
-            style = typography.bodySmall.copy(
+            style = typography.bodyMedium.copy(
                 color = colorScheme.primary,
+                fontWeight = FontWeight.Medium,
             ).toSpanStyle()
         ),
         table = typography.labelSmall,

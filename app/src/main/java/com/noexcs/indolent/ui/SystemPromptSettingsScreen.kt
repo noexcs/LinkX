@@ -78,7 +78,7 @@ fun SystemPromptSettingsScreen(
             MediumTopAppBar(
                 title = { Text(stringResource(R.string.section_system_prompt)) },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),

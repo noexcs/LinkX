@@ -224,6 +224,7 @@ class AgentViewModel(
                         }
                         is AgentEvent.ToolCallStart -> {
                             assistantMsg = null
+                            reasoningMsg = null // reset so next reasoning creates a new bubble
                             val msg = MessageViewModel(role = MessageRole.ToolInfo, content = "")
                             msg.content.value = "🔧 Calling ${event.name}..."
                             messages.add(msg)

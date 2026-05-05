@@ -203,4 +203,22 @@
     <string name="section_usage_stats_subtitle">查看 API 用量和 Token 消耗</string>
     <string name="section_appearance_subtitle">自定义主题和显示选项</string>
     <string name="section_about_subtitle">应用版本、许可证和信息</string>
+
+    <!-- Appearance -->
+    <string name="theme_system">跟随系统</string>
+    <string name="theme_light">浅色</string>
+    <string name="theme_dark">深色</string>
+    <string name="section_theme_mode">主题模式</string>
+    <string name="section_theme_mode_subtitle">选择浅色、深色或跟随系统</string>
+    <string name="section_dynamic_color">动态取色</string>
+    <string name="section_dynamic_color_subtitle">从壁纸提取色彩，打造个性化外观</string>
+
+    <!-- About -->
+    <string name="about_description">一款帮助你自动化 Android 设备的 AI 助手与任务代理。使用 Material Design 3 Expressive 和 Jetpack Compose 构建。</string>
+
+    <!-- Usage Stats -->
+    <string name="section_token_usage">Token 使用量</string>
+    <string name="section_token_usage_subtitle">API Token 消耗统计</string>
+    <string name="section_api_calls">API 调用</string>
+    <string name="section_api_calls_subtitle">请求次数与成功率</string>
 </resources>

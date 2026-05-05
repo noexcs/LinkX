@@ -28,7 +28,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
-import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -111,7 +111,7 @@ fun ApiSettingsScreen(
             MediumTopAppBar(
                 title = { Text(stringResource(R.string.title_api_settings)) },
                 scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.mediumTopAppBarColors(
+                colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                     scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
                 ),
@@ -159,7 +159,7 @@ fun ApiSettingsScreen(
                         onValueChange = { },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryEditable, true),
+                            .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true),
                         label = { Text(stringResource(R.string.provider_label)) },
                         readOnly = true,
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpanded) },
@@ -250,7 +250,7 @@ fun ApiSettingsScreen(
                             onValueChange = { },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .menuAnchor(MenuAnchorType.PrimaryEditable, true),
+                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable, true),
                             label = { Text(stringResource(R.string.reasoning_effort_label)) },
                             readOnly = true,
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = reasoningEffortExpanded) },

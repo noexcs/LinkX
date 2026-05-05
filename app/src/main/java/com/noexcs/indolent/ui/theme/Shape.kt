@@ -4,10 +4,20 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
+// M3 Expressive shape tokens — extended range for richer component styling
 val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(4.dp),
     small = RoundedCornerShape(8.dp),
     medium = RoundedCornerShape(12.dp),
     large = RoundedCornerShape(16.dp),
     extraLarge = RoundedCornerShape(28.dp),
+)
+
+// Extended tokens for M3 Expressive components
+val ExpressiveShapes = Shapes(
+    extraSmall = RoundedCornerShape(4.dp),
+    small = RoundedCornerShape(8.dp),
+    medium = RoundedCornerShape(12.dp),
+    large = RoundedCornerShape(20.dp),       // large-increased
+    extraLarge = RoundedCornerShape(32.dp),   // extra-large-increased
 )

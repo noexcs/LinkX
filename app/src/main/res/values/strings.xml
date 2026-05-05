@@ -203,4 +203,22 @@
     <string name="section_usage_stats_subtitle">View API usage and token consumption</string>
     <string name="section_appearance_subtitle">Customize theme and display options</string>
     <string name="section_about_subtitle">App version, licenses, and information</string>
+
+    <!-- Appearance -->
+    <string name="theme_system">System default</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+    <string name="section_theme_mode">Theme Mode</string>
+    <string name="section_theme_mode_subtitle">Choose between light, dark, or follow system default</string>
+    <string name="section_dynamic_color">Dynamic Color</string>
+    <string name="section_dynamic_color_subtitle">Derive colors from your wallpaper for a personalized look</string>
+
+    <!-- About -->
+    <string name="about_description">An AI assistant and task agent that helps you automate your Android device. Built with Material Design 3 Expressive and Jetpack Compose.</string>
+
+    <!-- Usage Stats -->
+    <string name="section_token_usage">Token Usage</string>
+    <string name="section_token_usage_subtitle">API token consumption statistics</string>
+    <string name="section_api_calls">API Calls</string>
+    <string name="section_api_calls_subtitle">Request count and success rate</string>
 </resources>

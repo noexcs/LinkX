@@ -4,6 +4,8 @@ import android.app.Activity
 import android.graphics.Color as AndroidColor
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
@@ -11,12 +13,38 @@ import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+
+// M3 Expressive spring specs
+val ExpressiveSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioMediumBouncy,
+    stiffness = Spring.StiffnessMedium,
+)
+
+val GentleSpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioLowBouncy,
+    stiffness = Spring.StiffnessVeryLow,
+)
+
+val SnappySpring = spring<Float>(
+    dampingRatio = Spring.DampingRatioNoBouncy,
+    stiffness = Spring.StiffnessHigh,
+)
+
+// Contrast levels
+enum class ContrastLevel { Standard, Medium, High }
+
+val LocalContrastLevel = staticCompositionLocalOf { ContrastLevel.Standard }
+
+// --- Color utilities ---
 
 private fun Color.boostSaturation(factor: Float): Color {
     val hsv = FloatArray(3)
@@ -34,6 +62,17 @@ private fun Color.tintWith(tint: Color, ratio: Float): Color = Color(
     alpha = alpha,
 )
 
+private fun Color.adjustContrast(factor: Float): Color {
+    return Color(
+        red = (red * factor).coerceIn(0f, 1f),
+        green = (green * factor).coerceIn(0f, 1f),
+        blue = (blue * factor).coerceIn(0f, 1f),
+        alpha = alpha,
+    )
+}
+
+// Amplify dynamic colors — boost saturation and tint surfaces with primary
+// for the signature M3 Expressive "wallpaper-color-immersed" look
 private fun ColorScheme.amplifyDynamicColors(): ColorScheme {
     val boosted = copy(
         primary = primary.boostSaturation(1.5f),
@@ -43,8 +82,6 @@ private fun ColorScheme.amplifyDynamicColors(): ColorScheme {
         tertiary = tertiary.boostSaturation(1.5f),
         tertiaryContainer = tertiaryContainer.boostSaturation(1.3f),
     )
-    // Tint backgrounds and surfaces with the boosted primary so the wallpaper color
-    // is visible across the entire UI, not just on accent elements.
     val tint = boosted.primary
     return boosted.copy(
         background = boosted.background.tintWith(tint, 0.10f),
@@ -57,6 +94,7 @@ private fun ColorScheme.amplifyDynamicColors(): ColorScheme {
         surfaceBright = boosted.surfaceBright.tintWith(tint, 0.04f),
         surfaceDim = boosted.surfaceDim.tintWith(tint, 0.18f),
         surfaceVariant = boosted.surfaceVariant.tintWith(tint, 0.14f),
+        surfaceTint = tint,
     )
 }
 
@@ -83,7 +121,6 @@ private val DarkColorScheme = darkColorScheme(
 
     background = BackgroundDark,
     surface = SurfaceDark,
-    surfaceTint = BluePrimaryDark,
     surfaceContainerLowest = SurfaceContainerLowestDark,
     surfaceContainerLow = SurfaceContainerLowDark,
     surfaceContainer = SurfaceContainerDark,
@@ -125,7 +162,6 @@ private val LightColorScheme = lightColorScheme(
 
     background = BackgroundLight,
     surface = SurfaceLight,
-    surfaceTint = BluePrimary,
     surfaceContainerLowest = SurfaceContainerLowestLight,
     surfaceContainerLow = SurfaceContainerLowLight,
     surfaceContainer = SurfaceContainerLight,
@@ -148,6 +184,7 @@ private val LightColorScheme = lightColorScheme(
 fun IndolentTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
+    contrastLevel: ContrastLevel = ContrastLevel.Standard,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {

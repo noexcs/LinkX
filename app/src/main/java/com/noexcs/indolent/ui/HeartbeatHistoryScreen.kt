@@ -20,9 +20,9 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -58,8 +58,13 @@ fun HeartbeatHistoryScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
-            TopAppBar(
+            MediumTopAppBar(
                 title = { Text(stringResource(R.string.heartbeat_history)) },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
@@ -132,7 +137,7 @@ private fun HeartbeatHistoryItem(
                             Icons.Default.CheckCircle else Icons.Default.Error,
                         contentDescription = null,
                         tint = if (record.status == ExecutionStatus.SUCCESS)
-                            Color(0xFF4CAF50) else Color(0xFFF44336),
+                            Color(0xFF43A047) else Color(0xFFE53935),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -150,7 +155,7 @@ private fun HeartbeatHistoryItem(
                 Text(
                     record.errorMessage,
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFFF44336),
+                    color = MaterialTheme.colorScheme.error,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis
                 )

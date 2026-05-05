@@ -13,7 +13,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.data.MemoryManager
@@ -101,23 +104,37 @@ private fun MainContent() {
         screen is Screen.Appearance || screen is Screen.About
     }
 
+    // MD3 Emphasized transition: 500ms with FastOutSlowInEasing (matches cubic-bezier(0.2, 0, 0, 1))
+    val enterDuration = 400
+    val exitDuration = 200
+    val enterEasing = FastOutSlowInEasing
+    val exitEasing = FastOutSlowInEasing
+
     AnimatedContent(
         targetState = currentScreen,
+        modifier = Modifier.background(MaterialTheme.colorScheme.surface),
         transitionSpec = {
-            val duration = 300
-            val easing = FastOutSlowInEasing
             when {
                 targetState is Screen.Settings || targetState is Screen.ScheduledTasks ||
                 targetState is Screen.HeartbeatHistory || targetState is Screen.ConditionalTriggers ||
                 isSettingsSubScreen(targetState) -> {
-                    (slideInHorizontally(tween(duration, easing = easing)) { it / 3 } + fadeIn(tween(duration, easing = easing)))
-                        .togetherWith(slideOutHorizontally(tween(duration, easing = easing)) { -it / 3 } + fadeOut(tween(duration, easing = easing)))
+                    (slideInHorizontally(tween(enterDuration, easing = enterEasing)) { it / 4 } +
+                        fadeIn(tween(enterDuration, easing = enterEasing)))
+                        .togetherWith(
+                            slideOutHorizontally(tween(exitDuration, easing = exitEasing)) { -it / 4 } +
+                                fadeOut(tween(exitDuration, easing = exitEasing))
+                        )
                 }
                 targetState is Screen.Chat -> {
-                    (slideInHorizontally(tween(duration, easing = easing)) { -it / 3 } + fadeIn(tween(duration, easing = easing)))
-                        .togetherWith(slideOutHorizontally(tween(duration, easing = easing)) { it / 3 } + fadeOut(tween(duration, easing = easing)))
+                    (slideInHorizontally(tween(enterDuration, easing = enterEasing)) { -it / 4 } +
+                        fadeIn(tween(enterDuration, easing = enterEasing)))
+                        .togetherWith(
+                            slideOutHorizontally(tween(exitDuration, easing = exitEasing)) { it / 4 } +
+                                fadeOut(tween(exitDuration, easing = exitEasing))
+                        )
                 }
-                else -> fadeIn(tween(duration, easing = easing)).togetherWith(fadeOut(tween(duration, easing = easing)))
+                else -> fadeIn(tween(enterDuration, easing = enterEasing))
+                    .togetherWith(fadeOut(tween(exitDuration, easing = exitEasing)))
             }
         },
         label = "screenTransition"
