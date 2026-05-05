@@ -1,0 +1,206 @@
+<resources>
+    <string name="app_name">Indolent</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Indolent</string>
+    <string name="new_chat">New Chat</string>
+    <string name="conversations">Conversations</string>
+    <string name="settings">Settings</string>
+    <string name="message_hint">Message…</string>
+    <string name="send">Send</string>
+    <string name="thinking">Thinking…</string>
+    <string name="empty_title">Start a conversation</string>
+    <string name="empty_subtitle">Ask me anything or give me a task</string>
+    <string name="tool_starting">Tool calling</string>
+    <string name="tool_result">Tool result</string>
+    <string name="tool_call_failed">Tool call failed</string>
+    <string name="tap_expand">tap to expand</string>
+    <string name="tap_collapse">tap to collapse</string>
+    <string name="copy">Copy</string>
+    <string name="copied">Copied</string>
+    <string name="regenerate">Regenerate</string>
+
+    <!-- Conversations drawer -->
+    <string name="no_conversations">No conversations yet</string>
+    <string name="search_conversations">Search conversations…</string>
+    <string name="options">Options</string>
+    <string name="rename">Rename</string>
+    <string name="rename_conversation">Rename conversation</string>
+    <string name="delete_conversation_title">Delete conversation?</string>
+    <string name="delete_conversation_message">\"%1$s\" will be permanently deleted.</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="untitled">Untitled</string>
+
+    <!-- Settings -->
+    <string name="save">Save</string>
+    <string name="unsaved_changes">Unsaved changes</string>
+    <string name="discard_title">Discard changes?</string>
+    <string name="discard_message">You have unsaved changes that will be lost.</string>
+    <string name="discard">Discard</string>
+    <string name="keep_editing">Keep editing</string>
+    <string name="settings_saved">Settings saved</string>
+
+    <string name="section_provider">API Provider</string>
+    <string name="section_provider_subtitle">Configure the AI model endpoint (DeepSeek API)</string>
+    <string name="provider_label">Provider</string>
+    <string name="base_url_label">Base URL</string>
+    <string name="api_key_label">API Key</string>
+    <string name="model_label">Model</string>
+    <string name="thinking_label">Thinking Mode</string>
+    <string name="thinking_subtitle">Enable DeepSeek reasoning / chain-of-thought (V4 models)</string>
+    <string name="reasoning_effort_label">Reasoning Effort</string>
+    <string name="reasoning_effort_high">High (balanced)</string>
+    <string name="reasoning_effort_max">Max (deepest reasoning)</string>
+    <string name="show">Show</string>
+    <string name="hide">Hide</string>
+
+    <string name="section_system_prompt">Custom System Prompt</string>
+    <string name="section_system_prompt_subtitle">Prepended to the base prompt in every conversation</string>
+    <string name="system_prompt_placeholder">e.g. Always respond in Chinese…</string>
+    <string name="edit_content">Edit</string>
+    <string name="view_content">View</string>
+    <string name="empty_content">Empty</string>
+    <string name="done">Done</string>
+
+    <string name="section_memory">Memory</string>
+    <string name="section_memory_subtitle">Persistent context the AI carries across conversations. It can also self-update via the update_memory tool.</string>
+    <string name="memory_placeholder">Memory content (markdown)…</string>
+
+    <string name="section_language">Language</string>
+    <string name="section_language_subtitle">App display language</string>
+
+    <string name="section_tool_confirm">Tool Confirmation</string>
+    <string name="section_tool_confirm_subtitle">Require approval before executing commands and writing files</string>
+    <string name="tool_confirm_ask">Ask</string>
+    <string name="tool_confirm_always_allow">Always Allow</string>
+    <string name="tool_approval_title">Allow tool call?</string>
+    <string name="tool_approval_allow">Allow</string>
+    <string name="tool_approval_deny">Deny</string>
+    <string name="language_system">System default</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_hans">简体中文</string>
+
+    <!-- Permission -->
+    <string name="permission_required">Termux permission required</string>
+    <string name="grant_permission">Grant Permission</string>
+
+    <string name="section_termux_tools">Termux Tools</string>
+    <string name="section_termux_tools_subtitle">Allow AI to execute shell commands, read/write files, and use Termux APIs</string>
+    <string name="section_fund_tools">Fund Tools</string>
+    <string name="section_fund_tools_subtitle">Allow AI to query fund data, rankings, and portfolio information</string>
+    <string name="section_common_tools">Common Tools</string>
+    <string name="section_common_tools_subtitle">Allow AI to use clipboard, calendar, intent, memory, and other general-purpose tools</string>
+    <string name="section_conditional_tools">Conditional Trigger Tools</string>
+    <string name="section_conditional_tools_subtitle">Allow AI to create, edit, delete, and list conditional triggers</string>
+    <string name="section_filesystem_tools">File System Tools</string>
+    <string name="section_filesystem_tools_subtitle">Allow AI to read, write, list, and delete files in authorized directories</string>
+    <string name="section_interact_tools">Interaction Tools</string>
+    <string name="section_interact_tools_subtitle">Allow AI to ask the user questions during execution</string>
+    <string name="section_notification_tools">Notification Tools</string>
+    <string name="section_notification_tools_subtitle">Allow AI to create, update, dismiss, and query notifications</string>
+    <string name="section_scheduled_task_tools">Scheduled Task Tools</string>
+    <string name="section_scheduled_task_tools_subtitle">Allow AI to create, edit, delete, and list scheduled tasks</string>
+    <string name="section_self_tools">Self Tools</string>
+    <string name="section_self_tools_subtitle">Allow AI to query its own internal logs for debugging</string>
+    <string name="section_sensor_tools">Sensor Tools</string>
+    <string name="section_sensor_tools_subtitle">Allow AI to read device sensor data</string>
+    <string name="section_setting_tools">Setting Tools</string>
+    <string name="section_setting_tools_subtitle">Allow AI to read and modify system settings such as audio volume</string>
+    <string name="section_system_info_tools">System Info Tools</string>
+    <string name="section_system_info_tools_subtitle">Allow AI to read battery, network, screen, and app information</string>
+    <string name="tool_switch_enabled">Enabled</string>
+    <string name="tool_switch_disabled">Disabled</string>
+
+    <!-- Scheduled Tasks -->
+    <string name="scheduled_tasks">Scheduled Tasks</string>
+    <string name="back">Back</string>
+    <string name="add_task">Add Task</string>
+    <string name="edit_task">Edit Task</string>
+    <string name="no_tasks">No scheduled tasks</string>
+    <string name="task_title">Title</string>
+    <string name="task_frequency">Frequency</string>
+    <string name="task_prompt">Task Description</string>
+    <string name="task_notify">Push Notification</string>
+    <string name="freq_daily">Daily</string>
+    <string name="freq_weekdays">Weekdays</string>
+    <string name="freq_weekly">Weekly</string>
+    <string name="freq_once">Once</string>
+    <string name="notification_channel_tasks">Scheduled Tasks</string>
+    <string name="notification_channel_tasks_desc">Notifications from scheduled AI tasks</string>
+    <string name="exact_alarm_permission_needed">Please grant the \"Alarms &amp; reminders\" permission to schedule tasks</string>
+    <string name="task_running">Running scheduled task…</string>
+    <string name="task_starting">Executing task…</string>
+    <string name="history">History</string>
+    <string name="execution_history">Execution History</string>
+    <string name="no_execution_records">No execution records yet</string>
+    <string name="execution_detail">Execution Detail</string>
+    <string name="execution_time">Time</string>
+    <string name="execution_duration">Duration</string>
+    <string name="execution_status">Status</string>
+    <string name="status_success">Success</string>
+    <string name="status_failure">Failure</string>
+    <string name="execution_result">Result</string>
+    <string name="execution_error">Error</string>
+
+    <!-- Heartbeat -->
+    <string name="section_heartbeat">Heartbeat</string>
+    <string name="section_heartbeat_subtitle">AI wakes up periodically to check on things and take initiative. Configure how often it should look for useful things to do.</string>
+    <string name="heartbeat_interval">Check Interval</string>
+    <string name="heartbeat_interval_hint">1–1440 min (up to 1 day)</string>
+    <string name="heartbeat_interval_suffix">min</string>
+    <string name="heartbeat_custom_prompt_label">Focus Area (optional)</string>
+    <string name="heartbeat_custom_prompt_placeholder">e.g. Keep an eye on stock market movements, weather alerts, etc.</string>
+    <string name="heartbeat_interval_5min">5 min</string>
+    <string name="heartbeat_interval_10min">10 min</string>
+    <string name="heartbeat_interval_15min">15 min</string>
+    <string name="heartbeat_interval_30min">30 min</string>
+    <string name="heartbeat_interval_60min">60 min</string>
+    <string name="heartbeat_running">Heartbeat check…</string>
+    <string name="heartbeat_starting">Heartbeat starting</string>
+    <string name="heartbeat_starting_subtitle">AI is checking for things to do…</string>
+    <string name="heartbeat_complete">Heartbeat complete</string>
+    <string name="heartbeat_failed">Heartbeat failed</string>
+    <string name="notification_channel_heartbeat">AI Heartbeat</string>
+    <string name="notification_channel_heartbeat_desc">Notifications from AI heartbeat checks</string>
+    <string name="heartbeat_history">Heartbeat History</string>
+    <string name="no_heartbeat_records">No heartbeat records yet</string>
+    <string name="heartbeat_history_button">History</string>
+
+    <!-- Storage Access -->
+    <string name="section_storage_access">Storage Access</string>
+    <string name="section_storage_access_subtitle">Grant access to directories on your device. The AI can then read, write, list, and delete files in these directories.</string>
+    <string name="add_directory">Add Directory</string>
+    <string name="no_authorized_directories">No directories authorized. Tap \"Add Directory\" to grant access.</string>
+    <string name="remove_directory">Remove directory</string>
+
+    <!-- Conditional Triggers -->
+    <string name="section_conditional_trigger">Conditional Triggers</string>
+    <string name="section_conditional_trigger_subtitle">AI monitors device conditions (battery, sensors, settings) and triggers tasks when conditions match</string>
+    <string name="condition_monitor_interval">Monitor Interval</string>
+    <string name="condition_monitor_interval_hint">1–60 min (how often to check conditions)</string>
+    <string name="condition_monitor_interval_suffix">min</string>
+    <string name="condition_monitor_running">Checking conditions…</string>
+    <string name="conditional_triggers">Conditional Triggers</string>
+    <string name="conditional_triggers_view">View Triggers</string>
+    <string name="no_conditional_triggers">No conditional triggers yet</string>
+    <string name="enabled">Enabled</string>
+    <string name="disabled">Disabled</string>
+
+    <!-- Settings menu items -->
+    <string name="title_api_settings">API Settings</string>
+    <string name="title_system_prompt_settings">System Prompt</string>
+    <string name="title_memory_settings">Memory</string>
+    <string name="title_tool_settings">Tool Settings</string>
+    <string name="title_heartbeat_settings">Heartbeat</string>
+    <string name="title_usage_stats">Usage Statistics</string>
+    <string name="title_appearance">Appearance</string>
+    <string name="title_about">About</string>
+
+    <string name="section_api_settings_subtitle">Configure API provider, key, model, and reasoning</string>
+    <string name="section_tool_settings_subtitle">Manage tool groups, permissions, and storage access</string>
+    <string name="section_heartbeat_settings_subtitle">Configure periodic AI wake-up and conditional triggers</string>
+    <string name="section_usage_stats_subtitle">View API usage and token consumption</string>
+    <string name="section_appearance_subtitle">Customize theme and display options</string>
+    <string name="section_about_subtitle">App version, licenses, and information</string>
+</resources>

@@ -1,0 +1,427 @@
+package com.noexcs.indolent.agent
+
+import android.R
+import com.noexcs.indolent.agent.tools.AgentTool
+import com.noexcs.indolent.logging.Lumberjack
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import org.json.JSONObject
+
+class Agent(
+    private val baseUrl: String,
+    private val apiKey: String,
+    private val model: String,
+    private val thinkingEnabled: Boolean = true,
+    private val reasoningEffort: String = "high"
+) {
+    private val client = LLMClient(baseUrl, apiKey)
+    private val history = mutableListOf<LLMMessage>()
+
+    /**
+     * Run the agent in a streaming tool-calling loop.
+     *
+     * Flow lifecycle:
+     *  1. Stream LLM text tokens → emit [AgentEvent.Text]
+     *  2. If LLM returns tool calls → execute each, emit [AgentEvent.ToolResult], loop to 1
+     *  3. When LLM finishes with "stop" → flow completes
+     *  4. On error → emit [AgentEvent.Error] then complete
+     */
+    fun run(
+        message: String,
+        systemPrompt: String,
+        tools: List<AgentTool> = emptyList(),
+        maxIterations: Int = 1000
+    ): Flow<AgentEvent> = flow {
+        history += LLMMessage(role = "user", content = message)
+        val toolMap = tools.associateBy { it.name }
+
+        for (round in 0 until maxIterations) {
+            val textBuf = StringBuilder()
+            val reasoningBuf = StringBuilder()
+            val toolAcc = mutableMapOf<Int, ToolCallBuilder>()
+            var finishReason: String? = null
+
+            // ── stream from LLM ──
+            val request = LLMRequest(
+                model = model,
+                messages = buildMessages(systemPrompt),
+                stream = true,
+                toolDefinitions = toolDefs(tools),
+                thinkingEnabled = if (thinkingEnabled) true else null,
+                reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null
+            )
+
+            var streamError: Exception? = null
+            for (attempt in 0..2) {
+                try {
+                    client.stream(request).collect { chunk ->
+                    val json = JSONObject(chunk)
+                    val choice = json.getJSONArray("choices").optJSONObject(0) ?: return@collect
+                    val delta = choice.optJSONObject("delta") ?: return@collect
+
+                    // text tokens
+                    val token = if (delta.has("content") && !delta.isNull("content"))
+                        delta.optString("content", "") else null
+                    if (!token.isNullOrEmpty()) {
+                        textBuf.append(token)
+                        emit(AgentEvent.Text(token))
+                    }
+
+                    // reasoning / thinking tokens (DeepSeek, etc.)
+                    val reasoning =
+                        if (delta.has("reasoning_content") && !delta.isNull("reasoning_content"))
+                            delta.optString("reasoning_content", "") else null
+                    if (!reasoning.isNullOrEmpty()) {
+                        reasoningBuf.append(reasoning)
+                        emit(AgentEvent.Reasoning(reasoning))
+                    }
+
+                    // tool call deltas (accumulate across chunks by index)
+                    delta.optJSONArray("tool_calls")?.let { tcs ->
+                        for (i in 0 until tcs.length()) {
+                            val tc = tcs.getJSONObject(i)
+                            val idx = tc.getInt("index")
+                            val acc = toolAcc.getOrPut(idx) { ToolCallBuilder() }
+                            if (tc.has("id")) {
+                                acc.id = tc.optString("id")
+                                // If name already arrived, emit ToolCallStart now with the real ID
+                                if (acc.fnName != null && !acc.nameEmitted) {
+                                    acc.nameEmitted = true
+                                    emit(AgentEvent.ToolCallStart(acc.id!!, acc.fnName!!))
+                                }
+                            }
+                            if (tc.has("type")) acc.type = tc.optString("type")
+                            tc.optJSONObject("function")?.let { fn ->
+                                if (fn.has("name")) {
+                                    acc.fnName = fn.optString("name")
+                                    // Only emit if we have the real ID; otherwise deferred until ID arrives
+                                    if (!acc.nameEmitted && acc.id != null) {
+                                        acc.nameEmitted = true
+                                        emit(AgentEvent.ToolCallStart(acc.id!!, acc.fnName!!))
+                                    }
+                                }
+                                if (fn.has("arguments")) {
+                                    val delta = fn.optString("arguments")
+                                    acc.fnArgs = (acc.fnArgs ?: "") + delta
+                                    emit(
+                                        AgentEvent.ToolCallDelta(
+                                            acc.id ?: "call_$idx",
+                                            acc.fnName ?: "unknown",
+                                            delta
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // finish reason signals the end of this round
+                    if (choice.has("finish_reason") && !choice.isNull("finish_reason")) {
+                        finishReason = choice.optString("finish_reason")
+                    }
+
+                    // usage stats (sent in final chunk when stream_options.include_usage is set)
+                    json.optJSONObject("usage")?.let { u ->
+                        emit(AgentEvent.Usage(
+                            promptTokens = u.optInt("prompt_tokens", 0),
+                            completionTokens = u.optInt("completion_tokens", 0),
+                            totalTokens = u.optInt("total_tokens", 0)
+                        ))
+                    }
+                    }
+                    streamError = null
+                    break
+                } catch (e: Exception) {
+                    streamError = e
+                    if (attempt < 2 && e is java.io.IOException) {
+                        textBuf.clear()
+                        reasoningBuf.clear()
+                        toolAcc.clear()
+                        delay((1L shl attempt) * 1000L)
+                        continue
+                    }
+                    break
+                }
+            }
+            if (streamError != null) {
+                Lumberjack.e("Agent", "Stream error", streamError)
+                emit(AgentEvent.Error(streamError.message ?: "Stream error"))
+                return@flow
+            }
+
+            // ── build the complete tool calls ──
+            val toolCalls = toolAcc.entries
+                .sortedBy { it.key }
+                .mapNotNull { (_, b) -> b.build() }
+
+            // Emit any deferred ToolCallStart events (ID arrived late or not at all)
+            for (tc in toolCalls) {
+                val acc = toolAcc.values.firstOrNull { it.id == tc.id }
+                if (acc != null && !acc.nameEmitted) {
+                    acc.nameEmitted = true
+                    emit(AgentEvent.ToolCallStart(tc.id, tc.function.name))
+                }
+            }
+
+
+            // add assistant message to history
+            history += LLMMessage(
+                role = "assistant",
+                content = textBuf.toString(),
+                toolCalls = toolCalls.ifEmpty { null },
+                reasoningContent = reasoningBuf.toString().ifEmpty { null }
+            )
+
+            // ── decide next action ──
+            when (finishReason) {
+                "stop", null -> return@flow
+                "content_filter" -> {
+                    emit(AgentEvent.Error("Content filtered by safety system"))
+                    return@flow
+                }
+
+                "insufficient_system_resource" -> {
+                    emit(AgentEvent.Error("Insufficient system resources on server"))
+                    return@flow
+                }
+
+                "tool_calls" -> {
+                    if (toolCalls.isEmpty()) {
+                        emit(AgentEvent.Error("Model returned tool_calls finish reason but no tool calls"))
+                        return@flow
+                    }
+
+                    // Emit ToolCallBegin for all calls before parallel execution
+                    val toolArgs = toolCalls.map { tc ->
+                        tc to parseArgs(tc.function.arguments)
+                    }
+                    for ((tc, args) in toolArgs) {
+                        emit(AgentEvent.ToolCallBegin(tc.id, tc.function.name, args))
+                    }
+
+                    // Execute all tool calls in parallel
+                    val results = coroutineScope {
+                        toolArgs.map { (tc, args) ->
+                            async {
+                                val tool = toolMap[tc.function.name]
+                                val result = try {
+                                    tool?.execute(args) ?: "Tool '${tc.function.name}' not found"
+                                } catch (e: Exception) {
+                                    Lumberjack.e("Agent", "Tool '${tc.function.name}' failed", e)
+                                    "Error: ${e.message}"
+                                }
+                                Triple(tc, args, result)
+                            }
+                        }.awaitAll()
+                    }
+
+                    for ((tc, args, result) in results) {
+                        history += LLMMessage(
+                            role = "tool",
+                            content = result,
+                            toolCallId = tc.id
+                        )
+                        emit(AgentEvent.ToolResult(tc.id, tc.function.name, args, result))
+                    }
+                    trimHistory()
+                    // loop continues → LLM sees tool results
+                }
+
+                "length" -> {
+                    emit(AgentEvent.Truncated("length"))
+                    return@flow
+                }
+
+                else -> return@flow
+            }
+        }
+    }
+
+    /**
+     * Non-streaming execution — returns the final text result.
+     * Used for background tasks (scheduled execution, etc.) where
+     * streaming UI updates are not needed.
+     */
+    suspend fun execute(
+        message: String,
+        systemPrompt: String,
+        tools: List<AgentTool> = emptyList(),
+        maxIterations: Int = 100,
+        completeProcess: Boolean = false
+    ): String {
+        history += LLMMessage(role = "user", content = message)
+        val toolMap = tools.associateBy { it.name }
+        for (round in 0 until maxIterations) {
+            val request = LLMRequest(
+                model = model,
+                messages = buildMessages(systemPrompt),
+                stream = false,
+                toolDefinitions = toolDefs(tools),
+                thinkingEnabled = if (thinkingEnabled) true else null,
+                reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null
+            )
+
+            val response = try {
+                client.chat(request)
+            } catch (e: Exception) {
+                Lumberjack.e("Agent", "API error in execute", e)
+                history += LLMMessage(
+                    role = "system",
+                    content = "Error: ${e.message}"
+                )
+                return if (completeProcess)
+                    history2String()
+                else
+                    "Error: ${e.message}"
+            }
+
+            val content = response.content
+            val toolCalls = response.toolCalls
+
+            history += LLMMessage(
+                role = "assistant",
+                content = content,
+                toolCalls = toolCalls,
+                reasoningContent = response.reasoningContent
+            )
+
+            if (toolCalls.isNullOrEmpty()) {
+                return if (completeProcess)
+                    history2String()
+                else
+                    content
+            }
+
+            // Execute all tool calls in parallel
+            val toolArgs = toolCalls.map { tc ->
+                tc to parseArgs(tc.function.arguments)
+            }
+            val results = coroutineScope {
+                toolArgs.map { (tc, args) ->
+                    async {
+                        val tool = toolMap[tc.function.name]
+                        val result = try {
+                            tool?.execute(args)
+                                ?: "Tool '${tc.function.name}' not found"
+                        } catch (e: Exception) {
+                            Lumberjack.e("Agent", "Tool '${tc.function.name}' failed in execute", e)
+                            "Error: ${e.message}"
+                        }
+                        Triple(tc, args, result)
+                    }
+                }.awaitAll()
+            }
+            for ((tc, _, result) in results) {
+                history += LLMMessage(
+                    role = "tool",
+                    content = result,
+                    toolCallId = tc.id
+                )
+            }
+            trimHistory()
+        }
+        history.add(LLMMessage(role = "system", content = "(max iterations reached)"))
+
+        return if (completeProcess) history2String() else history.last().content
+    }
+
+    // ── helpers ──
+
+    private fun history2String(): String {
+        return history.joinToString("\n") {
+            if (it.role == "tool")
+                "\n```\n${it.content}\n```\n"
+            else
+                it.content
+        }
+    }
+
+    private fun buildMessages(systemPrompt: String): List<LLMMessage> {
+        return ArrayList<LLMMessage>(history.size + 1).apply {
+            add(LLMMessage(role = "system", content = systemPrompt))
+            addAll(history)
+        }
+    }
+
+    private fun toolDefs(tools: List<AgentTool>): List<ToolDefinition>? {
+        if (tools.isEmpty()) return null
+        return tools.map { tool ->
+            ToolDefinition(
+                name = tool.name,
+                description = tool.description,
+                parameters = tool.parameters
+            )
+        }
+    }
+
+    private fun parseArgs(json: String): Map<String, Any?> {
+        return try {
+            val obj = JSONObject(json)
+            obj.keys().asSequence().associateWith { key ->
+                val v = obj.get(key)
+                if (v === JSONObject.NULL) null else v
+            }
+        } catch (e: Exception) {
+            Lumberjack.e("Agent", "Failed to parse tool arguments JSON", e)
+            emptyMap()
+        }
+    }
+
+    /** Restore conversation history (e.g. when continuing a loaded session). */
+    fun setHistory(messages: List<LLMMessage>) {
+        history.clear()
+        history.addAll(messages)
+    }
+
+    /** Snapshot the current conversation history (e.g. to migrate between agents). */
+    fun getHistory(): List<LLMMessage> = history.toList()
+
+    /** Clear conversation history for a fresh start. */
+    fun clearHistory() {
+        history.clear()
+    }
+
+    /**
+     * Trim old messages from history to stay within context window.
+     * Keeps at most [maxTokens] estimated tokens, removing oldest non-system
+     * message pairs first. Conservative estimate: ~3 chars per token.
+     */
+    private fun trimHistory(maxTokens: Int = 100_000) {
+        while (estimateTokens(history) > maxTokens && history.size > 4) {
+            history.removeAt(0)
+        }
+    }
+
+    private fun estimateTokens(messages: List<LLMMessage>): Long {
+        return messages.fold(0L) { acc, msg ->
+            var n = acc + msg.content.length / 3L
+            msg.toolCalls?.forEach { tc ->
+                n += (tc.function.name.length + tc.function.arguments.length).toLong() / 3L
+            }
+            n
+        }
+    }
+
+    // ── internal accumulator for streaming tool calls ──
+
+    private class ToolCallBuilder {
+        var id: String? = null
+        var type: String? = null
+        var fnName: String? = null
+        var fnArgs: String? = null
+        var nameEmitted = false
+
+        fun build(): ToolCall? {
+            val name = fnName ?: return null
+            return ToolCall(
+                id = id ?: "",
+                type = type ?: "function",
+                function = ToolFunction(name = name, arguments = fnArgs ?: "{}")
+            )
+        }
+    }
+}

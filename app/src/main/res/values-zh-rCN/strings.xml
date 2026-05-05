@@ -1,0 +1,206 @@
+<resources>
+    <string name="app_name">Indolent</string>
+
+    <!-- Chat -->
+    <string name="chat_title">Indolent</string>
+    <string name="new_chat">新对话</string>
+    <string name="conversations">对话记录</string>
+    <string name="settings">设置</string>
+    <string name="message_hint">输入消息…</string>
+    <string name="send">发送</string>
+    <string name="thinking">思考中…</string>
+    <string name="empty_title">开始对话</string>
+    <string name="empty_subtitle">问我任何问题或给我一个任务</string>
+    <string name="tool_starting">工具调用中</string>
+    <string name="tool_result">工具结果</string>
+    <string name="tool_call_failed">工具调用失败</string>
+    <string name="tap_expand">点击展开</string>
+    <string name="tap_collapse">点击收起</string>
+    <string name="copy">复制</string>
+    <string name="copied">已复制</string>
+    <string name="regenerate">重新生成</string>
+
+    <!-- Conversations drawer -->
+    <string name="no_conversations">暂无对话记录</string>
+    <string name="search_conversations">搜索对话…</string>
+    <string name="options">选项</string>
+    <string name="rename">重命名</string>
+    <string name="rename_conversation">重命名对话</string>
+    <string name="delete_conversation_title">删除对话？</string>
+    <string name="delete_conversation_message">"%1$s" 将被永久删除。</string>
+    <string name="delete">删除</string>
+    <string name="cancel">取消</string>
+    <string name="untitled">未命名</string>
+
+    <!-- Settings -->
+    <string name="save">保存</string>
+    <string name="unsaved_changes">有未保存的更改</string>
+    <string name="discard_title">放弃更改？</string>
+    <string name="discard_message">未保存的更改将会丢失。</string>
+    <string name="discard">放弃</string>
+    <string name="keep_editing">继续编辑</string>
+    <string name="settings_saved">设置已保存</string>
+
+    <string name="section_provider">API 提供商</string>
+    <string name="section_provider_subtitle">配置 AI 模型接口（DeepSeek API）</string>
+    <string name="provider_label">提供商</string>
+    <string name="base_url_label">接口地址</string>
+    <string name="api_key_label">API 密钥</string>
+    <string name="model_label">模型</string>
+    <string name="thinking_label">思维模式</string>
+    <string name="thinking_subtitle">启用 DeepSeek 推理/思维链（V4 模型）</string>
+    <string name="reasoning_effort_label">推理力度</string>
+    <string name="reasoning_effort_high">高（平衡）</string>
+    <string name="reasoning_effort_max">最大（最深推理）</string>
+    <string name="show">显示</string>
+    <string name="hide">隐藏</string>
+
+    <string name="section_system_prompt">自定义系统提示词</string>
+    <string name="section_system_prompt_subtitle">在每次对话中添加到基础提示词之前</string>
+    <string name="system_prompt_placeholder">例如：始终使用中文回复…</string>
+    <string name="edit_content">编辑</string>
+    <string name="view_content">查看</string>
+    <string name="empty_content">空</string>
+    <string name="done">完成</string>
+
+    <string name="section_memory">记忆</string>
+    <string name="section_memory_subtitle">AI 在所有对话中携带的持久上下文，AI 也可以通过 update_memory 工具自行更新。</string>
+    <string name="memory_placeholder">记忆内容（markdown）…</string>
+
+    <string name="section_language">语言</string>
+    <string name="section_language_subtitle">应用显示语言</string>
+
+    <string name="section_tool_confirm">工具确认</string>
+    <string name="section_tool_confirm_subtitle">执行命令和写入文件前需要确认</string>
+    <string name="tool_confirm_ask">询问</string>
+    <string name="tool_confirm_always_allow">始终允许</string>
+    <string name="tool_approval_title">允许执行？</string>
+    <string name="tool_approval_allow">允许</string>
+    <string name="tool_approval_deny">拒绝</string>
+    <string name="language_system">跟随系统</string>
+    <string name="language_en">English</string>
+    <string name="language_zh_hans">简体中文</string>
+
+    <!-- Permission -->
+    <string name="permission_required">需要 Termux 权限</string>
+    <string name="grant_permission">授予权限</string>
+
+    <string name="section_termux_tools">Termux 工具</string>
+    <string name="section_termux_tools_subtitle">允许 AI 执行 Shell 命令、读写文件和使用 Termux API</string>
+    <string name="section_fund_tools">基金工具</string>
+    <string name="section_fund_tools_subtitle">允许 AI 查询基金数据、排名和持仓信息</string>
+    <string name="section_common_tools">通用工具</string>
+    <string name="section_common_tools_subtitle">允许 AI 使用剪贴板、日历、意图、记忆和其他通用工具</string>
+    <string name="section_conditional_tools">条件触发工具</string>
+    <string name="section_conditional_tools_subtitle">允许 AI 创建、编辑、删除和列出条件触发器</string>
+    <string name="section_filesystem_tools">文件系统工具</string>
+    <string name="section_filesystem_tools_subtitle">允许 AI 在授权目录中读写、列出和删除文件</string>
+    <string name="section_interact_tools">交互工具</string>
+    <string name="section_interact_tools_subtitle">允许 AI 在执行过程中向用户提问</string>
+    <string name="section_notification_tools">通知工具</string>
+    <string name="section_notification_tools_subtitle">允许 AI 创建、更新、取消和查询通知</string>
+    <string name="section_scheduled_task_tools">定时任务工具</string>
+    <string name="section_scheduled_task_tools_subtitle">允许 AI 创建、编辑、删除和列出定时任务</string>
+    <string name="section_self_tools">自我工具</string>
+    <string name="section_self_tools_subtitle">允许 AI 查询自身内部日志以进行调试</string>
+    <string name="section_sensor_tools">传感器工具</string>
+    <string name="section_sensor_tools_subtitle">允许 AI 读取设备传感器数据</string>
+    <string name="section_setting_tools">设置工具</string>
+    <string name="section_setting_tools_subtitle">允许 AI 读取和修改系统设置，如音频音量</string>
+    <string name="section_system_info_tools">系统信息工具</string>
+    <string name="section_system_info_tools_subtitle">允许 AI 读取电池、网络、屏幕和应用信息</string>
+    <string name="tool_switch_enabled">已启用</string>
+    <string name="tool_switch_disabled">已禁用</string>
+
+    <!-- Scheduled Tasks -->
+    <string name="scheduled_tasks">定时任务</string>
+    <string name="back">返回</string>
+    <string name="add_task">添加任务</string>
+    <string name="edit_task">编辑任务</string>
+    <string name="no_tasks">暂无定时任务</string>
+    <string name="task_title">标题</string>
+    <string name="task_frequency">频率</string>
+    <string name="task_prompt">任务描述</string>
+    <string name="task_notify">消息推送</string>
+    <string name="freq_daily">每天</string>
+    <string name="freq_weekdays">工作日</string>
+    <string name="freq_weekly">每周</string>
+    <string name="freq_once">一次</string>
+    <string name="notification_channel_tasks">定时任务</string>
+    <string name="notification_channel_tasks_desc">来自定时 AI 任务的通知</string>
+    <string name="exact_alarm_permission_needed">请授予"闹钟和提醒"权限以启用定时任务</string>
+    <string name="task_running">正在执行定时任务…</string>
+    <string name="task_starting">正在执行…</string>
+    <string name="history">历史</string>
+    <string name="execution_history">执行历史</string>
+    <string name="no_execution_records">暂无执行记录</string>
+    <string name="execution_detail">执行详情</string>
+    <string name="execution_time">执行时间</string>
+    <string name="execution_duration">耗时</string>
+    <string name="execution_status">状态</string>
+    <string name="status_success">成功</string>
+    <string name="status_failure">失败</string>
+    <string name="execution_result">执行结果</string>
+    <string name="execution_error">错误信息</string>
+
+    <!-- Heartbeat -->
+    <string name="section_heartbeat">心跳机制</string>
+    <string name="section_heartbeat_subtitle">AI 定期唤醒，主动检查周围情况并采取行动。设置 AI 每隔多久主动寻找可做的事情。</string>
+    <string name="heartbeat_interval">检查间隔</string>
+    <string name="heartbeat_interval_hint">1–1440 分钟（最长 1 天）</string>
+    <string name="heartbeat_interval_suffix">分钟</string>
+    <string name="heartbeat_custom_prompt_label">关注领域（可选）</string>
+    <string name="heartbeat_custom_prompt_placeholder">例如：关注股市变动、天气预警等</string>
+    <string name="heartbeat_interval_5min">5 分钟</string>
+    <string name="heartbeat_interval_10min">10 分钟</string>
+    <string name="heartbeat_interval_15min">15 分钟</string>
+    <string name="heartbeat_interval_30min">30 分钟</string>
+    <string name="heartbeat_interval_60min">60 分钟</string>
+    <string name="heartbeat_running">心跳检查中…</string>
+    <string name="heartbeat_starting">心跳启动</string>
+    <string name="heartbeat_starting_subtitle">AI 正在检查待办事项…</string>
+    <string name="heartbeat_complete">心跳完成</string>
+    <string name="heartbeat_failed">心跳失败</string>
+    <string name="notification_channel_heartbeat">AI 心跳</string>
+    <string name="notification_channel_heartbeat_desc">来自 AI 心跳检查的通知</string>
+    <string name="heartbeat_history">心跳历史</string>
+    <string name="no_heartbeat_records">暂无心跳记录</string>
+    <string name="heartbeat_history_button">历史</string>
+
+    <!-- Storage Access -->
+    <string name="section_storage_access">存储访问</string>
+    <string name="section_storage_access_subtitle">授权访问设备上的目录。AI 可以在这些目录中读取、写入、列出和删除文件。</string>
+    <string name="add_directory">添加目录</string>
+    <string name="no_authorized_directories">尚未授权任何目录。点击\"添加目录\"以授予访问权限。</string>
+    <string name="remove_directory">移除目录</string>
+
+    <!-- Conditional Triggers -->
+    <string name="section_conditional_trigger">条件触发</string>
+    <string name="section_conditional_trigger_subtitle">AI 监控设备条件（电池、传感器、设置），当条件匹配时触发任务</string>
+    <string name="condition_monitor_interval">监控间隔</string>
+    <string name="condition_monitor_interval_hint">1–60 分钟（检查条件的频率）</string>
+    <string name="condition_monitor_interval_suffix">分钟</string>
+    <string name="condition_monitor_running">正在检查条件…</string>
+    <string name="conditional_triggers">条件触发器</string>
+    <string name="conditional_triggers_view">查看触发器</string>
+    <string name="no_conditional_triggers">暂无条件触发器</string>
+    <string name="enabled">已启用</string>
+    <string name="disabled">已禁用</string>
+
+    <!-- Settings menu items -->
+    <string name="title_api_settings">API 设置</string>
+    <string name="title_system_prompt_settings">系统提示词</string>
+    <string name="title_memory_settings">记忆</string>
+    <string name="title_tool_settings">工具设置</string>
+    <string name="title_heartbeat_settings">心跳</string>
+    <string name="title_usage_stats">用量统计</string>
+    <string name="title_appearance">主题外观</string>
+    <string name="title_about">关于</string>
+
+    <string name="section_api_settings_subtitle">配置 API 提供商、密钥、模型和推理参数</string>
+    <string name="section_tool_settings_subtitle">管理工具组、权限和存储访问</string>
+    <string name="section_heartbeat_settings_subtitle">配置 AI 定期唤醒和条件触发器</string>
+    <string name="section_usage_stats_subtitle">查看 API 用量和 Token 消耗</string>
+    <string name="section_appearance_subtitle">自定义主题和显示选项</string>
+    <string name="section_about_subtitle">应用版本、许可证和信息</string>
+</resources>

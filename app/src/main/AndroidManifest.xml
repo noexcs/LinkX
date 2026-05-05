@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="com.termux.permission.RUN_COMMAND" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SHORT_SERVICE" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" />
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
+
+    <!-- Required for targetSdkVersion >= 30 to query other packages -->
+    <queries>
+        <package android:name="com.termux" />
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="http" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="tel" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="geo" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:localeConfig="@xml/locales_config"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Indolent">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:windowSoftInputMode="adjustNothing"
+            android:theme="@style/Theme.Indolent">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.interact.InteractDialogActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Indolent.Transparent"
+            android:excludeFromRecents="true" />
+        
+        <!-- Receiver to get Termux command results via PendingIntent.getBroadcast -->
+        <receiver android:name=".agent.termux.TermuxResultReceiver" android:exported="false" />
+
+        <!-- Scheduled task alarm receiver -->
+        <receiver android:name=".task.scheduler.TaskAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.noexcs.indolent.ACTION_TASK_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Condition monitor alarm receiver -->
+        <receiver android:name=".task.conditional.ConditionMonitorReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.noexcs.indolent.ACTION_CONDITION_MONITOR" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Heartbeat alarm receiver -->
+        <receiver android:name=".task.heartbeat.HeartbeatAlarmReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.noexcs.indolent.ACTION_HEARTBEAT_ALARM" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Boot receiver to reschedule alarms -->
+        <receiver android:name=".task.scheduler.BootReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Notification listener service for cross-app notification access -->
+        <service
+            android:name=".agent.tools.notification.IndolentNotificationListenerService"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
+        <!-- WorkManager foreground service for task execution -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="dataSync|shortService"
+            android:exported="false" />
+
+    </application>
+</manifest>

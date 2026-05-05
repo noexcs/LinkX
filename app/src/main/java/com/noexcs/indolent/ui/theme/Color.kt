@@ -1,0 +1,83 @@
+package com.noexcs.indolent.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+// Light Theme Colors - Modern Blue-Teal Scheme
+val BluePrimary = Color(0xFF2563EB)
+val BlueOnPrimary = Color(0xFFFFFFFF)
+val BluePrimaryContainer = Color(0xFFDBE7FF)
+val BlueOnPrimaryContainer = Color(0xFF1038A8)
+
+val TealSecondary = Color(0xFF0D9488)
+val TealOnSecondary = Color(0xFFFFFFFF)
+val TealSecondaryContainer = Color(0xFFCCFBF1)
+val TealOnSecondaryContainer = Color(0xFF0A2F2C)
+
+val PurpleTertiary = Color(0xFF7C3AED)
+val PurpleOnTertiary = Color(0xFFFFFFFF)
+val PurpleTertiaryContainer = Color(0xFFEDE9FE)
+val PurpleOnTertiaryContainer = Color(0xFF2B0F9E)
+
+val ErrorColor = Color(0xFFDC2626)
+val ErrorOnColor = Color(0xFFFFFFFF)
+val ErrorContainer = Color(0xFFFEE2E2)
+val ErrorOnContainer = Color(0xFF7F1D1D)
+
+val BackgroundLight = Color(0xFFF8FAFC)
+val SurfaceLight = Color(0xFFFFFFFF)
+val SurfaceContainerLowestLight = Color(0xFFFFFFFF)
+val SurfaceContainerLowLight = Color(0xFFF8FAFC)
+val SurfaceContainerLight = Color(0xFFF1F5F9)
+val SurfaceContainerHighLight = Color(0xFFE8EDF4)
+val SurfaceContainerHighestLight = Color(0xFFDFE4EB)
+val SurfaceBrightLight = Color(0xFFFBFCFE)
+val SurfaceDimLight = Color(0xFFD9DEE5)
+val SurfaceVariantLight = Color(0xFFE2E8F0)
+val OnSurfaceLight = Color(0xFF0F172A)
+val OnSurfaceVariantLight = Color(0xFF475569)
+val OutlineLight = Color(0xFF94A3B8)
+val OutlineVariantLight = Color(0xFFCBD5E1)
+val InverseSurfaceLight = Color(0xFF1E293B)
+val InverseOnSurfaceLight = Color(0xFFF1F5F9)
+val InversePrimaryLight = Color(0xFF93C5FD)
+val ScrimLight = Color(0xFF000000)
+
+// Dark Theme Colors
+val BluePrimaryDark = Color(0xFF60A5FA)
+val BlueOnPrimaryDark = Color(0xFF1E3A8A)
+val BluePrimaryContainerDark = Color(0xFF1E40AF)
+val BlueOnPrimaryContainerDark = Color(0xFFDBE7FF)
+
+val TealSecondaryDark = Color(0xFF2DD4BF)
+val TealOnSecondaryDark = Color(0xFF134E4A)
+val TealSecondaryContainerDark = Color(0xFF115E59)
+val TealOnSecondaryContainerDark = Color(0xFFCCFBF1)
+
+val PurpleTertiaryDark = Color(0xFFA78BFA)
+val PurpleOnTertiaryDark = Color(0xFF4C1D95)
+val PurpleTertiaryContainerDark = Color(0xFF5B21B6)
+val PurpleOnTertiaryContainerDark = Color(0xFFEDE9FE)
+
+val ErrorColorDark = Color(0xFFF87171)
+val ErrorOnColorDark = Color(0xFF7F1D1D)
+val ErrorContainerDark = Color(0xFF991B1B)
+val ErrorOnContainerDark = Color(0xFFFEE2E2)
+
+val BackgroundDark = Color(0xFF0F172A)
+val SurfaceDark = Color(0xFF1E293B)
+val SurfaceContainerLowestDark = Color(0xFF0B1120)
+val SurfaceContainerLowDark = Color(0xFF151E30)
+val SurfaceContainerDark = Color(0xFF1A2438)
+val SurfaceContainerHighDark = Color(0xFF283548)
+val SurfaceContainerHighestDark = Color(0xFF334155)
+val SurfaceBrightDark = Color(0xFF384860)
+val SurfaceDimDark = Color(0xFF111B2E)
+val SurfaceVariantDark = Color(0xFF475569)
+val OnSurfaceDark = Color(0xFFF1F5F9)
+val OnSurfaceVariantDark = Color(0xFFCBD5E1)
+val OutlineDark = Color(0xFF64748B)
+val OutlineVariantDark = Color(0xFF475569)
+val InverseSurfaceDark = Color(0xFFE2E8F0)
+val InverseOnSurfaceDark = Color(0xFF1E293B)
+val InversePrimaryDark = Color(0xFF2563EB)
+val ScrimDark = Color(0xFF000000)

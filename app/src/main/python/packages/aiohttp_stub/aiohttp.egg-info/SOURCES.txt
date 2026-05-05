@@ -1,0 +1,6 @@
+setup.py
+aiohttp/__init__.py
+aiohttp.egg-info/PKG-INFO
+aiohttp.egg-info/SOURCES.txt
+aiohttp.egg-info/dependency_links.txt
+aiohttp.egg-info/top_level.txt

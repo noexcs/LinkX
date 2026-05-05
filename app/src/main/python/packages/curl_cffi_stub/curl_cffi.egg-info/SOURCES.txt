@@ -1,0 +1,7 @@
+setup.py
+curl_cffi/__init__.py
+curl_cffi/requests.py
+curl_cffi.egg-info/PKG-INFO
+curl_cffi.egg-info/SOURCES.txt
+curl_cffi.egg-info/dependency_links.txt
+curl_cffi.egg-info/top_level.txt

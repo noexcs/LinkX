@@ -1,0 +1,6 @@
+setup.py
+jsonpath/__init__.py
+jsonpath.egg-info/PKG-INFO
+jsonpath.egg-info/SOURCES.txt
+jsonpath.egg-info/dependency_links.txt
+jsonpath.egg-info/top_level.txt
