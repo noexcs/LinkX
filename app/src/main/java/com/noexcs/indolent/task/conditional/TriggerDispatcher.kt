@@ -64,10 +64,7 @@ import com.noexcs.indolent.agent.tools.systeminfo.BatteryInfoTool
 import com.noexcs.indolent.agent.tools.systeminfo.CurrentScreenInfoTool
 import com.noexcs.indolent.agent.tools.systeminfo.GetAppInfoTool
 import com.noexcs.indolent.agent.tools.systeminfo.NetworkStatusTool
-import com.noexcs.indolent.agent.tools.termux.TermuxDialogTool
 import com.noexcs.indolent.agent.tools.termux.TermuxExecuteCommandTool
-import com.noexcs.indolent.agent.tools.termux.TermuxReadFileTool
-import com.noexcs.indolent.agent.tools.termux.TermuxWriteFileTool
 import com.noexcs.indolent.data.MemoryManager
 import com.noexcs.indolent.data.SettingsManager
 import com.noexcs.indolent.logging.Lumberjack

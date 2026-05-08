@@ -31,10 +31,7 @@ import com.noexcs.indolent.agent.tools.scheduledTask.CreateScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.ListScheduledTasksTool
 import com.noexcs.indolent.agent.tools.scheduledTask.EditScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.DeleteScheduledTaskTool
-import com.noexcs.indolent.agent.tools.termux.TermuxDialogTool
 import com.noexcs.indolent.agent.tools.termux.TermuxExecuteCommandTool
-import com.noexcs.indolent.agent.tools.termux.TermuxReadFileTool
-import com.noexcs.indolent.agent.tools.termux.TermuxWriteFileTool
 import com.noexcs.indolent.agent.tools.common.UpdateMemoryTool
 import com.noexcs.indolent.agent.termux.TermuxExecutor
 import com.noexcs.indolent.agent.tools.ToolProvider

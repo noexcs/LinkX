@@ -22,16 +22,50 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
+import com.noexcs.indolent.data.BalanceInfo
+import com.noexcs.indolent.data.UserBalanceResponse
+import com.noexcs.indolent.data.SettingsManager
+import com.noexcs.indolent.data.fetchUserBalance
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun UsageStatsScreen(onBack: () -> Unit) {
+fun UsageStatsScreen(settingsManager: SettingsManager, onBack: () -> Unit) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+
+    val promptTokens = settingsManager.cumulativePromptTokens.toInt()
+    val completionTokens = settingsManager.cumulativeCompletionTokens.toInt()
+    val totalTokens = promptTokens + completionTokens
+
+    var balanceState by remember { mutableStateOf<BalanceState>(BalanceState.Loading) }
+
+    LaunchedEffect(Unit) {
+        val baseUrl = settingsManager.baseUrl ?: ""
+        val apiKey = settingsManager.apiKey ?: ""
+        if (baseUrl.isBlank() || apiKey.isBlank()) {
+            balanceState = BalanceState.NotConfigured
+            return@LaunchedEffect
+        }
+        try {
+            val response = fetchUserBalance(baseUrl, apiKey)
+            if (response.isAvailable && response.balanceInfos.isNotEmpty()) {
+                balanceState = BalanceState.Success(response.balanceInfos)
+            } else {
+                balanceState = BalanceState.Error
+            }
+        } catch (_: Exception) {
+            balanceState = BalanceState.Error
+        }
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
@@ -60,29 +94,61 @@ fun UsageStatsScreen(onBack: () -> Unit) {
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // Token usage summary
             SectionCard(
                 title = stringResource(R.string.section_token_usage),
                 subtitle = stringResource(R.string.section_token_usage_subtitle)
             ) {
-                StatRow(label = "Total tokens", value = "—")
-                StatRow(label = "Prompt tokens", value = "—")
-                StatRow(label = "Completion tokens", value = "—")
+                StatRow(label = "Total tokens", value = formatTokens(totalTokens))
+                StatRow(label = "Prompt tokens", value = formatTokens(promptTokens))
+                StatRow(label = "Completion tokens", value = formatTokens(completionTokens))
             }
 
-            // API call summary
             SectionCard(
-                title = stringResource(R.string.section_api_calls),
-                subtitle = stringResource(R.string.section_api_calls_subtitle)
+                title = stringResource(R.string.section_user_balance),
+                subtitle = stringResource(R.string.section_user_balance_subtitle)
             ) {
-                StatRow(label = "Total requests", value = "—")
-                StatRow(label = "Successful", value = "—")
-                StatRow(label = "Failed", value = "—")
+                when (val state = balanceState) {
+                    is BalanceState.Loading -> {
+                        Text(
+                            "Loading...",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    is BalanceState.NotConfigured -> {
+                        Text(
+                            "Configure API settings to view balance",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    is BalanceState.Error -> {
+                        Text(
+                            "Failed to fetch balance",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                    }
+                    is BalanceState.Success -> {
+                        state.infos.forEach { info ->
+                            StatRow(label = "Total balance", value = "${info.totalBalance} ${info.currency}")
+                            StatRow(label = "Topped up", value = "${info.toppedUpBalance} ${info.currency}")
+                            StatRow(label = "Granted", value = "${info.grantedBalance} ${info.currency}")
+                        }
+                    }
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
         }
     }
+}
+
+private sealed class BalanceState {
+    data object Loading : BalanceState()
+    data object NotConfigured : BalanceState()
+    data object Error : BalanceState()
+    data class Success(val infos: List<BalanceInfo>) : BalanceState()
 }
 
 @Composable
@@ -104,4 +170,10 @@ private fun StatRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
+}
+
+private fun formatTokens(n: Int): String = when {
+    n >= 1_000_000 -> "${"%.1f".format(n / 1_000_000.0)}M"
+    n >= 1_000 -> "${"%.1f".format(n / 1_000.0)}k"
+    else -> n.toString()
 }

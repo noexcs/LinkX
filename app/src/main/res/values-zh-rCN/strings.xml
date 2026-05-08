@@ -167,13 +167,6 @@
     <string name="no_heartbeat_records">暂无心跳记录</string>
     <string name="heartbeat_history_button">历史</string>
 
-    <!-- Storage Access -->
-    <string name="section_storage_access">存储访问</string>
-    <string name="section_storage_access_subtitle">授权访问设备上的目录。AI 可以在这些目录中读取、写入、列出和删除文件。</string>
-    <string name="add_directory">添加目录</string>
-    <string name="no_authorized_directories">尚未授权任何目录。点击\"添加目录\"以授予访问权限。</string>
-    <string name="remove_directory">移除目录</string>
-
     <!-- Conditional Triggers -->
     <string name="section_conditional_trigger">条件触发</string>
     <string name="section_conditional_trigger_subtitle">AI 监控设备条件（电池、传感器、设置），当条件匹配时触发任务</string>
@@ -200,7 +193,7 @@
     <string name="section_api_settings_subtitle">配置 API 提供商、密钥、模型和推理参数</string>
     <string name="section_tool_settings_subtitle">管理工具组、权限和存储访问</string>
     <string name="section_heartbeat_settings_subtitle">配置 AI 定期唤醒和条件触发器</string>
-    <string name="section_usage_stats_subtitle">查看 API 用量和 Token 消耗</string>
+    <string name="section_usage_stats_subtitle">Token 消耗统计</string>
     <string name="section_appearance_subtitle">自定义主题和显示选项</string>
     <string name="section_about_subtitle">应用版本、许可证和信息</string>
 
@@ -219,6 +212,106 @@
     <!-- Usage Stats -->
     <string name="section_token_usage">Token 使用量</string>
     <string name="section_token_usage_subtitle">API Token 消耗统计</string>
-    <string name="section_api_calls">API 调用</string>
-    <string name="section_api_calls_subtitle">请求次数与成功率</string>
+    <string name="section_user_balance">账户余额</string>
+    <string name="section_user_balance_subtitle">DeepSeek 账户余额</string>
+
+    <!-- Individual tool names -->
+    <string name="tool_execute_command">执行命令</string>
+    <string name="tool_read_file">读取文件 (Termux)</string>
+    <string name="tool_write_file">写入文件 (Termux)</string>
+    <string name="tool_show_dialog">显示对话框</string>
+    <string name="tool_update_memory">更新记忆</string>
+    <string name="tool_send_intent">发送意图</string>
+    <string name="tool_clipboard">剪贴板</string>
+    <string name="tool_calendar">日历</string>
+    <string name="tool_get_current_time">获取当前时间</string>
+    <string name="tool_create_conditional_trigger">创建条件触发器</string>
+    <string name="tool_list_conditional_triggers">列出条件触发器</string>
+    <string name="tool_edit_conditional_trigger">编辑条件触发器</string>
+    <string name="tool_delete_conditional_trigger">删除条件触发器</string>
+    <string name="tool_list_conditional_trigger_history">列出触发历史</string>
+    <string name="tool_fs_read">读取文件</string>
+    <string name="tool_fs_write">写入文件</string>
+    <string name="tool_fs_list">列出文件</string>
+    <string name="tool_fs_delete">删除文件</string>
+    <string name="tool_fs_find">查找文件</string>
+    <string name="tool_fs_storage_info">存储信息</string>
+    <string name="tool_ask_user">询问用户</string>
+    <string name="tool_display_content">展示内容</string>
+    <string name="tool_create_notification">创建通知</string>
+    <string name="tool_update_notification">更新通知</string>
+    <string name="tool_dismiss_notification">取消通知</string>
+    <string name="tool_query_notification">查询通知</string>
+    <string name="tool_manage_notification_channel">管理通知渠道</string>
+    <string name="tool_list_active_notifications">列出活跃通知</string>
+    <string name="tool_open_notification_access_settings">打开通知设置</string>
+    <string name="tool_create_scheduled_task">创建定时任务</string>
+    <string name="tool_list_scheduled_tasks">列出定时任务</string>
+    <string name="tool_edit_scheduled_task">编辑定时任务</string>
+    <string name="tool_delete_scheduled_task">删除定时任务</string>
+    <string name="tool_query_logs">查询日志</string>
+    <string name="tool_get_sensor_data">获取传感器数据</string>
+    <string name="tool_audio_control">音频控制</string>
+    <string name="tool_system_setting">系统设置</string>
+    <string name="tool_app_setting">应用设置</string>
+    <string name="tool_get_app_info">获取应用信息</string>
+    <string name="tool_get_battery_info">获取电池信息</string>
+    <string name="tool_get_network_status">获取网络状态</string>
+    <string name="tool_get_current_screen">获取当前屏幕</string>
+    <string name="tool_query_app_activities">查询应用Activity</string>
+    <string name="tool_get_cpu_info">获取CPU信息</string>
+    <string name="tool_get_memory_info">获取内存信息</string>
+    <string name="tool_get_process_info">获取进程信息</string>
+    <!-- Fund tools -->
+    <string name="tool_fund_info_index_em">基金指数信息 (EM)</string>
+    <string name="tool_fund_open_fund_info_em">开放式基金信息 (EM)</string>
+    <string name="tool_fund_etf_fund_info_em">ETF 基金信息 (EM)</string>
+    <string name="tool_fund_value_estimate_em">基金估值 (EM)</string>
+    <string name="tool_fund_value_estimation_em_rank">基金估值排名 (EM)</string>
+    <string name="tool_fund_manager_em">基金经理 (EM)</string>
+    <string name="tool_fund_overview_em">基金概览 (EM)</string>
+    <string name="tool_fund_portfolio_hold_em">基金持仓 (EM)</string>
+    <string name="tool_fund_portfolio_bond_hold_em">基金债券持仓 (EM)</string>
+    <string name="tool_fund_portfolio_industry_allocation_em">基金行业配置 (EM)</string>
+    <string name="tool_fund_portfolio_change_em">基金持仓变动 (EM)</string>
+    <string name="tool_fund_open_fund_rank_em">开放式基金排名 (EM)</string>
+    <string name="tool_fund_individual_basic_info_xq">基金基本信息 (XQ)</string>
+    <string name="tool_fund_individual_achievement_xq">基金业绩 (XQ)</string>
+    <string name="tool_fund_individual_analysis_xq">基金分析 (XQ)</string>
+    <string name="tool_fund_individual_profit_probability_xq">基金盈利概率 (XQ)</string>
+    <string name="tool_fund_individual_detail_info_xq">基金详细信息 (XQ)</string>
+    <string name="tool_fund_individual_detail_hold_xq">基金详细持仓 (XQ)</string>
+    <string name="tool_stock_individual_info_em">个股信息 (EM)</string>
+    <string name="tool_stock_individual_spot_xq">个股行情 (XQ)</string>
+    <string name="tool_stock_zh_a_hist">A股历史行情</string>
+    <string name="tool_stock_individual_fund_flow">个股资金流向</string>
+    <string name="tool_stock_market_fund_flow">大盘资金流向</string>
+    <string name="tool_stock_sector_fund_flow_rank">板块资金流向排名</string>
+    <string name="tool_stock_sector_fund_flow_summary">板块资金流向汇总</string>
+    <string name="tool_stock_sector_fund_flow_hist">板块资金流向历史</string>
+    <string name="tool_stock_concept_fund_flow_hist">概念板块资金流向历史</string>
+    <string name="tool_stock_board_industry_spot_em">行业板块行情 (EM)</string>
+    <string name="tool_stock_board_concept_spot_em">概念板块行情 (EM)</string>
+    <string name="tool_stock_board_industry_name_em">行业板块名称 (EM)</string>
+    <string name="tool_stock_board_concept_name_em">概念板块名称 (EM)</string>
+    <string name="tool_stock_board_concept_hist_em">概念板块历史 (EM)</string>
+    <string name="tool_stock_board_concept_cons_em">概念板块成分 (EM)</string>
+    <string name="tool_stock_sector_spot">板块行情 (Sina)</string>
+    <string name="tool_stock_sector_detail">板块详情 (Sina)</string>
+    <string name="tool_stock_intraday_em">个股分时 (EM)</string>
+    <string name="tool_stock_intraday_sina">个股分时 (Sina)</string>
+    <string name="tool_trend_indicator">趋势指标</string>
+    <string name="tool_oscillator_indicator">振荡指标</string>
+    <string name="tool_volume_indicator">成交量指标</string>
+    <string name="tool_momentum_indicator">动量指标</string>
+    <string name="tool_directional_indicator">方向指标</string>
+    <string name="tool_energy_indicator">能量指标</string>
+    <string name="tool_fund_performance">基金绩效</string>
+    <string name="tool_fund_vs_benchmark">基金对比基准</string>
+    <string name="tool_portfolio_add">添加持仓</string>
+    <string name="tool_portfolio_update">更新持仓</string>
+    <string name="tool_portfolio_remove">删除持仓</string>
+    <string name="tool_portfolio_list">列出持仓</string>
+    <string name="tool_portfolio_summary">持仓摘要</string>
+    <string name="tool_portfolio_analyze_all">分析全部持仓</string>
 </resources>

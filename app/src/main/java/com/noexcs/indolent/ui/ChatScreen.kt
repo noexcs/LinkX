@@ -3,6 +3,7 @@ package com.noexcs.indolent.ui
 import kotlin.math.roundToInt
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -17,19 +18,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -53,6 +54,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumTopAppBar
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -64,9 +66,11 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -76,6 +80,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -87,6 +92,7 @@ import com.noexcs.indolent.R
 import com.noexcs.indolent.AgentViewModel
 import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.agent.MessageRole
+import com.noexcs.indolent.agent.tools.interact.ContentDisplayManager
 import com.noexcs.indolent.data.MessageViewModel
 import kotlinx.coroutines.launch
 
@@ -160,7 +166,7 @@ private fun ChatContent(
     val error by viewModel.error
     val tokenUsage by viewModel.tokenUsage
     var input by remember { mutableStateOf("") }
-    val listState = rememberLazyListState()
+    val scrollState = rememberScrollState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -168,11 +174,29 @@ private fun ChatContent(
 
     LaunchedEffect(refreshTrigger) { /* trigger recomposition */ }
 
-    // Scroll to bottom on new messages or streaming content changes
-    val lastContent = messages.lastOrNull()?.content?.value
-    LaunchedEffect(messages.size, lastContent) {
-        if (messages.isNotEmpty()) {
-            listState.animateScrollToItem(0)
+    // Track whether user has manually scrolled away from bottom
+    var userScrolledUp by remember { mutableStateOf(false) }
+
+    // New message → auto-scroll to bottom if user hasn't scrolled up
+    LaunchedEffect(messages.size) {
+        if (!userScrolledUp && messages.isNotEmpty()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
+
+    // Detect when user stops scrolling — check if they scrolled away from bottom
+    LaunchedEffect(scrollState.isScrollInProgress) {
+        if (!scrollState.isScrollInProgress && scrollState.maxValue > 0) {
+            userScrolledUp = scrollState.value < scrollState.maxValue - 100
+        }
+    }
+
+    // Detect IME visibility change → auto-scroll to bottom
+    val density = LocalDensity.current
+    val imeVisible = WindowInsets.ime.getBottom(density) > 0
+    LaunchedEffect(imeVisible) {
+        if (imeVisible && !userScrolledUp && messages.isNotEmpty()) {
+            scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
 
@@ -239,33 +263,38 @@ private fun ChatContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .consumeWindowInsets(padding)
                 .imePadding()
                 .background(MaterialTheme.colorScheme.surface)
         ) {
             // ── Messages ──────────────────────────────────────────────────
-            LazyColumn(
-                state = listState,
-                reverseLayout = true,
+            Column(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                if (isLoading) {
-                    item { ThinkingIndicator() }
-                }
-
-                itemsIndexed(
-                    messages.asReversed(),
-                    key = { _, message -> message.id }
-                ) { _, message ->
-                    MessageBubble(message)
-                }
-
                 if (messages.isEmpty() && !isLoading) {
-                    item { EmptyState() }
+                    EmptyState()
+                }
+
+                messages.forEach { message ->
+                    key(message.id) {
+                        AnimatedVisibility(
+                            visible = true,
+                            enter = fadeIn(tween(300)),
+                        ) {
+                            MessageBubble(
+                                message = message,
+                                contentDisplayManager = viewModel.contentDisplayManager,
+                            )
+                        }
+                    }
+                }
+
+                if (isLoading) {
+                    ThinkingIndicator()
                 }
             }
 
@@ -312,9 +341,22 @@ private fun ChatContent(
                     if (input.isNotBlank()) {
                         viewModel.sendMessage(input.trim())
                         input = ""
-                        scope.launch { listState.animateScrollToItem(0) }
+                        scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
                     }
                 }
+            )
+        }
+    }
+
+    // ── Display Content BottomSheet ───────────────────────────────────────
+    val displayContent by viewModel.contentDisplayManager.currentContent
+    if (displayContent != null) {
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.contentDisplayManager.dismiss() },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            ContentDisplaySheet(
+                content = displayContent!!,
             )
         }
     }
@@ -493,15 +535,15 @@ private fun ThinkingBubble(content: String) {
     var expanded by remember { mutableStateOf(false) }
     val surfaceColor = MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f)
 
-    // Unified Surface — body show/hide without height animation to avoid
-    // reverse-layout expansion direction issues. Scale+fade for visual polish.
+    // Downward expansion — natural without reverseLayout
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = surfaceColor,
         onClick = { expanded = !expanded },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .animateContentSize(tween(300)),
     ) {
         Column {
             Row(
@@ -542,23 +584,17 @@ private fun ThinkingBubble(content: String) {
                 )
             }
 
-            AnimatedVisibility(
-                visible = expanded,
-                enter = expandVertically(tween(200)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(150)) + fadeOut(tween(150)),
-            ) {
-                Column {
-                    HorizontalDivider(
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
-                    MarkdownContent(
-                        content = content,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                    )
-                }
+            if (expanded) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                MarkdownContent(
+                    content = content,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                )
             }
         }
     }
@@ -567,32 +603,37 @@ private fun ThinkingBubble(content: String) {
 // ─── Tool Call Bubble ──────────────────────────────────────────────────────────
 
 @Composable
-private fun ToolCallBubble(content: String) {
+private fun ToolCallBubble(
+    content: String,
+    displayContentId: String?,
+    contentDisplayManager: ContentDisplayManager,
+) {
     var expanded by remember { mutableStateOf(false) }
     val lines = content.lineSequence().toList()
     val rawFirstLine = lines.firstOrNull() ?: content
     val toolName = rawFirstLine.removePrefix("🔧 ")
     val body = lines.drop(1).joinToString("\n")
     val hasDetail = body.isNotBlank()
+    val canReopen = displayContentId != null
 
     val surfaceColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
     val borderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
 
-    // Unified Surface — body show/hide without height animation to avoid
-    // reverse-layout expansion direction issues.
+    // Downward expansion — natural without reverseLayout
     Surface(
         shape = RoundedCornerShape(20.dp),
         color = surfaceColor,
         onClick = { if (hasDetail) expanded = !expanded },
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 2.dp),
+            .padding(horizontal = 4.dp, vertical = 2.dp)
+            .animateContentSize(tween(300)),
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                    .padding(start = 14.dp, end = 8.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -626,26 +667,36 @@ private fun ToolCallBubble(content: String) {
                 }
             }
 
-            AnimatedVisibility(
-                visible = expanded && hasDetail,
-                enter = expandVertically(tween(200)) + fadeIn(tween(200)),
-                exit = shrinkVertically(tween(150)) + fadeOut(tween(150)),
-            ) {
-                Column {
-                    HorizontalDivider(
-                        color = borderColor,
-                        modifier = Modifier.padding(horizontal = 16.dp),
-                    )
+            if (canReopen) {
+                Surface(
+                    onClick = { contentDisplayManager.show(displayContentId!!) },
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
+                ) {
                     Text(
-                        text = body.trimEnd(),
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontFamily = FontFamily.Monospace,
-                            lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                        text = "View content",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     )
                 }
+            }
+
+            if (expanded && hasDetail) {
+                HorizontalDivider(
+                    color = borderColor,
+                    modifier = Modifier.padding(horizontal = 16.dp),
+                )
+                Text(
+                    text = body.trimEnd(),
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontFamily = FontFamily.Monospace,
+                        lineHeight = MaterialTheme.typography.bodySmall.lineHeight,
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                )
             }
         }
     }
@@ -654,13 +705,17 @@ private fun ToolCallBubble(content: String) {
 // ─── Message Bubbles ───────────────────────────────────────────────────────────
 
 @Composable
-private fun MessageBubble(message: MessageViewModel) {
+private fun MessageBubble(message: MessageViewModel, contentDisplayManager: ContentDisplayManager) {
     when (message.role) {
         MessageRole.User -> UserBubble(message.content.value)
         MessageRole.Assistant -> AssistantBubble(message.content.value)
         MessageRole.System -> AssistantBubble(message.content.value)
         MessageRole.Thinking -> ThinkingBubble(message.content.value)
-        MessageRole.ToolInfo -> ToolCallBubble(message.content.value)
+        MessageRole.ToolInfo -> ToolCallBubble(
+            content = message.content.value,
+            displayContentId = message.displayContentId,
+            contentDisplayManager = contentDisplayManager,
+        )
     }
 }
 

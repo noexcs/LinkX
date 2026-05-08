@@ -158,6 +158,8 @@ dependencies {
     implementation(libs.multiplatform.markdown.m3)
     implementation(libs.multiplatform.markdown.code)
     implementation(libs.multiplatform.markdown.coil3)
+    // Chrome Custom Tabs
+    implementation("androidx.browser:browser:1.8.0")
 
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlin:kotlin-test")

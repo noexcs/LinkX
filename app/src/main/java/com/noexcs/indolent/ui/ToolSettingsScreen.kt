@@ -3,6 +3,8 @@ package com.noexcs.indolent.ui
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -43,6 +45,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -52,11 +55,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.core.content.ContextCompat
-import androidx.documentfile.provider.DocumentFile
 import com.noexcs.indolent.R
+import com.noexcs.indolent.agent.tools.filesystem.FsUtils
+import com.noexcs.indolent.agent.tools.ToolGroup
+import com.noexcs.indolent.agent.tools.ToolRegistry
 import com.noexcs.indolent.data.SettingsManager
 import kotlinx.coroutines.launch
 
@@ -79,19 +87,42 @@ fun ToolSettingsScreen(
     var sensorToolsEnabled by remember { mutableStateOf(settingsManager.sensorToolsEnabled) }
     var settingToolsEnabled by remember { mutableStateOf(settingsManager.settingToolsEnabled) }
     var systemInfoToolsEnabled by remember { mutableStateOf(settingsManager.systemInfoToolsEnabled) }
-    var safRoots by remember { mutableStateOf(settingsManager.safRoots) }
     var hasUnsavedChanges by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
     val termuxPermission = "com.termux.permission.RUN_COMMAND"
     var hasTermuxPermission by remember { mutableStateOf(false) }
+    var hasAllFilesAccess by remember { mutableStateOf(FsUtils.hasAllFilesAccess(context)) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val savedMsg = stringResource(R.string.settings_saved)
+
+    // Per-tool enabled states, initialized from persistent storage
+    var toolEnabledStates by remember {
+        mutableStateOf(
+            ToolRegistry.allTools.associate { it.name to settingsManager.isToolEnabled(it.name) }
+        )
+    }
+
+    // Group tools for the UI
+    val toolsByGroup = remember {
+        ToolRegistry.allTools.groupBy { it.group }
+    }
 
     LaunchedEffect(Unit) {
         hasTermuxPermission = ContextCompat.checkSelfPermission(
             context, termuxPermission
         ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasAllFilesAccess = FsUtils.hasAllFilesAccess(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -100,19 +131,6 @@ fun ToolSettingsScreen(
         hasTermuxPermission = granted
         if (!granted) {
             Toast.makeText(context, "RUN_COMMAND permission is required for Termux tools.", Toast.LENGTH_LONG).show()
-        }
-    }
-
-    val safTreeLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocumentTree()
-    ) { uri: Uri? ->
-        if (uri != null) {
-            context.contentResolver.takePersistableUriPermission(
-                uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-            )
-            safRoots = safRoots + uri.toString()
-            hasUnsavedChanges = true
         }
     }
 
@@ -133,7 +151,9 @@ fun ToolSettingsScreen(
         settingsManager.sensorToolsEnabled = sensorToolsEnabled
         settingsManager.settingToolsEnabled = settingToolsEnabled
         settingsManager.systemInfoToolsEnabled = systemInfoToolsEnabled
-        settingsManager.safRoots = safRoots
+        toolEnabledStates.forEach { (name, enabled) ->
+            settingsManager.setToolEnabled(name, enabled)
+        }
         hasUnsavedChanges = false
         scope.launch {
             snackbarHostState.showSnackbar(
@@ -191,186 +211,226 @@ fun ToolSettingsScreen(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            SectionCard(
+            // Termux — special: has permission UI
+            ExpandableToolGroupCard(
                 title = stringResource(R.string.section_termux_tools),
-                subtitle = stringResource(R.string.section_termux_tools_subtitle)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
+                subtitle = stringResource(R.string.section_termux_tools_subtitle),
+                groupEnabled = termuxToolsEnabled,
+                onGroupToggle = { termuxToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.TERMUX] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+                extraContent = {
+                    if (!hasTermuxPermission) {
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            text = if (termuxToolsEnabled) stringResource(R.string.tool_switch_enabled)
-                                   else stringResource(R.string.tool_switch_disabled),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (termuxToolsEnabled) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = if (hasTermuxPermission) "RUN_COMMAND permission granted"
-                                   else "RUN_COMMAND permission not granted",
+                            text = "RUN_COMMAND permission not granted",
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (hasTermuxPermission) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.error
+                            color = MaterialTheme.colorScheme.error
                         )
-                    }
-                    Switch(checked = termuxToolsEnabled, onCheckedChange = { termuxToolsEnabled = it; markChanged() })
-                }
-                if (!hasTermuxPermission) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Button(onClick = { permissionLauncher.launch(termuxPermission) }) {
-                        Text(stringResource(R.string.grant_permission))
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Button(onClick = { permissionLauncher.launch(termuxPermission) }) {
+                            Text(stringResource(R.string.grant_permission))
+                        }
                     }
                 }
-            }
+            )
 
-            SectionCard(
+            // Fund
+            ExpandableToolGroupCard(
                 title = stringResource(R.string.section_fund_tools),
-                subtitle = stringResource(R.string.section_fund_tools_subtitle)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(
-                            text = if (fundToolsEnabled) stringResource(R.string.tool_switch_enabled)
-                                   else stringResource(R.string.tool_switch_disabled),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (fundToolsEnabled) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.height(2.dp))
-                        Text(
-                            text = stringResource(R.string.section_fund_tools_subtitle),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Switch(checked = fundToolsEnabled, onCheckedChange = { fundToolsEnabled = it; markChanged() })
-                }
-            }
+                subtitle = stringResource(R.string.section_fund_tools_subtitle),
+                groupEnabled = fundToolsEnabled,
+                onGroupToggle = { fundToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.FUND] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
 
-            ToolToggleCard(
+            // Common
+            ExpandableToolGroupCard(
                 title = stringResource(R.string.section_common_tools),
                 subtitle = stringResource(R.string.section_common_tools_subtitle),
-                enabled = commonToolsEnabled,
-                onToggle = { commonToolsEnabled = it; markChanged() }
+                groupEnabled = commonToolsEnabled,
+                onGroupToggle = { commonToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.COMMON] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
             )
 
-            ToolToggleCard(
+            // Conditional
+            ExpandableToolGroupCard(
                 title = stringResource(R.string.section_conditional_tools),
                 subtitle = stringResource(R.string.section_conditional_tools_subtitle),
-                enabled = conditionalToolsEnabled,
-                onToggle = { conditionalToolsEnabled = it; markChanged() }
+                groupEnabled = conditionalToolsEnabled,
+                onGroupToggle = { conditionalToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.CONDITIONAL] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
             )
 
-            ToolToggleCard(
+            // Filesystem
+            ExpandableToolGroupCard(
                 title = stringResource(R.string.section_filesystem_tools),
                 subtitle = stringResource(R.string.section_filesystem_tools_subtitle),
-                enabled = filesystemToolsEnabled,
-                onToggle = { filesystemToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_interact_tools),
-                subtitle = stringResource(R.string.section_interact_tools_subtitle),
-                enabled = interactToolsEnabled,
-                onToggle = { interactToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_notification_tools),
-                subtitle = stringResource(R.string.section_notification_tools_subtitle),
-                enabled = notificationToolsEnabled,
-                onToggle = { notificationToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_scheduled_task_tools),
-                subtitle = stringResource(R.string.section_scheduled_task_tools_subtitle),
-                enabled = scheduledTaskToolsEnabled,
-                onToggle = { scheduledTaskToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_self_tools),
-                subtitle = stringResource(R.string.section_self_tools_subtitle),
-                enabled = selfToolsEnabled,
-                onToggle = { selfToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_sensor_tools),
-                subtitle = stringResource(R.string.section_sensor_tools_subtitle),
-                enabled = sensorToolsEnabled,
-                onToggle = { sensorToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_setting_tools),
-                subtitle = stringResource(R.string.section_setting_tools_subtitle),
-                enabled = settingToolsEnabled,
-                onToggle = { settingToolsEnabled = it; markChanged() }
-            )
-
-            ToolToggleCard(
-                title = stringResource(R.string.section_system_info_tools),
-                subtitle = stringResource(R.string.section_system_info_tools_subtitle),
-                enabled = systemInfoToolsEnabled,
-                onToggle = { systemInfoToolsEnabled = it; markChanged() }
-            )
-
-            SectionCard(
-                title = stringResource(R.string.section_storage_access),
-                subtitle = stringResource(R.string.section_storage_access_subtitle)
-            ) {
-                if (safRoots.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.no_authorized_directories),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                } else {
-                    safRoots.forEach { uriString ->
-                        val uri = Uri.parse(uriString)
-                        val name = try {
-                            DocumentFile.fromTreeUri(context, uri)?.name ?: uriString
-                        } catch (_: Exception) {
-                            uriString
-                        }
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
+                groupEnabled = filesystemToolsEnabled,
+                onGroupToggle = { filesystemToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.FILESYSTEM] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+                extraContent = {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                modifier = Modifier.weight(1f)
+                                text = stringResource(R.string.all_files_access_status),
+                                style = MaterialTheme.typography.bodyMedium
                             )
-                            IconButton(onClick = {
-                                safRoots = safRoots - uriString
-                                markChanged()
+                            Text(
+                                text = if (hasAllFilesAccess)
+                                    stringResource(R.string.all_files_access_granted)
+                                else
+                                    stringResource(R.string.all_files_access_not_granted),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = if (hasAllFilesAccess)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.error
+                            )
+                        }
+                        if (!hasAllFilesAccess && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                            Button(onClick = {
+                                try {
+                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                    intent.data = Uri.parse("package:${context.packageName}")
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    Toast.makeText(context, "This device does not support the All Files Access settings page.", Toast.LENGTH_LONG).show()
+                                }
                             }) {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.remove_directory),
-                                    modifier = Modifier.size(18.dp)
-                                )
+                                Text(stringResource(R.string.grant_all_files_access))
                             }
                         }
                     }
                 }
-                Spacer(modifier = Modifier.height(8.dp))
-                Button(onClick = { safTreeLauncher.launch(null) }) {
-                    Text(stringResource(R.string.add_directory))
-                }
-            }
+            )
+
+            // Interact
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_interact_tools),
+                subtitle = stringResource(R.string.section_interact_tools_subtitle),
+                groupEnabled = interactToolsEnabled,
+                onGroupToggle = { interactToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.INTERACT] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // Notification
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_notification_tools),
+                subtitle = stringResource(R.string.section_notification_tools_subtitle),
+                groupEnabled = notificationToolsEnabled,
+                onGroupToggle = { notificationToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.NOTIFICATION] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // Scheduled Task
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_scheduled_task_tools),
+                subtitle = stringResource(R.string.section_scheduled_task_tools_subtitle),
+                groupEnabled = scheduledTaskToolsEnabled,
+                onGroupToggle = { scheduledTaskToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.SCHEDULED_TASK] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // Self
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_self_tools),
+                subtitle = stringResource(R.string.section_self_tools_subtitle),
+                groupEnabled = selfToolsEnabled,
+                onGroupToggle = { selfToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.SELF] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // Sensor
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_sensor_tools),
+                subtitle = stringResource(R.string.section_sensor_tools_subtitle),
+                groupEnabled = sensorToolsEnabled,
+                onGroupToggle = { sensorToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.SENSOR] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // Setting
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_setting_tools),
+                subtitle = stringResource(R.string.section_setting_tools_subtitle),
+                groupEnabled = settingToolsEnabled,
+                onGroupToggle = { settingToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.SETTING] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // System Info
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_system_info_tools),
+                subtitle = stringResource(R.string.section_system_info_tools_subtitle),
+                groupEnabled = systemInfoToolsEnabled,
+                onGroupToggle = { systemInfoToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.SYSTEM_INFO] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
         }

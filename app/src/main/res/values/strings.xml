@@ -95,6 +95,10 @@
     <string name="section_conditional_tools_subtitle">Allow AI to create, edit, delete, and list conditional triggers</string>
     <string name="section_filesystem_tools">File System Tools</string>
     <string name="section_filesystem_tools_subtitle">Allow AI to read, write, list, and delete files in authorized directories</string>
+    <string name="all_files_access_status">All Files Access</string>
+    <string name="all_files_access_granted">Granted — full filesystem access enabled</string>
+    <string name="all_files_access_not_granted">Not granted — only app directories are accessible</string>
+    <string name="grant_all_files_access">Grant All Files Access</string>
     <string name="section_interact_tools">Interaction Tools</string>
     <string name="section_interact_tools_subtitle">Allow AI to ask the user questions during execution</string>
     <string name="section_notification_tools">Notification Tools</string>
@@ -168,11 +172,7 @@
     <string name="heartbeat_history_button">History</string>
 
     <!-- Storage Access -->
-    <string name="section_storage_access">Storage Access</string>
-    <string name="section_storage_access_subtitle">Grant access to directories on your device. The AI can then read, write, list, and delete files in these directories.</string>
-    <string name="add_directory">Add Directory</string>
-    <string name="no_authorized_directories">No directories authorized. Tap \"Add Directory\" to grant access.</string>
-    <string name="remove_directory">Remove directory</string>
+
 
     <!-- Conditional Triggers -->
     <string name="section_conditional_trigger">Conditional Triggers</string>
@@ -200,7 +200,7 @@
     <string name="section_api_settings_subtitle">Configure API provider, key, model, and reasoning</string>
     <string name="section_tool_settings_subtitle">Manage tool groups, permissions, and storage access</string>
     <string name="section_heartbeat_settings_subtitle">Configure periodic AI wake-up and conditional triggers</string>
-    <string name="section_usage_stats_subtitle">View API usage and token consumption</string>
+    <string name="section_usage_stats_subtitle">Token consumption statistics</string>
     <string name="section_appearance_subtitle">Customize theme and display options</string>
     <string name="section_about_subtitle">App version, licenses, and information</string>
 
@@ -219,6 +219,107 @@
     <!-- Usage Stats -->
     <string name="section_token_usage">Token Usage</string>
     <string name="section_token_usage_subtitle">API token consumption statistics</string>
-    <string name="section_api_calls">API Calls</string>
-    <string name="section_api_calls_subtitle">Request count and success rate</string>
+    <string name="section_user_balance">User Balance</string>
+    <string name="section_user_balance_subtitle">DeepSeek account balance</string>
+
+    <!-- Individual tool names -->
+    <string name="tool_execute_command">Execute Command</string>
+    <string name="tool_read_file">Read File (Termux)</string>
+    <string name="tool_write_file">Write File (Termux)</string>
+    <string name="tool_show_dialog">Show Dialog</string>
+    <string name="tool_update_memory">Update Memory</string>
+    <string name="tool_send_intent">Send Intent</string>
+    <string name="tool_clipboard">Clipboard</string>
+    <string name="tool_calendar">Calendar</string>
+    <string name="tool_get_current_time">Get Current Time</string>
+    <string name="tool_http_request">HTTP Request</string>
+    <string name="tool_create_conditional_trigger">Create Conditional Trigger</string>
+    <string name="tool_list_conditional_triggers">List Conditional Triggers</string>
+    <string name="tool_edit_conditional_trigger">Edit Conditional Trigger</string>
+    <string name="tool_delete_conditional_trigger">Delete Conditional Trigger</string>
+    <string name="tool_list_conditional_trigger_history">List Trigger History</string>
+    <string name="tool_fs_read">Read File</string>
+    <string name="tool_fs_write">Write File</string>
+    <string name="tool_fs_list">List Files</string>
+    <string name="tool_fs_delete">Delete File</string>
+    <string name="tool_fs_find">Find Files</string>
+    <string name="tool_fs_storage_info">Storage Info</string>
+    <string name="tool_ask_user">Ask User</string>
+    <string name="tool_display_content">Display Content</string>
+    <string name="tool_create_notification">Create Notification</string>
+    <string name="tool_update_notification">Update Notification</string>
+    <string name="tool_dismiss_notification">Dismiss Notification</string>
+    <string name="tool_query_notification">Query Notification</string>
+    <string name="tool_manage_notification_channel">Manage Notification Channel</string>
+    <string name="tool_list_active_notifications">List Active Notifications</string>
+    <string name="tool_open_notification_access_settings">Open Notification Settings</string>
+    <string name="tool_create_scheduled_task">Create Scheduled Task</string>
+    <string name="tool_list_scheduled_tasks">List Scheduled Tasks</string>
+    <string name="tool_edit_scheduled_task">Edit Scheduled Task</string>
+    <string name="tool_delete_scheduled_task">Delete Scheduled Task</string>
+    <string name="tool_query_logs">Query Logs</string>
+    <string name="tool_get_sensor_data">Get Sensor Data</string>
+    <string name="tool_audio_control">Audio Control</string>
+    <string name="tool_system_setting">System Setting</string>
+    <string name="tool_app_setting">App Setting</string>
+    <string name="tool_get_app_info">Get App Info</string>
+    <string name="tool_get_battery_info">Get Battery Info</string>
+    <string name="tool_get_network_status">Get Network Status</string>
+    <string name="tool_get_current_screen">Get Current Screen</string>
+    <string name="tool_query_app_activities">Query App Activities</string>
+    <string name="tool_get_cpu_info">Get CPU Info</string>
+    <string name="tool_get_memory_info">Get Memory Info</string>
+    <string name="tool_get_process_info">Get Process Info</string>
+    <!-- Fund tools -->
+    <string name="tool_fund_info_index_em">Fund Index Info (EM)</string>
+    <string name="tool_fund_open_fund_info_em">Open-End Fund Info (EM)</string>
+    <string name="tool_fund_etf_fund_info_em">ETF Fund Info (EM)</string>
+    <string name="tool_fund_value_estimate_em">Fund Value Estimate (EM)</string>
+    <string name="tool_fund_value_estimation_em_rank">Fund Value Estimate Rank (EM)</string>
+    <string name="tool_fund_manager_em">Fund Manager (EM)</string>
+    <string name="tool_fund_overview_em">Fund Overview (EM)</string>
+    <string name="tool_fund_portfolio_hold_em">Fund Portfolio Holdings (EM)</string>
+    <string name="tool_fund_portfolio_bond_hold_em">Fund Portfolio Bonds (EM)</string>
+    <string name="tool_fund_portfolio_industry_allocation_em">Fund Industry Allocation (EM)</string>
+    <string name="tool_fund_portfolio_change_em">Fund Portfolio Change (EM)</string>
+    <string name="tool_fund_open_fund_rank_em">Open-End Fund Rank (EM)</string>
+    <string name="tool_fund_individual_basic_info_xq">Fund Basic Info (XQ)</string>
+    <string name="tool_fund_individual_achievement_xq">Fund Achievement (XQ)</string>
+    <string name="tool_fund_individual_analysis_xq">Fund Analysis (XQ)</string>
+    <string name="tool_fund_individual_profit_probability_xq">Fund Profit Probability (XQ)</string>
+    <string name="tool_fund_individual_detail_info_xq">Fund Detail Info (XQ)</string>
+    <string name="tool_fund_individual_detail_hold_xq">Fund Detail Holdings (XQ)</string>
+    <string name="tool_stock_individual_info_em">Stock Individual Info (EM)</string>
+    <string name="tool_stock_individual_spot_xq">Stock Spot (XQ)</string>
+    <string name="tool_stock_zh_a_hist">Stock A-Share History</string>
+    <string name="tool_stock_individual_fund_flow">Stock Individual Fund Flow</string>
+    <string name="tool_stock_market_fund_flow">Stock Market Fund Flow</string>
+    <string name="tool_stock_sector_fund_flow_rank">Stock Sector Fund Flow Rank</string>
+    <string name="tool_stock_sector_fund_flow_summary">Stock Sector Fund Flow Summary</string>
+    <string name="tool_stock_sector_fund_flow_hist">Stock Sector Fund Flow History</string>
+    <string name="tool_stock_concept_fund_flow_hist">Stock Concept Fund Flow History</string>
+    <string name="tool_stock_board_industry_spot_em">Industry Board Spot (EM)</string>
+    <string name="tool_stock_board_concept_spot_em">Concept Board Spot (EM)</string>
+    <string name="tool_stock_board_industry_name_em">Industry Board Names (EM)</string>
+    <string name="tool_stock_board_concept_name_em">Concept Board Names (EM)</string>
+    <string name="tool_stock_board_concept_hist_em">Concept Board History (EM)</string>
+    <string name="tool_stock_board_concept_cons_em">Concept Board Constituents (EM)</string>
+    <string name="tool_stock_sector_spot">Sector Spot (Sina)</string>
+    <string name="tool_stock_sector_detail">Sector Detail (Sina)</string>
+    <string name="tool_stock_intraday_em">Stock Intraday (EM)</string>
+    <string name="tool_stock_intraday_sina">Stock Intraday (Sina)</string>
+    <string name="tool_trend_indicator">Trend Indicator</string>
+    <string name="tool_oscillator_indicator">Oscillator Indicator</string>
+    <string name="tool_volume_indicator">Volume Indicator</string>
+    <string name="tool_momentum_indicator">Momentum Indicator</string>
+    <string name="tool_directional_indicator">Directional Indicator</string>
+    <string name="tool_energy_indicator">Energy Indicator</string>
+    <string name="tool_fund_performance">Fund Performance</string>
+    <string name="tool_fund_vs_benchmark">Fund vs Benchmark</string>
+    <string name="tool_portfolio_add">Portfolio Add</string>
+    <string name="tool_portfolio_update">Portfolio Update</string>
+    <string name="tool_portfolio_remove">Portfolio Remove</string>
+    <string name="tool_portfolio_list">Portfolio List</string>
+    <string name="tool_portfolio_summary">Portfolio Summary</string>
+    <string name="tool_portfolio_analyze_all">Portfolio Analyze All</string>
 </resources>

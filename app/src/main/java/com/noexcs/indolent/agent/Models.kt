@@ -12,7 +12,8 @@ enum class MessageRole { User, Assistant, System, Thinking, ToolInfo }
 data class ChatMessage(
     val role: MessageRole,
     val content: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val timestamp: Long = System.currentTimeMillis(),
+    val displayContentJson: String? = null
 )
 
 @Serializable

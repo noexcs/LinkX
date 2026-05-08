@@ -144,6 +144,11 @@ The goal: AI calling `query_logs(level="I", tag="TaskScheduler", since="1h")` sh
 ## Code Style
 
 - No comments explaining WHAT code does (well-named identifiers handle that). Comment WHY only when non-obvious.
+- **Compose `clickable` placement**: When a card contains both a `Switch` (or other interactive child) and a card-level tap action, always put `clickable` on the outermost `ElevatedCard` modifier, never on an inner `Row`. Precede it with `.clip(shape)` so the ripple respects the card's rounded corners.
 - No half-finished implementations. No premature abstractions.
 - Prefer editing existing files over creating new ones.
 - Follow existing patterns in the codebase; don't introduce new frameworks or libraries without discussion.
+
+## Validation
+
+- **All new code must be tested with `gradlew assembleRelease` .**

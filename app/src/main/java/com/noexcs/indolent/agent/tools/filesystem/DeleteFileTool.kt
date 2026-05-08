@@ -13,9 +13,8 @@ class DeleteFileTool(private val context: Context) : AgentTool {
     override val description = """
         Delete a file or directory on the device.
 
-        Supports:
-        - Regular paths within app-accessible directories.
-        - SAF content URIs (content://...) if the user has granted document tree access.
+        With "All Files Access" granted, any file/directory on the device can be deleted.
+        Without it, only app-sandboxed directories are allowed.
 
         Set recursive=true to delete a non-empty directory.
         Deleting a non-existent path returns a warning, not an error.

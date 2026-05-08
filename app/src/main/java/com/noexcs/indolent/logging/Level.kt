@@ -18,7 +18,7 @@ enum class Level(val priority: Int, val label: String) {
             "W", "WARN", "WARNING" -> W
             "E", "ERROR", "ERR" -> E
             "F", "FATAL" -> F
-            else -> null
+            else -> W
         }
     }
 }

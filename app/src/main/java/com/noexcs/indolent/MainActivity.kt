@@ -21,7 +21,7 @@ import androidx.compose.ui.platform.LocalContext
 import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.data.MemoryManager
 import com.noexcs.indolent.data.SettingsManager
-import com.noexcs.indolent.logging.Lumberjack
+
 import com.noexcs.indolent.task.heartbeat.HeartbeatScheduler
 import com.noexcs.indolent.task.scheduler.TaskScheduler
 import com.noexcs.indolent.ui.AboutScreen
@@ -65,7 +65,6 @@ class MainActivity : ComponentActivity() {
         if (settings.heartbeatEnabled) {
             HeartbeatScheduler(applicationContext).schedule()
         }
-        Lumberjack.init(cacheDir.resolve("logs"))
         enableEdgeToEdge()
         setContent {
             IndolentTheme {
@@ -187,6 +186,7 @@ private fun MainContent() {
                 onOpenConditionalTriggers = { currentScreen = Screen.ConditionalTriggers },
             )
             Screen.UsageStats -> UsageStatsScreen(
+                settingsManager = settingsManager,
                 onBack = { currentScreen = Screen.Settings },
             )
             Screen.Appearance -> AppearanceSettingsScreen(

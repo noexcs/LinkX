@@ -111,6 +111,14 @@ class SettingsManager(context: Context) {
         get() = prefs.getString("heartbeat_custom_prompt", "") ?: ""
         set(value) = prefs.edit { putString("heartbeat_custom_prompt", value) }
 
+    var cumulativePromptTokens: Long
+        get() = prefs.getLong("cumulative_prompt_tokens", 0L)
+        set(value) = prefs.edit { putLong("cumulative_prompt_tokens", value) }
+
+    var cumulativeCompletionTokens: Long
+        get() = prefs.getLong("cumulative_completion_tokens", 0L)
+        set(value) = prefs.edit { putLong("cumulative_completion_tokens", value) }
+
     var conditionMonitorEnabled: Boolean
         get() = prefs.getBoolean("condition_monitor_enabled", true)
         set(value) = prefs.edit { putBoolean("condition_monitor_enabled", value) }
@@ -119,9 +127,35 @@ class SettingsManager(context: Context) {
         get() = prefs.getInt("condition_monitor_interval_minutes", 2)
         set(value) = prefs.edit { putInt("condition_monitor_interval_minutes", value) }
 
-    var safRoots: Set<String>
-        get() = prefs.getStringSet("saf_roots", emptySet()) ?: emptySet()
-        set(value) = prefs.edit { putStringSet("saf_roots", value) }
+    fun isToolEnabled(toolName: String): Boolean =
+        prefs.getBoolean("tool_enabled_$toolName", true)
+
+    fun setToolEnabled(toolName: String, enabled: Boolean) {
+        prefs.edit { putBoolean("tool_enabled_$toolName", enabled) }
+    }
+
+    fun getToolSettingKeys(): Set<String> {
+        return prefs.all.keys
+            .filter { it.startsWith("tool_enabled_") }
+            .map { it.removePrefix("tool_enabled_") }
+            .toSet()
+    }
+
+    fun setRawString(key: String, value: String) {
+        prefs.edit { putString(key, value) }
+    }
+
+    fun setRawBoolean(key: String, value: Boolean) {
+        prefs.edit { putBoolean(key, value) }
+    }
+
+    fun setRawInt(key: String, value: Int) {
+        prefs.edit { putInt(key, value) }
+    }
+
+    fun setRawLong(key: String, value: Long) {
+        prefs.edit { putLong(key, value) }
+    }
 
     fun applyLocale(tag: String = language) {
         val localeManager = appContext.getSystemService(LocaleManager::class.java)

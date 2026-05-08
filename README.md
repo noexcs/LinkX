@@ -136,6 +136,32 @@ Finance tools require Chaquopy (embedded Python). The first use will automatical
 - **Chaquopy** — Embedded Python 3.12 runtime
 - **akshare** — Chinese financial data library
 
+## Future Enhancements
+
+### Tools
+
+- [ ] **Async tools**: Async tool calls for faster execution
+- [ ] **Tool describe tool**: short description for tool registry, detailed help for tool calls 
+- [ ] **MCP tools**: Support MCP protocol
+- [ ] **Self Setting tools**: Allow AI to modify app all settings
+- [ ] **Broadcast tools**: Broadcast messages to all active agent, including scheduled tasks, heartbeat, and condition triggered agent.
+- [ ] **clipboard tools**: Copy/Paste agent's own clipboard
+- [ ] **More tools**: FileSearch, FileEdit, WebSearch, FetchURL
+
+### Features
+
+- [ ] **Plan Mode**: Plan mode for long term tasks
+- [ ] **Skill Support**: Skill support
+- [ ] **Tools Management**: Tools management for different task agent
+- [ ] **Conversation Compact**: Conversation compact for better user experience
+- [ ] **Optimize Memory mechanism**: Optimize memory mechanism for better performance
+
+### Scheduled Task 
+
+- [ ] **Execute task immediately**: Execute task immediately without waiting for next scheduled time.
+- 
+
+
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.

@@ -13,9 +13,8 @@ class ReadFileTool(private val context: Context) : AgentTool {
     override val description = """
         Read the contents of a file on the device.
 
-        Supports two kinds of paths:
-        - Regular file paths within app-accessible directories (filesDir, cacheDir, externalFilesDir, etc.). Use ~/filename for files in the app's internal storage.
-        - SAF content URIs (content://...) if the user has granted access to a document tree.
+        With "All Files Access" granted, any path on the device is accessible (e.g. /storage/emulated/0/, /sdcard/).
+        Without it, only app-sandboxed directories are allowed. Use ~/filename for files in the app's internal storage.
 
         The tool detects binary files and warns instead of outputting garbage.
         Output is truncated if it exceeds max_bytes (default 100000).

@@ -13,9 +13,8 @@ class WriteFileTool(private val context: Context) : AgentTool {
     override val description = """
         Write content to a file on the device.
 
-        Supports two kinds of paths:
-        - Regular file paths within app-accessible directories. Use ~/filename for files in the app's internal storage.
-        - SAF content URIs (content://...) if the user has granted access to a document tree.
+        With "All Files Access" granted, any path on the device is writable (e.g. /storage/emulated/0/, /sdcard/).
+        Without it, only app-sandboxed directories are allowed. Use ~/filename for files in the app's internal storage.
 
         Parent directories are created automatically (unless create_dirs is set to false).
         Set append to true to add content to an existing file instead of overwriting.

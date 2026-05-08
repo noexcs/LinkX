@@ -200,31 +200,65 @@ class IntentTool(context: Context) : AgentTool {
             try {
                 context.startActivity(launchIntent)
                 buildString {
-                    appendLine("Activity launched successfully.")
-                    appendLine("Action: $normalizedAction")
-                    if (data.isNotEmpty()) appendLine("Data: $data")
-                    if (packageName.isNotEmpty()) appendLine("Package: $packageName")
-                    if (resolved != null) appendLine("Resolved to: ${resolved.packageName}/${resolved.className}")
-                    if (useChooser) appendLine("Chooser: shown")
+                    appendLine("success: true")
+                    appendLine("action: $normalizedAction")
+                    if (data.isNotEmpty()) appendLine("data: $data")
+                    if (type.isNotEmpty()) appendLine("type: $type")
+                    when {
+                        resolved != null -> {
+                            appendLine("packageName: ${resolved.packageName}")
+                            appendLine("activityName: ${resolved.className}")
+                        }
+                        packageName.isNotEmpty() -> {
+                            appendLine("packageName: $packageName")
+                            if (className.isNotEmpty()) appendLine("activityName: $className")
+                        }
+                    }
+                    if (useChooser) appendLine("chooser: shown (title=\"${chooserTitle.ifBlank { "Share" }}\")")
+                    if (flags.isNotEmpty()) appendLine("flags: $flags")
                 }
             } catch (e: ActivityNotFoundException) {
                 buildString {
-                    appendLine("Error: No application found to handle this intent.")
-                    appendLine("Action: $action")
-                    if (data.isNotEmpty()) appendLine("Data: $data")
+                    appendLine("success: false")
+                    appendLine("error: ActivityNotFoundException")
+                    appendLine("message: No application found to handle this intent.")
+                    appendLine("action: $normalizedAction")
+                    if (data.isNotEmpty()) appendLine("data: $data")
+                    if (type.isNotEmpty()) appendLine("type: $type")
+                    if (packageName.isNotEmpty()) appendLine("packageName: $packageName")
+                    if (className.isNotEmpty()) appendLine("activityName: $className")
                     appendLine()
                     appendLine("Suggestions:")
                     if (packageName.isNotEmpty()) appendLine("- Try removing packageName to use implicit resolution")
+                    if (className.isNotEmpty()) appendLine("- Verify className is correct for the target package")
                     if (!useChooser) appendLine("- Try useChooser=true to let the user pick an app")
                     appendLine("- Verify the action/data/type combination is correct")
+                }
+            } catch (e: SecurityException) {
+                Lumberjack.e("IntentTool", "SecurityException executing intent", e)
+                buildString {
+                    appendLine("success: false")
+                    appendLine("error: SecurityException")
+                    appendLine("message: ${e.message}")
+                    appendLine("action: $normalizedAction")
+                    if (packageName.isNotEmpty()) appendLine("packageName: $packageName")
+                    if (className.isNotEmpty()) appendLine("activityName: $className")
                 }
             }
         } catch (e: SecurityException) {
             Lumberjack.e("IntentTool", "SecurityException executing intent", e)
-            "Error: Permission denied. ${e.message}"
+            buildString {
+                appendLine("success: false")
+                appendLine("error: SecurityException")
+                appendLine("message: ${e.message}")
+            }
         } catch (e: Exception) {
             Lumberjack.e("IntentTool", "Error executing intent", e)
-            "Error executing intent: ${e.message}"
+            buildString {
+                appendLine("success: false")
+                appendLine("error: ${e.javaClass.simpleName}")
+                appendLine("message: ${e.message}")
+            }
         }
     }
 

@@ -20,6 +20,14 @@ object FsUtils {
         emptyList<File>() // placeholder, not used directly
     }
 
+    fun hasAllFilesAccess(context: Context): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            true // API < 30: WRITE_EXTERNAL_STORAGE covers it
+        }
+    }
+
     fun getAllowedRoots(context: Context): List<File> {
         val roots = mutableListOf<File>()
         // Internal app storage
@@ -28,10 +36,16 @@ object FsUtils {
         // External app storage
         context.getExternalFilesDir(null)?.let { roots.add(it) }
         context.externalCacheDir?.let { roots.add(it) }
-        // Environment roots (read-only info)
-        Environment.getExternalStorageDirectory()?.let { roots.add(it) }
         // Also allow the data/data directory (for Termux home etc)
         context.filesDir.parentFile?.let { roots.add(it) }
+
+        if (hasAllFilesAccess(context)) {
+            // Full external storage
+            Environment.getExternalStorageDirectory()?.let { roots.add(it) }
+            File("/storage/").takeIf { it.exists() }?.let { roots.add(it) }
+            // Root filesystem for /data/local/tmp, /sdcard, etc.
+            File("/").let { roots.add(it) }
+        }
         return roots
     }
 

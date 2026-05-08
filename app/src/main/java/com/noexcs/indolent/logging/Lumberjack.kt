@@ -10,6 +10,8 @@ object Lumberjack {
     private var fileWriter: LogFileWriter? = null
     private var minFileLevel: Level = Level.I
     private var initialized = false
+    private var logcatCapture: LogcatCapture? = null
+    private var capturingLogcat = false
 
     // ── Init ──────────────────────────────────────────────
 
@@ -34,6 +36,33 @@ object Lumberjack {
 
         i("Lumberjack", "Logger initialized. PID=${Process.myPid()}")
     }
+
+    // ── Logcat capture ───────────────────────────────────
+
+    fun startLogcatCapture() {
+        if (capturingLogcat) return
+        capturingLogcat = true
+
+        val capture = LogcatCapture { entry ->
+            buffer.append(entry)
+            if (entry.level.priority >= minFileLevel.priority) {
+                fileWriter?.enqueue(entry)
+            }
+        }
+        logcatCapture = capture
+        capture.start()
+        i("Lumberjack", "Logcat capture started")
+    }
+
+    fun stopLogcatCapture() {
+        if (!capturingLogcat) return
+        capturingLogcat = false
+        logcatCapture?.stop()
+        logcatCapture = null
+        i("Lumberjack", "Logcat capture stopped")
+    }
+
+    fun isLogcatCaptureActive(): Boolean = capturingLogcat
 
     // ── Log API ──────────────────────────────────────────
 
@@ -71,13 +100,15 @@ object Lumberjack {
     private fun log(level: Level, tag: String, message: String, throwable: Throwable?) {
         val entry = LogEntry.create(level, tag, message, throwable)
 
-        // Always write to in-memory buffer
-        buffer.append(entry)
-
-        // Write to file if level >= threshold
-        if (level.priority >= minFileLevel.priority) {
-            fileWriter?.enqueue(entry)
+        if (!capturingLogcat) {
+            // Write directly to buffer + file
+            buffer.append(entry)
+            if (level.priority >= minFileLevel.priority) {
+                fileWriter?.enqueue(entry)
+            }
         }
+        // When logcat capture is active, it reads from logcat and feeds buffer+file,
+        // so we skip direct writes to avoid duplicates.
 
         // Bridge to logcat
         val logMsg = if (throwable != null) "$message\n${Log.getStackTraceString(throwable)}" else message

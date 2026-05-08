@@ -89,6 +89,8 @@ import com.noexcs.indolent.agent.tools.setting.SystemSettingTool
 import com.noexcs.indolent.agent.tools.setting.AudioControlTool
 import com.noexcs.indolent.agent.tools.systeminfo.GetAppInfoTool
 import com.noexcs.indolent.agent.tools.interact.AskUserTool
+import com.noexcs.indolent.agent.tools.interact.ContentDisplayManager
+import com.noexcs.indolent.agent.tools.interact.DisplayContent
 import com.noexcs.indolent.agent.tools.common.IntentTool
 import com.noexcs.indolent.agent.tools.self.LogQueryTool
 import com.noexcs.indolent.agent.tools.common.GetCurrentTimeTool
@@ -97,10 +99,7 @@ import com.noexcs.indolent.agent.tools.scheduledTask.CreateScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.ListScheduledTasksTool
 import com.noexcs.indolent.agent.tools.scheduledTask.EditScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.DeleteScheduledTaskTool
-import com.noexcs.indolent.agent.tools.termux.TermuxDialogTool
 import com.noexcs.indolent.agent.tools.termux.TermuxExecuteCommandTool
-import com.noexcs.indolent.agent.tools.termux.TermuxReadFileTool
-import com.noexcs.indolent.agent.tools.termux.TermuxWriteFileTool
 import com.noexcs.indolent.agent.tools.common.SubagentTool
 import com.noexcs.indolent.agent.tools.conditional.CreateConditionalTriggerTool
 import com.noexcs.indolent.agent.tools.conditional.ListConditionalTriggersTool
@@ -114,6 +113,7 @@ import com.noexcs.indolent.data.MessageViewModel
 import com.noexcs.indolent.data.SettingsManager
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
+import kotlinx.serialization.json.Json
 import java.util.UUID
 
 class AgentViewModel(
@@ -124,14 +124,11 @@ class AgentViewModel(
 ) : ViewModel() {
 
     private val executor = TermuxExecutor(appContext.applicationContext)
+    val contentDisplayManager = ContentDisplayManager()
     val messages = mutableStateListOf<MessageViewModel>()
     val isLoading = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
     val tokenUsage = mutableStateOf("")
-
-    private var totalPromptTokens = 0
-    private var totalCompletionTokens = 0
-    private var tokenUsageUpdated = false
 
     var onConversationUpdated: (() -> Unit)? = null
     private var hasNotifiedFirstResponse = false
@@ -251,6 +248,10 @@ class AgentViewModel(
                                 .let { if (event.result.lines().size > 20) "$it\n…" else it }
                             toolMsgs[event.callId]?.let {
                                 it.content.value = "🔧 ${event.name}\n$argsStr\n$resultPreview"
+                                if (event.name == "display_content") {
+                                    val idMatch = Regex("Content ID: (\\S+)").find(event.result)
+                                    idMatch?.let { match -> it.displayContentId = match.groupValues[1] }
+                                }
                             }
                             toolMsgs.remove(event.callId)
                             toolArgsBuf.remove(event.callId)
@@ -260,11 +261,10 @@ class AgentViewModel(
                             error.value = event.message
                         }
                         is AgentEvent.Usage -> {
-                            totalPromptTokens = event.promptTokens
-                            totalCompletionTokens = event.completionTokens
-                            tokenUsageUpdated = true
-                            val total = totalPromptTokens + totalCompletionTokens
-                            tokenUsage.value = "Prompt: ${formatTokens(totalPromptTokens)} | Completion: ${formatTokens(totalCompletionTokens)} | Total: ${formatTokens(total)}"
+                            settingsManager.cumulativePromptTokens += event.promptTokens
+                            settingsManager.cumulativeCompletionTokens += event.completionTokens
+                            val total = event.promptTokens + event.completionTokens
+                            tokenUsage.value = "Prompt: ${formatTokens(event.promptTokens)} | Completion: ${formatTokens(event.completionTokens)} | Total: ${formatTokens(total)}"
                             Lumberjack.i("AgentViewModel", "Token usage: $tokenUsage")
                         }
                         is AgentEvent.Truncated -> {
@@ -277,8 +277,14 @@ class AgentViewModel(
                 } // withTimeout
 
                 // Save conversation to history
+                val json = Json { ignoreUnknownKeys = true }
                 val chatMessages = messages.map { msg ->
-                    ChatMessage(role = msg.role, content = msg.content.value)
+                    val displayJson = msg.displayContentId?.let { id ->
+                        contentDisplayManager.getStoredContent(id)?.let {
+                            json.encodeToString(DisplayContent.serializer(), it)
+                        }
+                    }
+                    ChatMessage(role = msg.role, content = msg.content.value, displayContentJson = displayJson)
                 }
                 fileChatHistoryProvider.store(sessionId, chatMessages)
 
@@ -319,7 +325,7 @@ class AgentViewModel(
     }
 
     fun buildTools(): List<AgentTool> {
-        return ToolProvider.build(appContext, settingsManager, memoryManager, executor)
+        return ToolProvider.build(appContext, settingsManager, memoryManager, executor, contentDisplayManager)
     }
 
     fun clearMessages() {
@@ -327,9 +333,6 @@ class AgentViewModel(
         agent?.clearHistory()
         sessionId = UUID.randomUUID().toString()
         hasNotifiedFirstResponse = false
-        totalPromptTokens = 0
-        totalCompletionTokens = 0
-        tokenUsageUpdated = false
         tokenUsage.value = ""
     }
 
@@ -382,7 +385,18 @@ class AgentViewModel(
     fun loadConversation(id: String) {
         val session = fileChatHistoryProvider._load(id)
         if (session != null) {
-            val viewModels = session.messages.map { MessageViewModel(it.role, it.content) }
+            val json = Json { ignoreUnknownKeys = true }
+            val viewModels = session.messages.map { msg ->
+                val vm = MessageViewModel(msg.role, msg.content)
+                msg.displayContentJson?.let { jsonStr ->
+                    try {
+                        val content = json.decodeFromString(DisplayContent.serializer(), jsonStr)
+                        contentDisplayManager.store(content)
+                        vm.displayContentId = content.id
+                    } catch (_: Exception) { }
+                }
+                vm
+            }
             messages.clear()
             messages.addAll(viewModels)
 

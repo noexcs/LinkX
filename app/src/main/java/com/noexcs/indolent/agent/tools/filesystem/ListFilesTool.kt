@@ -14,9 +14,8 @@ class ListFilesTool(private val context: Context) : AgentTool {
     override val description = """
         List files and directories at a given path.
 
-        Supports:
-        - Regular paths within app-accessible directories.
-        - SAF content URIs (content://...) if the user has granted document tree access.
+        With "All Files Access" granted, any directory on the device is accessible.
+        Without it, only app-sandboxed directories are allowed.
 
         Results include name, size, type (file/directory), modification time, and permissions.
         Use 'pattern' to filter by simple glob (e.g. "*.txt", "log*").

@@ -14,13 +14,25 @@ import java.util.Locale
 class GetAppInfoTool(context: Context) : AgentTool {
     private val context = context.applicationContext
     override val name = "get_app_info"
-    override val description = "Get list of all installed apps or detailed information about a specific app"
+    override val description = """
+        Get list of installed apps or detailed information about a specific app.
+
+        Use 'packageName' to get full details of a single app by its exact package name.
+        Use 'query' to fuzzy-search installed apps by name (matches app labels that contain the query text).
+        Leave both empty to list all installed apps.
+    """.trimIndent()
 
     override val parameters = listOf(
         ToolParameter(
             name = "packageName",
             type = "string",
-            description = "Package name of a specific app (leave empty to list all installed apps)",
+            description = "Exact package name of a specific app to get details for. Overrides 'query' if both are provided.",
+            required = false
+        ),
+        ToolParameter(
+            name = "query",
+            type = "string",
+            description = "Fuzzy search term to find apps by name (case-insensitive). Matches any app whose display label contains the query text.",
             required = false
         )
     )
@@ -28,15 +40,44 @@ class GetAppInfoTool(context: Context) : AgentTool {
 
     override suspend fun execute(args: Map<String, Any?>): String {
         return try {
-            val packageName = args["packageName"] as? String ?: ""
-            if (packageName.isBlank()) {
-                getAllInstalledApps()
-            } else {
-                getAppDetails(packageName)
+            val packageName = (args["packageName"] as? String)?.trim()?.takeIf { it.isNotBlank() }
+            val query = (args["query"] as? String)?.trim()?.takeIf { it.isNotBlank() }
+
+            when {
+                packageName != null -> getAppDetails(packageName)
+                query != null -> fuzzySearch(query)
+                else -> getAllInstalledApps()
             }
         } catch (e: Exception) {
             Lumberjack.e("GetAppInfoTool", "Error executing get_app_info", e)
             "Error: ${e.message}"
+        }
+    }
+
+    private fun fuzzySearch(query: String): String {
+        val pm = context.packageManager
+        val packages = pm.getInstalledApplications(PackageManager.GET_META_DATA)
+        val lowerQuery = query.lowercase()
+
+        val matches = packages.mapNotNull { appInfo ->
+            val label = appInfo.loadLabel(pm).toString()
+            val packageName = appInfo.packageName
+            if (label.lowercase().contains(lowerQuery) || packageName.lowercase().contains(lowerQuery)) {
+                val version = getAppVersion(packageName)
+                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val systemTag = if (isSystem) " [System]" else ""
+                Triple(label, packageName, "$label$systemTag ($packageName) v$version")
+            } else null
+        }.sortedBy { it.first.lowercase() }
+
+        if (matches.isEmpty()) {
+            return "No apps found matching \"$query\"."
+        }
+
+        return buildString {
+            appendLine("Search results for \"$query\" (${matches.size} found):")
+            appendLine("=".repeat(50))
+            matches.forEach { (_, _, line) -> appendLine(line) }
         }
     }
 

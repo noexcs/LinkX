@@ -16,10 +16,15 @@ object PythonInit {
     }
 
     @SuppressLint("UnsafeDynamicallyLoadedCode")
+    @Synchronized
     fun ensureStarted() {
         if (!started) {
-            System.loadLibrary("gfortran")
-            Python.start(AndroidPlatform(context))
+            try {
+                System.loadLibrary("gfortran")
+                Python.start(AndroidPlatform(context))
+            } catch (e: Exception) {
+                Lumberjack.w("PythonInit", "Python already started by another caller")
+            }
             started = true
             // Init portfolio storage
             try {

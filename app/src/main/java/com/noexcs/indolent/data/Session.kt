@@ -20,4 +20,5 @@ class MessageViewModel(
     val id: String = java.util.UUID.randomUUID().toString()
 ) {
     val content = mutableStateOf(content)
+    var displayContentId: String? = null
 }
