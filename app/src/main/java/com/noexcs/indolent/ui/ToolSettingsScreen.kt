@@ -77,6 +77,7 @@ fun ToolSettingsScreen(
 ) {
     val context = LocalContext.current
     var termuxToolsEnabled by remember { mutableStateOf(settingsManager.termuxToolsEnabled) }
+    var pythonToolsEnabled by remember { mutableStateOf(settingsManager.pythonToolsEnabled) }
     var fundToolsEnabled by remember { mutableStateOf(settingsManager.fundToolsEnabled) }
     var commonToolsEnabled by remember { mutableStateOf(settingsManager.commonToolsEnabled) }
     var conditionalToolsEnabled by remember { mutableStateOf(settingsManager.conditionalToolsEnabled) }
@@ -142,6 +143,7 @@ fun ToolSettingsScreen(
 
     fun save() {
         settingsManager.termuxToolsEnabled = termuxToolsEnabled
+        settingsManager.pythonToolsEnabled = pythonToolsEnabled
         settingsManager.fundToolsEnabled = fundToolsEnabled
         settingsManager.commonToolsEnabled = commonToolsEnabled
         settingsManager.conditionalToolsEnabled = conditionalToolsEnabled
@@ -249,6 +251,20 @@ fun ToolSettingsScreen(
                 groupEnabled = fundToolsEnabled,
                 onGroupToggle = { fundToolsEnabled = it; markChanged() },
                 tools = toolsByGroup[ToolGroup.FUND] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+            )
+
+            // Python
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_python_tools),
+                subtitle = stringResource(R.string.section_python_tools_subtitle),
+                groupEnabled = pythonToolsEnabled,
+                onGroupToggle = { pythonToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.PYTHON] ?: emptyList(),
                 toolStates = toolEnabledStates,
                 onToolToggle = { name, enabled ->
                     toolEnabledStates = toolEnabledStates + (name to enabled)

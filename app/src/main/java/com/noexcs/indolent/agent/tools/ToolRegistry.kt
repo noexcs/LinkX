@@ -4,7 +4,7 @@ import com.noexcs.indolent.R
 
 enum class ToolGroup {
     TERMUX, FUND, COMMON, CONDITIONAL, FILESYSTEM, INTERACT,
-    NOTIFICATION, SCHEDULED_TASK, SELF, SENSOR, SETTING, SYSTEM_INFO, MCP
+    NOTIFICATION, SCHEDULED_TASK, SELF, SENSOR, SETTING, SYSTEM_INFO, MCP, PYTHON
 }
 
 data class ToolInfo(
@@ -148,6 +148,9 @@ object ToolRegistry {
         ToolInfo("portfolio_list", R.string.tool_portfolio_list, ToolGroup.FUND),
         ToolInfo("portfolio_summary", R.string.tool_portfolio_summary, ToolGroup.FUND),
         ToolInfo("portfolio_analyze_all", R.string.tool_portfolio_analyze_all, ToolGroup.FUND),
+
+        // Python
+        ToolInfo("execute_python", R.string.tool_execute_python, ToolGroup.PYTHON),
     )
 
     fun toolsForGroup(group: ToolGroup): List<ToolInfo> = allTools.filter { it.group == group }

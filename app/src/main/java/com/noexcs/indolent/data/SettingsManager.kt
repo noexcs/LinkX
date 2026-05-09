@@ -135,6 +135,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getString("mcp_server_configs", "[]") ?: "[]"
         set(value) = prefs.edit { putString("mcp_server_configs", value) }
 
+    var pythonToolsEnabled: Boolean
+        get() = prefs.getBoolean("python_tools_enabled", true)
+        set(value) = prefs.edit { putBoolean("python_tools_enabled", value) }
+
     var skillsEnabled: Boolean
         get() = prefs.getBoolean("skills_enabled", false)
         set(value) = prefs.edit { putBoolean("skills_enabled", value) }

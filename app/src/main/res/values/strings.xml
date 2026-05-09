@@ -113,6 +113,10 @@
     <string name="section_setting_tools_subtitle">Allow AI to read and modify system settings such as audio volume</string>
     <string name="section_system_info_tools">System Info Tools</string>
     <string name="section_system_info_tools_subtitle">Allow AI to read battery, network, screen, and app information</string>
+    <string name="section_python_tools">Python</string>
+    <string name="section_python_tools_subtitle">Allow AI to execute arbitrary Python code via the embedded Python 3.12 runtime</string>
+    <string name="tool_execute_python">Execute Python</string>
+
     <string name="section_mcp_tools">MCP Tools</string>
     <string name="section_mcp_tools_subtitle">Allow AI to use tools from external MCP servers. Configure server endpoints to discover tools.</string>
     <string name="mcp_configure_servers">Configure MCP Servers</string>
@@ -161,6 +165,7 @@
     <string name="status_failure">Failure</string>
     <string name="execution_result">Result</string>
     <string name="execution_error">Error</string>
+    <string name="run_now">Run Now</string>
 
     <!-- Heartbeat -->
     <string name="section_heartbeat">Heartbeat</string>

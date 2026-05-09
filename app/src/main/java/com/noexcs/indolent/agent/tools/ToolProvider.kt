@@ -34,6 +34,7 @@ import com.noexcs.indolent.agent.tools.notification.ManageNotificationChannelToo
 import com.noexcs.indolent.agent.tools.notification.OpenNotificationAccessSettingsTool
 import com.noexcs.indolent.agent.tools.notification.QueryNotificationTool
 import com.noexcs.indolent.agent.tools.notification.UpdateNotificationTool
+import com.noexcs.indolent.agent.tools.python.PythonExecuteTool
 import com.noexcs.indolent.agent.tools.scheduledTask.CreateScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.DeleteScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.EditScheduledTaskTool
@@ -75,6 +76,7 @@ object ToolProvider {
 
         val useTermuxTools = hasTermux && settings.termuxToolsEnabled && executor != null
         val useFundTools = settings.fundToolsEnabled
+        val usePythonTools = settings.pythonToolsEnabled
         val useCommonTools = settings.commonToolsEnabled
         val useConditionalTools = settings.conditionalToolsEnabled
         val useFilesystemTools = settings.filesystemToolsEnabled
@@ -86,7 +88,7 @@ object ToolProvider {
         val useSettingTools = settings.settingToolsEnabled
         val useSystemInfoTools = settings.systemInfoToolsEnabled
 
-        if (useFundTools) {
+        if (useFundTools || usePythonTools) {
             PythonInit.init(appContext)
         }
 
@@ -95,6 +97,9 @@ object ToolProvider {
         val baseTools = buildList {
             if (useTermuxTools) {
                 if (isToolEnabled("execute_command")) add(TermuxExecuteCommandTool(executor))
+            }
+            if (usePythonTools) {
+                if (isToolEnabled("execute_python")) add(PythonExecuteTool())
             }
             if (useCommonTools) {
                 if (isToolEnabled("update_memory")) add(UpdateMemoryTool(memoryProvider))
