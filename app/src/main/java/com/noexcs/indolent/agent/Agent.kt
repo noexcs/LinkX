@@ -1,6 +1,5 @@
 package com.noexcs.indolent.agent
 
-import android.R
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.logging.Lumberjack
 import kotlinx.coroutines.async
@@ -19,18 +18,9 @@ class Agent(
     private val reasoningEffort: String = "high"
 ) {
     private val client = LLMClient(baseUrl, apiKey)
-    private val history = mutableListOf<LLMMessage>()
 
-    /**
-     * Run the agent in a streaming tool-calling loop.
-     *
-     * Flow lifecycle:
-     *  1. Stream LLM text tokens → emit [AgentEvent.Text]
-     *  2. If LLM returns tool calls → execute each, emit [AgentEvent.ToolResult], loop to 1
-     *  3. When LLM finishes with "stop" → flow completes
-     *  4. On error → emit [AgentEvent.Error] then complete
-     */
     fun run(
+        history: MutableList<LLMMessage>,
         message: String,
         systemPrompt: String,
         tools: List<AgentTool> = emptyList(),
@@ -48,7 +38,7 @@ class Agent(
             // ── stream from LLM ──
             val request = LLMRequest(
                 model = model,
-                messages = buildMessages(systemPrompt),
+                messages = buildMessages(systemPrompt, history),
                 stream = true,
                 toolDefinitions = toolDefs(tools),
                 thinkingEnabled = if (thinkingEnabled) true else null,
@@ -88,7 +78,6 @@ class Agent(
                             val acc = toolAcc.getOrPut(idx) { ToolCallBuilder() }
                             if (tc.has("id")) {
                                 acc.id = tc.optString("id")
-                                // If name already arrived, emit ToolCallStart now with the real ID
                                 if (acc.fnName != null && !acc.nameEmitted) {
                                     acc.nameEmitted = true
                                     emit(AgentEvent.ToolCallStart(acc.id!!, acc.fnName!!))
@@ -98,7 +87,6 @@ class Agent(
                             tc.optJSONObject("function")?.let { fn ->
                                 if (fn.has("name")) {
                                     acc.fnName = fn.optString("name")
-                                    // Only emit if we have the real ID; otherwise deferred until ID arrives
                                     if (!acc.nameEmitted && acc.id != null) {
                                         acc.nameEmitted = true
                                         emit(AgentEvent.ToolCallStart(acc.id!!, acc.fnName!!))
@@ -167,7 +155,6 @@ class Agent(
                 }
             }
 
-
             // add assistant message to history
             history += LLMMessage(
                 role = "assistant",
@@ -203,21 +190,7 @@ class Agent(
                         emit(AgentEvent.ToolCallBegin(tc.id, tc.function.name, args))
                     }
 
-                    // Execute all tool calls in parallel
-                    val results = coroutineScope {
-                        toolArgs.map { (tc, args) ->
-                            async {
-                                val tool = toolMap[tc.function.name]
-                                val result = try {
-                                    tool?.execute(args) ?: "Tool '${tc.function.name}' not found"
-                                } catch (e: Exception) {
-                                    Lumberjack.e("Agent", "Tool '${tc.function.name}' failed", e)
-                                    "Error: ${e.message}"
-                                }
-                                Triple(tc, args, result)
-                            }
-                        }.awaitAll()
-                    }
+                    val results = executeToolsInParallel(toolArgs, toolMap)
 
                     for ((tc, args, result) in results) {
                         history += LLMMessage(
@@ -227,7 +200,7 @@ class Agent(
                         )
                         emit(AgentEvent.ToolResult(tc.id, tc.function.name, args, result))
                     }
-                    trimHistory()
+                    trimHistory(history)
                     // loop continues → LLM sees tool results
                 }
 
@@ -247,6 +220,7 @@ class Agent(
      * streaming UI updates are not needed.
      */
     suspend fun execute(
+        history: MutableList<LLMMessage>,
         message: String,
         systemPrompt: String,
         tools: List<AgentTool> = emptyList(),
@@ -258,7 +232,7 @@ class Agent(
         for (round in 0 until maxIterations) {
             val request = LLMRequest(
                 model = model,
-                messages = buildMessages(systemPrompt),
+                messages = buildMessages(systemPrompt, history),
                 stream = false,
                 toolDefinitions = toolDefs(tools),
                 thinkingEnabled = if (thinkingEnabled) true else null,
@@ -274,7 +248,7 @@ class Agent(
                     content = "Error: ${e.message}"
                 )
                 return if (completeProcess)
-                    history2String()
+                    history2String(history)
                 else
                     "Error: ${e.message}"
             }
@@ -291,30 +265,15 @@ class Agent(
 
             if (toolCalls.isNullOrEmpty()) {
                 return if (completeProcess)
-                    history2String()
+                    history2String(history)
                 else
                     content
             }
 
-            // Execute all tool calls in parallel
             val toolArgs = toolCalls.map { tc ->
                 tc to parseArgs(tc.function.arguments)
             }
-            val results = coroutineScope {
-                toolArgs.map { (tc, args) ->
-                    async {
-                        val tool = toolMap[tc.function.name]
-                        val result = try {
-                            tool?.execute(args)
-                                ?: "Tool '${tc.function.name}' not found"
-                        } catch (e: Exception) {
-                            Lumberjack.e("Agent", "Tool '${tc.function.name}' failed in execute", e)
-                            "Error: ${e.message}"
-                        }
-                        Triple(tc, args, result)
-                    }
-                }.awaitAll()
-            }
+            val results = executeToolsInParallel(toolArgs, toolMap, " in execute")
             for ((tc, _, result) in results) {
                 history += LLMMessage(
                     role = "tool",
@@ -322,16 +281,16 @@ class Agent(
                     toolCallId = tc.id
                 )
             }
-            trimHistory()
+            trimHistory(history)
         }
         history.add(LLMMessage(role = "system", content = "(max iterations reached)"))
 
-        return if (completeProcess) history2String() else history.last().content
+        return if (completeProcess) history2String(history) else history.last().content
     }
 
     // ── helpers ──
 
-    private fun history2String(): String {
+    private fun history2String(history: List<LLMMessage>): String {
         return history.joinToString("\n") {
             if (it.role == "tool")
                 "\n```\n${it.content}\n```\n"
@@ -340,7 +299,7 @@ class Agent(
         }
     }
 
-    private fun buildMessages(systemPrompt: String): List<LLMMessage> {
+    private fun buildMessages(systemPrompt: String, history: List<LLMMessage>): List<LLMMessage> {
         return ArrayList<LLMMessage>(history.size + 1).apply {
             add(LLMMessage(role = "system", content = systemPrompt))
             addAll(history)
@@ -371,26 +330,28 @@ class Agent(
         }
     }
 
-    /** Restore conversation history (e.g. when continuing a loaded session). */
-    fun setHistory(messages: List<LLMMessage>) {
-        history.clear()
-        history.addAll(messages)
+    private suspend fun executeToolsInParallel(
+        toolArgs: List<Pair<ToolCall, Map<String, Any?>>>,
+        toolMap: Map<String, AgentTool>,
+        logSuffix: String = ""
+    ): List<Triple<ToolCall, Map<String, Any?>, String>> {
+        return coroutineScope {
+            toolArgs.map { (tc, args) ->
+                async {
+                    val tool = toolMap[tc.function.name]
+                    val result = try {
+                        tool?.execute(args) ?: "Tool '${tc.function.name}' not found"
+                    } catch (e: Exception) {
+                        Lumberjack.e("Agent", "Tool '${tc.function.name}' failed$logSuffix", e)
+                        "Error: ${e.message}"
+                    }
+                    Triple(tc, args, result)
+                }
+            }.awaitAll()
+        }
     }
 
-    /** Snapshot the current conversation history (e.g. to migrate between agents). */
-    fun getHistory(): List<LLMMessage> = history.toList()
-
-    /** Clear conversation history for a fresh start. */
-    fun clearHistory() {
-        history.clear()
-    }
-
-    /**
-     * Trim old messages from history to stay within context window.
-     * Keeps at most [maxTokens] estimated tokens, removing oldest non-system
-     * message pairs first. Conservative estimate: ~3 chars per token.
-     */
-    private fun trimHistory(maxTokens: Int = 100_000) {
+    private fun trimHistory(history: MutableList<LLMMessage>, maxTokens: Int = 100_000) {
         while (estimateTokens(history) > maxTokens && history.size > 4) {
             history.removeAt(0)
         }

@@ -3,60 +3,17 @@ package com.noexcs.indolent.task.heartbeat
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
-import android.content.pm.ServiceInfo
-import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.noexcs.indolent.R
-import com.noexcs.indolent.agent.Agent
-import com.noexcs.indolent.agent.tools.AgentTool
-import com.noexcs.indolent.agent.tools.systeminfo.GetAppInfoTool
-import com.noexcs.indolent.agent.tools.systeminfo.BatteryInfoTool
-import com.noexcs.indolent.agent.tools.common.CalendarTool
-import com.noexcs.indolent.agent.tools.common.ClipboardTool
-import com.noexcs.indolent.agent.tools.notification.CreateNotificationTool
-import com.noexcs.indolent.agent.tools.notification.DismissNotificationTool
-import com.noexcs.indolent.agent.tools.notification.ListActiveNotificationsTool
-import com.noexcs.indolent.agent.tools.notification.ManageNotificationChannelTool
-import com.noexcs.indolent.agent.tools.notification.OpenNotificationAccessSettingsTool
-import com.noexcs.indolent.agent.tools.notification.QueryNotificationTool
-import com.noexcs.indolent.agent.tools.notification.UpdateNotificationTool
-import com.noexcs.indolent.agent.tools.systeminfo.CurrentScreenInfoTool
-import com.noexcs.indolent.agent.tools.common.IntentTool
-import com.noexcs.indolent.agent.tools.systeminfo.NetworkStatusTool
-import com.noexcs.indolent.agent.tools.scheduledTask.CreateScheduledTaskTool
-import com.noexcs.indolent.agent.tools.scheduledTask.ListScheduledTasksTool
-import com.noexcs.indolent.agent.tools.scheduledTask.EditScheduledTaskTool
-import com.noexcs.indolent.agent.tools.scheduledTask.DeleteScheduledTaskTool
-import com.noexcs.indolent.agent.tools.termux.TermuxExecuteCommandTool
-import com.noexcs.indolent.agent.tools.common.UpdateMemoryTool
-import com.noexcs.indolent.agent.termux.TermuxExecutor
-import com.noexcs.indolent.agent.tools.ToolProvider
-import com.noexcs.indolent.agent.tools.common.SubagentTool
-import com.noexcs.indolent.agent.tools.finance.FundETFFundInfoEmTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualAchievementXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualAnalysisXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualBasicInfoXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualDetailHoldXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualDetailInfoXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualProfitProbabilityXqTool
-import com.noexcs.indolent.agent.tools.finance.FundInfoIndexEmTool
-import com.noexcs.indolent.agent.tools.finance.FundManagerEmTool
-import com.noexcs.indolent.agent.tools.finance.FundOpenFundInfoEmTool
-import com.noexcs.indolent.agent.tools.finance.FundOpenFundRankEmTool
-import com.noexcs.indolent.agent.tools.finance.FundOverviewEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioBondHoldEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioChangeEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioHoldEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioIndustryAllocationEmTool
-import com.noexcs.indolent.agent.tools.finance.FundValueEstimationEmRankTool
-import com.noexcs.indolent.agent.tools.finance.FundValueEstimationEmTool
+import com.noexcs.indolent.agent.BackgroundSessionRunner
+import com.noexcs.indolent.task.ForegroundInfoFactory
+import com.noexcs.indolent.agent.SessionType
+import androidx.core.app.NotificationCompat
 import com.noexcs.indolent.data.MemoryManager
-import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.data.SettingsManager
+import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.task.ExecutionStatus
 import java.util.UUID
 
@@ -67,14 +24,8 @@ class HeartbeatWorker(
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
         ensureChannel(applicationContext)
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(applicationContext.getString(R.string.heartbeat_running))
-            .build()
-        return ForegroundInfo(
-            FOREGROUND_NOTIFICATION_ID,
-            notification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        return ForegroundInfoFactory.create(
+            applicationContext, CHANNEL_ID, R.string.heartbeat_running, FOREGROUND_NOTIFICATION_ID
         )
     }
 
@@ -94,25 +45,31 @@ class HeartbeatWorker(
         val startTime = System.currentTimeMillis()
 
         return try {
-            val baseUrl = settings.baseUrl?.takeIf { it.isNotBlank() }
-            if (baseUrl == null) {
-                Lumberjack.w("HeartbeatWorker", "Base URL not configured")
-                return finishWithError(nm, "Base URL not configured", startTime)
+            val session = try {
+                BackgroundSessionRunner.create(
+                    applicationContext,
+                    "heartbeat_${System.currentTimeMillis()}",
+                    SessionType.HEARTBEAT
+                )
+            } catch (e: IllegalStateException) {
+                Lumberjack.w("HeartbeatWorker", "${e.message}")
+                return finishWithError(nm, e.message ?: "Configuration error", startTime)
             }
-            val apiKey = settings.apiKey?.takeIf { it.isNotBlank() }
-            if (apiKey == null) {
-                Lumberjack.w("HeartbeatWorker", "API key not configured")
-                return finishWithError(nm, "API key not configured", startTime)
-            }
-            val model = settings.model?.ifBlank { "deepseek-chat" } ?: "deepseek-chat"
 
-            Lumberjack.i("HeartbeatWorker", "Agent starting — model=$model, interval=${settings.heartbeatIntervalMinutes}min")
-            val agent = Agent(baseUrl, apiKey, model, settings.thinkingEnabled, settings.reasoningEffort)
-            val systemPrompt = buildSystemPrompt(applicationContext)
-            val tools = buildTools(applicationContext)
+            Lumberjack.i("HeartbeatWorker", "Agent starting — interval=${settings.heartbeatIntervalMinutes}min")
+            val systemPrompt = BackgroundSessionRunner.buildSystemPrompt(
+                applicationContext,
+                buildString {
+                    appendLine("You are a proactive AI assistant running on an Android device.")
+                    appendLine("This is an automated heartbeat check — there is no direct user conversation.")
+                    appendLine("Your role is to take initiative: check on things, discover useful information, and act on it autonomously.")
+                    appendLine("Be practical and helpful. Don't fabricate urgency or make up tasks.")
+                }.trimEnd()
+            )
+            val tools = BackgroundSessionRunner.buildTools(applicationContext)
             val heartbeatPrompt = buildHeartbeatPrompt(applicationContext)
 
-            val reply = agent.execute(heartbeatPrompt, systemPrompt, tools, 100, true)
+            val reply = session.execute(heartbeatPrompt, systemPrompt, tools, 100, true)
 
             val durationMs = System.currentTimeMillis() - startTime
             Lumberjack.i("HeartbeatWorker", "Heartbeat completed (${durationMs}ms, ${reply.length} chars)")
@@ -241,40 +198,6 @@ class HeartbeatWorker(
             appendLine()
             appendLine("Be concise. Don't repeat what was already done in the previous heartbeat.")
         }
-    }
-
-    private fun buildSystemPrompt(context: Context): String {
-        val settings = SettingsManager(context)
-        val memory = MemoryManager(context).read()
-        return buildString {
-            appendLine("You are a proactive AI assistant running on an Android device.")
-            appendLine("This is an automated heartbeat check — there is no direct user conversation.")
-            appendLine("Your role is to take initiative: check on things, discover useful information, and act on it autonomously.")
-            appendLine("Be practical and helpful. Don't fabricate urgency or make up tasks.")
-            if (settings.userSystemPrompt.isNotBlank()) {
-                appendLine()
-                appendLine("# User Custom Instruct")
-                appendLine(settings.userSystemPrompt)
-            }
-            if (memory.isNotBlank()) {
-                appendLine()
-                appendLine("# Memory")
-                appendLine("<memory>")
-                appendLine(memory)
-                appendLine("</memory>")
-            }
-        }
-    }
-
-    private fun buildTools(context: Context): List<AgentTool> {
-        val appContext = context.applicationContext
-        val settings = SettingsManager(appContext)
-        val memoryManager = MemoryManager(appContext)
-        val hasTermux = ContextCompat.checkSelfPermission(
-            appContext, "com.termux.permission.RUN_COMMAND"
-        ) == PackageManager.PERMISSION_GRANTED
-        val executor = if (hasTermux && settings.termuxToolsEnabled) TermuxExecutor(appContext) else null
-        return ToolProvider.build(appContext, settings, memoryManager, executor)
     }
 
     companion object {

@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import com.noexcs.indolent.data.FileChatHistoryProvider
+import com.noexcs.indolent.data.UsageStatisticsAggregator
 import com.noexcs.indolent.data.MemoryManager
 import com.noexcs.indolent.data.SettingsManager
 
@@ -83,6 +84,7 @@ private fun MainContent() {
     val viewModel = remember {
         AgentViewModel(appContext, memoryManager, settingsManager, conversationRepository)
     }
+    val usageStatsAggregator = remember { UsageStatisticsAggregator(appContext) }
 
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Chat) }
 
@@ -187,6 +189,7 @@ private fun MainContent() {
             )
             Screen.UsageStats -> UsageStatsScreen(
                 settingsManager = settingsManager,
+                aggregator = usageStatsAggregator,
                 onBack = { currentScreen = Screen.Settings },
             )
             Screen.Appearance -> AppearanceSettingsScreen(

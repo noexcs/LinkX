@@ -19,7 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.FileChatHistoryProvider
-import com.noexcs.indolent.data.Session
+import com.noexcs.indolent.agent.SessionMetadata
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,15 +29,15 @@ fun ConversationDrawerContent(
     onNewChat: () -> Unit,
     refreshTrigger: Int = 0
 ) {
-    var conversations by remember { mutableStateOf(repository.listAll()) }
+    var conversations by remember { mutableStateOf(repository.listSessions()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
-    var conversationToDelete by remember { mutableStateOf<Session?>(null) }
-    var conversationToRename by remember { mutableStateOf<Session?>(null) }
+    var conversationToDelete by remember { mutableStateOf<SessionMetadata?>(null) }
+    var conversationToRename by remember { mutableStateOf<SessionMetadata?>(null) }
     var renameText by remember { mutableStateOf("") }
 
     fun refresh() {
-        conversations = repository.listAll()
+        conversations = repository.listSessions()
     }
 
     // Refresh when trigger changes or on initial load
@@ -221,7 +221,7 @@ fun ConversationDrawerContent(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun DrawerConversationItem(
-    meta: Session,
+    meta: SessionMetadata,
     onClick: () -> Unit,
     onDelete: () -> Unit,
     onRename: () -> Unit

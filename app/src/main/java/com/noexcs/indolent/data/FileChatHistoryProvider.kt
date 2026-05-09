@@ -4,87 +4,136 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import android.content.Context
 import com.noexcs.indolent.agent.ChatMessage
+import com.noexcs.indolent.agent.LLMMessage
+import com.noexcs.indolent.agent.MessageRoleMapper
+import com.noexcs.indolent.agent.PersistedSession
+import com.noexcs.indolent.agent.SessionMetadata
+import com.noexcs.indolent.agent.SessionPersistence
+import com.noexcs.indolent.agent.SessionType
 import com.noexcs.indolent.logging.Lumberjack
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.io.File
 
-/**
- * File-based chat history provider that persists messages to disk.
- */
-public class FileChatHistoryProvider(context: Context) {
+class FileChatHistoryProvider(context: Context) : SessionPersistence {
 
     private val dir = File(context.filesDir, "sessions").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
-
     private val mutex = Mutex()
 
-    suspend fun store(conversationId: String, messages: List<ChatMessage>) {
+    override suspend fun save(
+        sessionId: String,
+        messages: List<LLMMessage>,
+        title: String,
+        type: SessionType
+    ) {
         mutex.withLock {
-            val title = messages.firstOrNull()?.content ?: conversationId
-            val session = Session(
-                sessionId = conversationId,
+            val sessionData = PersistedSession(
+                sessionId = sessionId,
                 title = title,
                 createdAt = System.currentTimeMillis(),
                 updatedAt = System.currentTimeMillis(),
-                messages = messages
+                messages = messages,
+                type = type
             )
-            File(dir, "${conversationId}.json").writeText(json.encodeToString(session))
+            File(dir, "${sessionId}.json").writeText(json.encodeToString(PersistedSession.serializer(), sessionData))
         }
     }
 
-    suspend fun load(conversationId: String): List<ChatMessage> {
+    override suspend fun load(sessionId: String): List<LLMMessage>? {
         return mutex.withLock {
-            val file = File(dir, "$conversationId.json")
-            if (!file.exists()) {
-                emptyList()
-            } else {
-                try {
-                    val session = json.decodeFromString<Session>(file.readText())
-                    session.messages
-                } catch (e: Exception) {
-                    Lumberjack.e("FileChatHistoryProvider", "Error decoding session in load", e)
-                    emptyList()
+            val file = File(dir, "$sessionId.json")
+            if (!file.exists()) return null
+            val text = file.readText()
+
+            // Try new format first
+            try {
+                val sessionData = json.decodeFromString(PersistedSession.serializer(), text)
+                return sessionData.messages
+            } catch (_: Exception) { }
+
+            // Fall back to old format (ChatMessage-based Session)
+            try {
+                val oldSession = json.decodeFromString(OldSessionFormat.serializer(), text)
+                val converted = oldSession.messages.map { msg ->
+                    LLMMessage(
+                        role = MessageRoleMapper.toRoleString(msg.role),
+                        content = msg.content,
+                        displayContentJson = msg.displayContentJson
+                    )
                 }
-            }
+                // Re-save in new format
+                save(sessionId, converted, oldSession.title, SessionType.CONVERSATION)
+                return converted
+            } catch (_: Exception) { }
+
+            null
         }
     }
 
-    fun listAll(): List<Session> {
+    override fun listSessions(): List<SessionMetadata> {
         return dir.listFiles { f -> f.extension == "json" }
             ?.mapNotNull { file ->
                 try {
-                    val conv = json.decodeFromString<Session>(file.readText())
-                    Session(conv.sessionId, conv.title, conv.createdAt, conv.updatedAt, conv.messages)
-                } catch (e: Exception) {
-                    Lumberjack.e("FileChatHistoryProvider", "Error decoding session in listAll", e)
-                    null
+                    val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
+                    SessionMetadata(
+                        sessionId = sessionData.sessionId,
+                        title = sessionData.title,
+                        createdAt = sessionData.createdAt,
+                        updatedAt = sessionData.updatedAt,
+                        type = sessionData.type
+                    )
+                } catch (_: Exception) {
+                    // Try old format
+                    try {
+                        val old = json.decodeFromString(OldSessionFormat.serializer(), file.readText())
+                        SessionMetadata(
+                            sessionId = old.sessionId,
+                            title = old.title,
+                            createdAt = old.createdAt,
+                            updatedAt = old.updatedAt,
+                            type = SessionType.CONVERSATION
+                        )
+                    } catch (_: Exception) {
+                        null
+                    }
                 }
             }
             ?.sortedByDescending { it.updatedAt }
             ?: emptyList()
     }
 
-    fun delete(sessionId: String) {
+    override fun delete(sessionId: String) {
         File(dir, "$sessionId.json").delete()
     }
 
-    fun _load(sessionId: String): Session? {
+    override fun rename(sessionId: String, newTitle: String) {
         val file = File(dir, "$sessionId.json")
-        if (!file.exists()) return null
-        return try {
-            json.decodeFromString<Session>(file.readText())
-        } catch (e: Exception) {
-            Lumberjack.e("FileChatHistoryProvider", "Error decoding session in _load", e)
-            null
+        if (!file.exists()) return
+        try {
+            val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
+            val updated = sessionData.copy(title = newTitle, updatedAt = System.currentTimeMillis())
+            file.writeText(json.encodeToString(PersistedSession.serializer(), updated))
+        } catch (_: Exception) {
+            // Try old format fallback
+            try {
+                val old = json.decodeFromString(OldSessionFormat.serializer(), file.readText())
+                val updated = old.copy(title = newTitle, updatedAt = System.currentTimeMillis())
+                file.writeText(json.encodeToString(OldSessionFormat.serializer(), updated))
+            } catch (e: Exception) {
+                Lumberjack.e("FileChatHistoryProvider", "Failed to rename session", e)
+            }
         }
     }
 
-    fun save(session: Session) {
-        File(dir, "${session.sessionId}.json").writeText(json.encodeToString(session))
-    }
+    // ── Old format for backward compatibility ──
 
-    fun rename(id: String, newTitle: String) {
-        val conv = _load(id) ?: return
-        save(conv.copy(title = newTitle))
-    }
+    @Serializable
+    private data class OldSessionFormat(
+        val sessionId: String,
+        val title: String,
+        val createdAt: Long,
+        val updatedAt: Long,
+        val messages: List<ChatMessage>
+    )
 }

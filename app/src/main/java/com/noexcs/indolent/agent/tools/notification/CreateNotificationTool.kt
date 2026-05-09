@@ -9,6 +9,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.tools.AgentTool
+import com.noexcs.indolent.task.scheduler.ScheduledNotificationWorker
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
 import java.util.concurrent.TimeUnit

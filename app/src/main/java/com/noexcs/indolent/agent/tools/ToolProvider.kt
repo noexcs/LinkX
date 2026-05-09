@@ -64,13 +64,13 @@ object ToolProvider {
         context: Context,
         settings: SettingsManager,
         memoryProvider: MemoryProvider,
-        executor: TermuxExecutor? = null,
         contentDisplayManager: ContentDisplayManager? = null,
     ): List<AgentTool> {
         val appContext = context.applicationContext
         val hasTermux = ContextCompat.checkSelfPermission(
             appContext, "com.termux.permission.RUN_COMMAND"
         ) == PackageManager.PERMISSION_GRANTED
+        val executor = if (hasTermux && settings.termuxToolsEnabled) TermuxExecutor(appContext) else null
 
         val useTermuxTools = hasTermux && settings.termuxToolsEnabled && executor != null
         val useFundTools = settings.fundToolsEnabled
@@ -93,7 +93,7 @@ object ToolProvider {
 
         val baseTools = buildList {
             if (useTermuxTools) {
-                if (isToolEnabled("execute_command")) add(TermuxExecuteCommandTool(executor!!))
+                if (isToolEnabled("execute_command")) add(TermuxExecuteCommandTool(executor))
             }
             if (useCommonTools) {
                 if (isToolEnabled("update_memory")) add(UpdateMemoryTool(memoryProvider))

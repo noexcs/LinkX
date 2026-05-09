@@ -1,13 +1,12 @@
 package com.noexcs.indolent.task.conditional
 
 import android.content.Context
-import android.content.pm.ServiceInfo
-import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.SettingsManager
+import com.noexcs.indolent.task.ForegroundInfoFactory
 import com.noexcs.indolent.logging.Lumberjack
 
 class ConditionMonitorWorker(
@@ -17,16 +16,9 @@ class ConditionMonitorWorker(
 
     override suspend fun getForegroundInfo(): ForegroundInfo {
         ensureChannel(applicationContext)
-        val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_launcher_foreground)
-            .setContentTitle(applicationContext.getString(R.string.condition_monitor_running))
-            .setSilent(true)
-            .setOngoing(true)
-            .build()
-        return ForegroundInfo(
-            FOREGROUND_NOTIFICATION_ID,
-            notification,
-            ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC
+        return ForegroundInfoFactory.create(
+            applicationContext, CHANNEL_ID, R.string.condition_monitor_running,
+            FOREGROUND_NOTIFICATION_ID, silent = true, ongoing = true
         )
     }
 

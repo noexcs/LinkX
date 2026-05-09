@@ -54,7 +54,7 @@ import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.SettingsManager
-import com.noexcs.indolent.data.getProviders
+import com.noexcs.indolent.agent.LLMProvider
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -166,7 +166,7 @@ fun ApiSettingsScreen(
                         colors = ExposedDropdownMenuDefaults.textFieldColors(),
                     )
                     ExposedDropdownMenu(expanded = providerExpanded, onDismissRequest = { providerExpanded = false }) {
-                        getProviders().forEach { provider ->
+                        LLMProvider.all().forEach { provider ->
                             DropdownMenuItem(
                                 text = { Text(text = provider.displayName) },
                                 onClick = {

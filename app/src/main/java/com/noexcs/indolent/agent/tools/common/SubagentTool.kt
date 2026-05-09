@@ -1,6 +1,7 @@
 package com.noexcs.indolent.agent.tools.common
 
 import com.noexcs.indolent.agent.Agent
+import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 
@@ -56,7 +57,9 @@ class SubagentTool : AgentTool {
         val maxIterations = defaultMaxIterations
 
         val subagent = Agent(baseUrl, apiKey, model, thinkingEnabled, reasoningEffort)
+        val history = mutableListOf<LLMMessage>()
         return subagent.execute(
+            history = history,
             message = prompt,
             systemPrompt = "You are a subagent. Complete the assigned task autonomously and return a concise result. Use tools as needed. Do not ask follow-up questions — just do the work and report back.",
             tools = tools,

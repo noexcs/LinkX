@@ -17,9 +17,6 @@ object ToolRegistry {
     val allTools: List<ToolInfo> = listOf(
         // Termux
         ToolInfo("execute_command", R.string.tool_execute_command, ToolGroup.TERMUX),
-        ToolInfo("read_file", R.string.tool_read_file, ToolGroup.TERMUX),
-        ToolInfo("write_file", R.string.tool_write_file, ToolGroup.TERMUX),
-        ToolInfo("show_dialog", R.string.tool_show_dialog, ToolGroup.TERMUX),
 
         // Common (SubagentTool excluded — gated by API config)
         ToolInfo("update_memory", R.string.tool_update_memory, ToolGroup.COMMON),

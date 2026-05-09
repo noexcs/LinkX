@@ -200,7 +200,7 @@
     <string name="section_api_settings_subtitle">Configure API provider, key, model, and reasoning</string>
     <string name="section_tool_settings_subtitle">Manage tool groups, permissions, and storage access</string>
     <string name="section_heartbeat_settings_subtitle">Configure periodic AI wake-up and conditional triggers</string>
-    <string name="section_usage_stats_subtitle">Token consumption statistics</string>
+    <string name="section_usage_stats_subtitle">Usage statistics across all task types</string>
     <string name="section_appearance_subtitle">Customize theme and display options</string>
     <string name="section_about_subtitle">App version, licenses, and information</string>
 
@@ -217,6 +217,24 @@
     <string name="about_description">An AI assistant and task agent that helps you automate your Android device. Built with Material Design 3 Expressive and Jetpack Compose.</string>
 
     <!-- Usage Stats -->
+    <string name="stats_period_today">Today</string>
+    <string name="stats_period_week">This Week</string>
+    <string name="stats_period_month">This Month</string>
+    <string name="stats_period_total">Total</string>
+    <string name="stats_conversations">Conversations</string>
+    <string name="stats_conversations_subtitle">Chat sessions</string>
+    <string name="stats_scheduled_tasks">Scheduled Tasks</string>
+    <string name="stats_scheduled_subtitle">Automatic task executions</string>
+    <string name="stats_conditional_triggers">Conditional Triggers</string>
+    <string name="stats_conditional_subtitle">Condition-triggered executions</string>
+    <string name="stats_heartbeat">Heartbeat Checks</string>
+    <string name="stats_heartbeat_subtitle">Periodic AI wake-ups</string>
+    <string name="stats_success">Success</string>
+    <string name="stats_failure">Failed</string>
+    <string name="stats_loading">Loading statistics…</string>
+    <string name="stats_empty">No usage data yet</string>
+    <string name="stats_overview">Overview</string>
+    <string name="stats_overview_subtitle">Execution counts by task type</string>
     <string name="section_token_usage">Token Usage</string>
     <string name="section_token_usage_subtitle">API token consumption statistics</string>
     <string name="section_user_balance">User Balance</string>

@@ -1,4 +1,4 @@
-package com.noexcs.indolent.agent.tools.notification
+package com.noexcs.indolent.task.scheduler
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,6 +7,7 @@ import androidx.core.app.NotificationCompat
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.noexcs.indolent.R
+import com.noexcs.indolent.agent.tools.notification.NotificationStateTracker
 import com.noexcs.indolent.logging.Lumberjack
 
 /**

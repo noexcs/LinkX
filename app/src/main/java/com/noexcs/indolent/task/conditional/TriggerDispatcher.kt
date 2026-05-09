@@ -2,71 +2,10 @@ package com.noexcs.indolent.task.conditional
 
 import android.app.NotificationManager
 import android.content.Context
-import android.content.pm.PackageManager
 import androidx.core.app.NotificationCompat
-import androidx.core.content.ContextCompat
 import com.noexcs.indolent.R
-import com.noexcs.indolent.agent.Agent
-import com.noexcs.indolent.agent.termux.TermuxExecutor
-import com.noexcs.indolent.agent.tools.AgentTool
-import com.noexcs.indolent.agent.tools.common.CalendarTool
-import com.noexcs.indolent.agent.tools.common.ClipboardTool
-import com.noexcs.indolent.agent.tools.common.GetCurrentTimeTool
-import com.noexcs.indolent.agent.tools.common.IntentTool
-import com.noexcs.indolent.agent.tools.ToolProvider
-import com.noexcs.indolent.agent.tools.common.SubagentTool
-import com.noexcs.indolent.agent.tools.common.UpdateMemoryTool
-import com.noexcs.indolent.agent.tools.filesystem.DeleteFileTool
-import com.noexcs.indolent.agent.tools.filesystem.GetStorageInfoTool
-import com.noexcs.indolent.agent.tools.filesystem.ListFilesTool
-import com.noexcs.indolent.agent.tools.filesystem.ReadFileTool
-import com.noexcs.indolent.agent.tools.filesystem.WriteFileTool
-import com.noexcs.indolent.agent.tools.finance.FundETFFundInfoEmTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualAchievementXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualAnalysisXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualBasicInfoXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualDetailHoldXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualDetailInfoXqTool
-import com.noexcs.indolent.agent.tools.finance.FundIndividualProfitProbabilityXqTool
-import com.noexcs.indolent.agent.tools.finance.FundInfoIndexEmTool
-import com.noexcs.indolent.agent.tools.finance.FundManagerEmTool
-import com.noexcs.indolent.agent.tools.finance.FundOpenFundInfoEmTool
-import com.noexcs.indolent.agent.tools.finance.FundOpenFundRankEmTool
-import com.noexcs.indolent.agent.tools.finance.FundOverviewEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioBondHoldEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioChangeEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioHoldEmTool
-import com.noexcs.indolent.agent.tools.finance.FundPortfolioIndustryAllocationEmTool
-import com.noexcs.indolent.agent.tools.finance.FundValueEstimationEmRankTool
-import com.noexcs.indolent.agent.tools.finance.FundValueEstimationEmTool
-import com.noexcs.indolent.agent.tools.interact.AskUserTool
-import com.noexcs.indolent.agent.tools.notification.CreateNotificationTool
-import com.noexcs.indolent.agent.tools.notification.DismissNotificationTool
-import com.noexcs.indolent.agent.tools.notification.ListActiveNotificationsTool
-import com.noexcs.indolent.agent.tools.notification.ManageNotificationChannelTool
-import com.noexcs.indolent.agent.tools.notification.OpenNotificationAccessSettingsTool
-import com.noexcs.indolent.agent.tools.notification.QueryNotificationTool
-import com.noexcs.indolent.agent.tools.notification.UpdateNotificationTool
-import com.noexcs.indolent.agent.tools.conditional.CreateConditionalTriggerTool
-import com.noexcs.indolent.agent.tools.conditional.DeleteConditionalTriggerTool
-import com.noexcs.indolent.agent.tools.conditional.EditConditionalTriggerTool
-import com.noexcs.indolent.agent.tools.conditional.ListConditionalTriggerHistoryTool
-import com.noexcs.indolent.agent.tools.conditional.ListConditionalTriggersTool
-import com.noexcs.indolent.agent.tools.scheduledTask.CreateScheduledTaskTool
-import com.noexcs.indolent.agent.tools.scheduledTask.DeleteScheduledTaskTool
-import com.noexcs.indolent.agent.tools.scheduledTask.EditScheduledTaskTool
-import com.noexcs.indolent.agent.tools.scheduledTask.ListScheduledTasksTool
-import com.noexcs.indolent.agent.tools.self.LogQueryTool
-import com.noexcs.indolent.agent.tools.sensor.GetSensorDataTool
-import com.noexcs.indolent.agent.tools.setting.AudioControlTool
-import com.noexcs.indolent.agent.tools.setting.SystemSettingTool
-import com.noexcs.indolent.agent.tools.systeminfo.BatteryInfoTool
-import com.noexcs.indolent.agent.tools.systeminfo.CurrentScreenInfoTool
-import com.noexcs.indolent.agent.tools.systeminfo.GetAppInfoTool
-import com.noexcs.indolent.agent.tools.systeminfo.NetworkStatusTool
-import com.noexcs.indolent.agent.tools.termux.TermuxExecuteCommandTool
-import com.noexcs.indolent.data.MemoryManager
-import com.noexcs.indolent.data.SettingsManager
+import com.noexcs.indolent.agent.BackgroundSessionRunner
+import com.noexcs.indolent.agent.SessionType
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.task.ExecutionStatus
 import com.noexcs.indolent.task.TaskExecutionRecord
@@ -113,24 +52,25 @@ class TriggerDispatcher(private val context: Context) {
         val contextualPrompt = buildContextualPrompt(trigger)
 
         try {
-            val settings = SettingsManager(context)
-            val baseUrl = settings.baseUrl?.takeIf { it.isNotBlank() } ?: run {
-                Lumberjack.w(TAG, "Base URL not configured, skipping trigger: ${trigger.id}")
+            val session = try {
+                BackgroundSessionRunner.create(context, trigger.id, SessionType.CONDITIONAL_TRIGGER)
+            } catch (e: IllegalStateException) {
+                Lumberjack.w(TAG, "${e.message}, skipping trigger: ${trigger.id}")
                 return
             }
-            val apiKey = settings.apiKey?.takeIf { it.isNotBlank() } ?: run {
-                Lumberjack.w(TAG, "API key not configured, skipping trigger: ${trigger.id}")
-                return
-            }
-            val model = settings.model?.ifBlank { "deepseek-chat" } ?: "deepseek-chat"
-
-            val agent = Agent(baseUrl, apiKey, model, settings.thinkingEnabled, settings.reasoningEffort)
-            val systemPrompt = buildSystemPrompt()
-            val tools = buildTools()
+            val systemPrompt = BackgroundSessionRunner.buildSystemPrompt(
+                context,
+                buildString {
+                    appendLine("You are a helpful Android assistant executing a condition-triggered task.")
+                    appendLine("This task was triggered because specific device conditions were met.")
+                    appendLine("Your role is to execute the given instructions precisely and efficiently.")
+                }.trimEnd()
+            )
+            val tools = BackgroundSessionRunner.buildTools(context)
 
             // Timeout: 5 minutes to avoid hanging
             val reply = withTimeoutOrNull(300_000) {
-                agent.execute(contextualPrompt, systemPrompt, tools, 100, true)
+                session.execute(contextualPrompt, systemPrompt, tools, 100, true)
             } ?: "Conditional trigger execution timed out after 5 minutes."
 
             Lumberjack.i(TAG, "Trigger '${trigger.title}' completed (${reply.length} chars)")
@@ -222,39 +162,6 @@ class TriggerDispatcher(private val context: Context) {
             description = "Notifications from conditional trigger tasks"
         }
         nm.createNotificationChannel(channel)
-    }
-
-    private fun buildSystemPrompt(): String {
-        val settings = SettingsManager(context)
-        val memory = MemoryManager(context).read()
-        return buildString {
-            appendLine("You are a helpful Android assistant executing a condition-triggered task.")
-            appendLine("This task was triggered because specific device conditions were met.")
-            appendLine("Your role is to execute the given instructions precisely and efficiently.")
-            if (settings.userSystemPrompt.isNotBlank()) {
-                appendLine()
-                appendLine("# User Custom Instruct")
-                appendLine(settings.userSystemPrompt)
-            }
-            if (memory.isNotBlank()) {
-                appendLine()
-                appendLine("# Memory")
-                appendLine("<memory>")
-                appendLine(memory)
-                appendLine("</memory>")
-            }
-        }
-    }
-
-    private fun buildTools(): List<AgentTool> {
-        val appContext = context.applicationContext
-        val settings = SettingsManager(appContext)
-        val memoryManager = MemoryManager(appContext)
-        val hasTermux = ContextCompat.checkSelfPermission(
-            appContext, "com.termux.permission.RUN_COMMAND"
-        ) == PackageManager.PERMISSION_GRANTED
-        val executor = if (hasTermux && settings.termuxToolsEnabled) TermuxExecutor(appContext) else null
-        return ToolProvider.build(appContext, settings, memoryManager, executor)
     }
 
     companion object {
