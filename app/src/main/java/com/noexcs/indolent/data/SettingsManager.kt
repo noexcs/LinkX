@@ -127,6 +127,29 @@ class SettingsManager(context: Context) {
         get() = prefs.getInt("condition_monitor_interval_minutes", 2)
         set(value) = prefs.edit { putInt("condition_monitor_interval_minutes", value) }
 
+    var mcpToolsEnabled: Boolean
+        get() = prefs.getBoolean("mcp_tools_enabled", false)
+        set(value) = prefs.edit { putBoolean("mcp_tools_enabled", value) }
+
+    var mcpServerConfigsJson: String
+        get() = prefs.getString("mcp_server_configs", "[]") ?: "[]"
+        set(value) = prefs.edit { putString("mcp_server_configs", value) }
+
+    var skillsEnabled: Boolean
+        get() = prefs.getBoolean("skills_enabled", false)
+        set(value) = prefs.edit { putBoolean("skills_enabled", value) }
+
+    var activeSkillName: String
+        get() = prefs.getString("active_skill_name", "") ?: ""
+        set(value) = prefs.edit { putString("active_skill_name", value) }
+
+    fun isSkillEnabled(skillName: String): Boolean =
+        prefs.getBoolean("skill_enabled_$skillName", true)
+
+    fun setSkillEnabled(skillName: String, enabled: Boolean) {
+        prefs.edit { putBoolean("skill_enabled_$skillName", enabled) }
+    }
+
     fun isToolEnabled(toolName: String): Boolean =
         prefs.getBoolean("tool_enabled_$toolName", true)
 

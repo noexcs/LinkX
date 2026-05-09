@@ -55,7 +55,8 @@ fun SettingsScreen(
     onNavigateToHeartbeatSettings: () -> Unit,
     onNavigateToUsageStats: () -> Unit,
     onNavigateToAppearance: () -> Unit,
-    onNavigateToAbout: () -> Unit
+    onNavigateToAbout: () -> Unit,
+    onNavigateToSkillSettings: () -> Unit = {}
 ) {
     var selectedLanguage by remember { mutableStateOf(settingsManager.language) }
 
@@ -155,6 +156,12 @@ fun SettingsScreen(
                     }
                 }
             }
+
+            MenuItemCard(
+                title = stringResource(R.string.title_skill_settings),
+                subtitle = stringResource(R.string.section_skill_settings_subtitle),
+                onClick = onNavigateToSkillSettings
+            )
 
             MenuItemCard(
                 title = stringResource(R.string.title_about),

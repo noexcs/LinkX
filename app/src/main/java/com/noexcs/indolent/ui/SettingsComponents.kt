@@ -171,7 +171,8 @@ fun ExpandableToolGroupCard(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = stringResource(tool.displayNameResId),
+                                text = if (tool.displayNameResId == -1) tool.name
+                                       else stringResource(tool.displayNameResId),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)

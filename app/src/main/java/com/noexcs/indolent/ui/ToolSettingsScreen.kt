@@ -72,7 +72,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun ToolSettingsScreen(
     settingsManager: SettingsManager,
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToMcpSettings: () -> Unit = {},
 ) {
     val context = LocalContext.current
     var termuxToolsEnabled by remember { mutableStateOf(settingsManager.termuxToolsEnabled) }
@@ -87,6 +88,7 @@ fun ToolSettingsScreen(
     var sensorToolsEnabled by remember { mutableStateOf(settingsManager.sensorToolsEnabled) }
     var settingToolsEnabled by remember { mutableStateOf(settingsManager.settingToolsEnabled) }
     var systemInfoToolsEnabled by remember { mutableStateOf(settingsManager.systemInfoToolsEnabled) }
+    var mcpToolsEnabled by remember { mutableStateOf(settingsManager.mcpToolsEnabled) }
     var hasUnsavedChanges by remember { mutableStateOf(false) }
     var showExitDialog by remember { mutableStateOf(false) }
     val termuxPermission = "com.termux.permission.RUN_COMMAND"
@@ -151,6 +153,7 @@ fun ToolSettingsScreen(
         settingsManager.sensorToolsEnabled = sensorToolsEnabled
         settingsManager.settingToolsEnabled = settingToolsEnabled
         settingsManager.systemInfoToolsEnabled = systemInfoToolsEnabled
+        settingsManager.mcpToolsEnabled = mcpToolsEnabled
         toolEnabledStates.forEach { (name, enabled) ->
             settingsManager.setToolEnabled(name, enabled)
         }
@@ -430,6 +433,26 @@ fun ToolSettingsScreen(
                     toolEnabledStates = toolEnabledStates + (name to enabled)
                     markChanged()
                 },
+            )
+
+            // MCP
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_mcp_tools),
+                subtitle = stringResource(R.string.section_mcp_tools_subtitle),
+                groupEnabled = mcpToolsEnabled,
+                onGroupToggle = { mcpToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.MCP] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+                extraContent = {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    FilledTonalButton(onClick = { onNavigateToMcpSettings() }) {
+                        Text(stringResource(R.string.mcp_configure_servers))
+                    }
+                }
             )
 
             Spacer(modifier = Modifier.height(16.dp))

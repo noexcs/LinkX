@@ -154,6 +154,10 @@ dependencies {
     implementation("androidx.work:work-runtime-ktx:2.10.1")
     // DocumentFile for SAF filesystem access
     implementation("androidx.documentfile:documentfile:1.0.1")
+    // MCP Client
+    implementation(libs.mcp.sdk.core)
+    implementation(libs.mcp.sdk.client)
+    implementation(libs.ktor.client.okhttp)
     // Markdown rendering
     implementation(libs.multiplatform.markdown.m3)
     implementation(libs.multiplatform.markdown.code)

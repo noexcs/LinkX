@@ -1,7 +1,12 @@
 package com.noexcs.indolent.agent
 
 object SystemPromptBuilder {
-    fun build(baseInstruction: String, userSystemPrompt: String, memory: String): String {
+    fun build(
+        baseInstruction: String,
+        userSystemPrompt: String,
+        memory: String,
+        activeSkillContent: String = ""
+    ): String {
         return buildString {
             appendLine(baseInstruction.trimEnd())
             if (userSystemPrompt.isNotBlank()) {
@@ -15,6 +20,11 @@ object SystemPromptBuilder {
                 appendLine("<memory>")
                 appendLine(memory)
                 appendLine("</memory>")
+            }
+            if (activeSkillContent.isNotBlank()) {
+                appendLine()
+                appendLine("# Active Skill")
+                appendLine(activeSkillContent)
             }
         }
     }

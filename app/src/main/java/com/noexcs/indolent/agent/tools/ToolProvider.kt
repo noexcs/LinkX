@@ -52,6 +52,7 @@ import com.noexcs.indolent.agent.tools.systeminfo.NetworkStatusTool
 import com.noexcs.indolent.agent.tools.systeminfo.ProcessInfoTool
 import com.noexcs.indolent.agent.tools.systeminfo.QueryAppActivitiesTool
 import com.noexcs.indolent.agent.tools.termux.TermuxExecuteCommandTool
+import com.noexcs.indolent.agent.mcp.McpClientManager
 import com.noexcs.indolent.data.SettingsManager
 
 /**
@@ -60,7 +61,7 @@ import com.noexcs.indolent.data.SettingsManager
  */
 object ToolProvider {
 
-    fun build(
+    suspend fun build(
         context: Context,
         settings: SettingsManager,
         memoryProvider: MemoryProvider,
@@ -160,6 +161,9 @@ object ToolProvider {
             }
             if (useFundTools) {
                 addFundTools(this, isToolEnabled)
+            }
+            if (settings.mcpToolsEnabled) {
+                addAll(McpClientManager.getTools(settings))
             }
         }
 

@@ -1,6 +1,7 @@
 package com.noexcs.indolent.agent
 
 import android.content.Context
+import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolProvider
 import com.noexcs.indolent.data.MemoryManager
@@ -24,17 +25,20 @@ object BackgroundSessionRunner {
         return Session(sessionId = sessionId, agent = agent, type = type)
     }
 
-    fun buildTools(context: Context): List<AgentTool> {
+    suspend fun buildTools(context: Context): List<AgentTool> {
         val appContext = context.applicationContext
         return ToolProvider.build(appContext, SettingsManager(appContext), MemoryManager(appContext))
     }
 
     fun buildSystemPrompt(context: Context, baseInstruction: String): String {
-        val settings = SettingsManager(context)
+        val appContext = context.applicationContext
+        val settings = SettingsManager(appContext)
+        val skillRepo = SkillRepository(appContext, settings)
         return SystemPromptBuilder.build(
             baseInstruction = baseInstruction,
             userSystemPrompt = settings.userSystemPrompt,
-            memory = MemoryManager(context).read()
+            memory = MemoryManager(appContext).read(),
+            activeSkillContent = skillRepo.getActiveSkillContent()
         )
     }
 }

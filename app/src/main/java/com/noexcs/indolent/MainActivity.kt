@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.data.UsageStatisticsAggregator
 import com.noexcs.indolent.data.MemoryManager
@@ -32,9 +33,11 @@ import com.noexcs.indolent.ui.ChatScreen
 import com.noexcs.indolent.ui.ConditionalTriggerListScreen
 import com.noexcs.indolent.ui.HeartbeatHistoryScreen
 import com.noexcs.indolent.ui.HeartbeatSettingsScreen
+import com.noexcs.indolent.ui.McpSettingsScreen
 import com.noexcs.indolent.ui.MemorySettingsScreen
 import com.noexcs.indolent.ui.ScheduledTaskListScreen
 import com.noexcs.indolent.ui.SettingsScreen
+import com.noexcs.indolent.ui.SkillSettingsScreen
 import com.noexcs.indolent.ui.SystemPromptSettingsScreen
 import com.noexcs.indolent.ui.ToolSettingsScreen
 import com.noexcs.indolent.ui.UsageStatsScreen
@@ -54,6 +57,8 @@ private sealed class Screen {
     data object UsageStats : Screen()
     data object Appearance : Screen()
     data object About : Screen()
+    data object McpSettings : Screen()
+    data object SkillSettings : Screen()
 }
 
 class MainActivity : ComponentActivity() {
@@ -81,6 +86,7 @@ private fun MainContent() {
     val memoryManager = remember { MemoryManager(appContext) }
     val settingsManager = remember { SettingsManager(appContext) }
     val conversationRepository = remember { FileChatHistoryProvider(appContext) }
+    val skillRepository = remember { SkillRepository(appContext, settingsManager) }
     val viewModel = remember {
         AgentViewModel(appContext, memoryManager, settingsManager, conversationRepository)
     }
@@ -93,7 +99,8 @@ private fun MainContent() {
         currentScreen = when (currentScreen) {
             is Screen.ApiSettings, is Screen.SystemPromptSettings, is Screen.MemorySettings,
             is Screen.ToolSettings, is Screen.HeartbeatSettings, is Screen.UsageStats,
-            is Screen.Appearance, is Screen.About -> Screen.Settings
+            is Screen.Appearance, is Screen.About, is Screen.McpSettings,
+            is Screen.SkillSettings -> Screen.Settings
             else -> Screen.Chat
         }
     }
@@ -102,7 +109,8 @@ private fun MainContent() {
         screen is Screen.ApiSettings || screen is Screen.SystemPromptSettings ||
         screen is Screen.MemorySettings || screen is Screen.ToolSettings ||
         screen is Screen.HeartbeatSettings || screen is Screen.UsageStats ||
-        screen is Screen.Appearance || screen is Screen.About
+        screen is Screen.Appearance || screen is Screen.About ||
+        screen is Screen.McpSettings || screen is Screen.SkillSettings
     }
 
     // MD3 Emphasized transition: 500ms with FastOutSlowInEasing (matches cubic-bezier(0.2, 0, 0, 1))
@@ -164,6 +172,7 @@ private fun MainContent() {
                 onNavigateToUsageStats = { currentScreen = Screen.UsageStats },
                 onNavigateToAppearance = { currentScreen = Screen.Appearance },
                 onNavigateToAbout = { currentScreen = Screen.About },
+                onNavigateToSkillSettings = { currentScreen = Screen.SkillSettings },
             )
             Screen.ApiSettings -> ApiSettingsScreen(
                 settingsManager = settingsManager,
@@ -180,6 +189,7 @@ private fun MainContent() {
             Screen.ToolSettings -> ToolSettingsScreen(
                 settingsManager = settingsManager,
                 onBack = { currentScreen = Screen.Settings },
+                onNavigateToMcpSettings = { currentScreen = Screen.McpSettings },
             )
             Screen.HeartbeatSettings -> HeartbeatSettingsScreen(
                 settingsManager = settingsManager,
@@ -196,6 +206,15 @@ private fun MainContent() {
                 onBack = { currentScreen = Screen.Settings },
             )
             Screen.About -> AboutScreen(
+                onBack = { currentScreen = Screen.Settings },
+            )
+            Screen.McpSettings -> McpSettingsScreen(
+                settingsManager = settingsManager,
+                onBack = { currentScreen = Screen.Settings },
+            )
+            Screen.SkillSettings -> SkillSettingsScreen(
+                skillRepository = skillRepository,
+                settingsManager = settingsManager,
                 onBack = { currentScreen = Screen.Settings },
             )
             Screen.ScheduledTasks -> ScheduledTaskListScreen(

@@ -14,6 +14,7 @@ import com.noexcs.indolent.agent.MessageRoleMapper
 import com.noexcs.indolent.agent.Session
 import com.noexcs.indolent.agent.SessionType
 import com.noexcs.indolent.agent.SystemPromptBuilder
+import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolProvider
 import com.noexcs.indolent.agent.tools.interact.ContentDisplayManager
@@ -44,6 +45,7 @@ class AgentViewModel(
     var onConversationUpdated: (() -> Unit)? = null
     private var hasNotifiedFirstResponse = false
     private var sessionId: String = UUID.randomUUID().toString()
+    private val skillRepository by lazy { SkillRepository(appContext, settingsManager) }
 
     // Persistent session — carries conversation history across messages.
     // Recreated only when API settings change.
@@ -237,11 +239,12 @@ class AgentViewModel(
         return SystemPromptBuilder.build(
             baseInstruction = "You are a helpful Android assistant.",
             userSystemPrompt = settingsManager.userSystemPrompt,
-            memory = memoryManager.read()
+            memory = memoryManager.read(),
+            activeSkillContent = skillRepository.getActiveSkillContent()
         )
     }
 
-    fun buildTools(): List<AgentTool> {
+    suspend fun buildTools(): List<AgentTool> {
         return ToolProvider.build(appContext, settingsManager, memoryManager, contentDisplayManager)
     }
 

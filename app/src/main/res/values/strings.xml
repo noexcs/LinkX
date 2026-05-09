@@ -113,6 +113,21 @@
     <string name="section_setting_tools_subtitle">Allow AI to read and modify system settings such as audio volume</string>
     <string name="section_system_info_tools">System Info Tools</string>
     <string name="section_system_info_tools_subtitle">Allow AI to read battery, network, screen, and app information</string>
+    <string name="section_mcp_tools">MCP Tools</string>
+    <string name="section_mcp_tools_subtitle">Allow AI to use tools from external MCP servers. Configure server endpoints to discover tools.</string>
+    <string name="mcp_configure_servers">Configure MCP Servers</string>
+    <string name="mcp_no_servers">No MCP servers configured</string>
+    <string name="mcp_server_add">Add Server</string>
+    <string name="mcp_server_name">Server Name</string>
+    <string name="mcp_server_url">Server URL</string>
+    <string name="mcp_server_name_hint">e.g. My Weather Server</string>
+    <string name="mcp_server_url_hint">https://example.com/mcp</string>
+    <string name="mcp_server_delete">Delete</string>
+    <string name="mcp_server_save">Save</string>
+    <string name="mcp_server_add_title">Add MCP Server</string>
+    <string name="mcp_server_edit_title">Edit MCP Server</string>
+    <string name="mcp_server_delete_title">Delete Server?</string>
+    <string name="mcp_server_delete_message">Remove this server and its tools from the agent?</string>
     <string name="tool_switch_enabled">Enabled</string>
     <string name="tool_switch_disabled">Disabled</string>
 
@@ -195,6 +210,7 @@
     <string name="title_heartbeat_settings">Heartbeat</string>
     <string name="title_usage_stats">Usage Statistics</string>
     <string name="title_appearance">Appearance</string>
+    <string name="title_skill_settings">Skills</string>
     <string name="title_about">About</string>
 
     <string name="section_api_settings_subtitle">Configure API provider, key, model, and reasoning</string>
@@ -202,6 +218,7 @@
     <string name="section_heartbeat_settings_subtitle">Configure periodic AI wake-up and conditional triggers</string>
     <string name="section_usage_stats_subtitle">Usage statistics across all task types</string>
     <string name="section_appearance_subtitle">Customize theme and display options</string>
+    <string name="section_skill_settings_subtitle">Manage AI skills — specialized instructions for different tasks</string>
     <string name="section_about_subtitle">App version, licenses, and information</string>
 
     <!-- Appearance -->
@@ -340,4 +357,27 @@
     <string name="tool_portfolio_list">Portfolio List</string>
     <string name="tool_portfolio_summary">Portfolio Summary</string>
     <string name="tool_portfolio_analyze_all">Portfolio Analyze All</string>
+
+    <!-- Skills -->
+    <string name="section_skills_master">Skills</string>
+    <string name="section_skills_master_subtitle">Enable skill system to give the AI specialized capabilities</string>
+    <string name="section_active_skill">Active Skill</string>
+    <string name="section_active_skill_subtitle">Select which skill to use. None uses default behavior.</string>
+    <string name="skill_none">None (default)</string>
+    <string name="section_builtin_skills">Built-in Skills</string>
+    <string name="section_user_skills">User Skills</string>
+    <string name="skill_create">Create Skill</string>
+    <string name="skill_import">Import</string>
+    <string name="skill_export">Export</string>
+    <string name="skill_delete_title">Delete Skill?</string>
+    <string name="skill_delete_message">\"%1$s\" will be permanently deleted.</string>
+    <string name="skill_create_title">Create Skill</string>
+    <string name="skill_name_label">Name</string>
+    <string name="skill_name_hint">e.g. my-custom-skill</string>
+    <string name="skill_description_label">Description</string>
+    <string name="skill_description_hint">What this skill does</string>
+    <string name="skill_no_user_skills">No user-created skills yet</string>
+    <string name="skill_no_user_skills_hint">Create one or import a skill file.</string>
+    <string name="skill_parse_error">(parse error)</string>
+    <string name="skills_disabled_message">Skills are currently disabled</string>
 </resources>
