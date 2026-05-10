@@ -269,7 +269,8 @@ val CrimsonScheme = lightColorScheme(
 
 data class ThemeDescriptor(
     val key: String,
-    val labelRes: Int,
+    val labelRes: Int = 0,
+    val label: String = "",
     val isDark: Boolean,
     val supportsDynamicColor: Boolean = false,
     val usesSeedColor: Boolean = false,
@@ -433,7 +434,7 @@ fun seedColorScheme(seedColor: Color, darkTheme: Boolean): ColorScheme {
 }
 
 object ThemeRegistry {
-    val themes = listOf(
+    private val builtIn = listOf(
         ThemeDescriptor("system", R.string.theme_system, isDark = false, supportsDynamicColor = true),
         ThemeDescriptor("light", R.string.theme_light, isDark = false, colorScheme = LightColorScheme),
         ThemeDescriptor("dark", R.string.theme_dark, isDark = true, colorScheme = DarkColorScheme),
@@ -449,11 +450,93 @@ object ThemeRegistry {
         ThemeDescriptor("seed", R.string.theme_seed, isDark = false, usesSeedColor = true),
     )
 
+    private val _dynamicThemes = mutableListOf<ThemeDescriptor>()
+    val dynamicThemes: List<ThemeDescriptor> get() = _dynamicThemes.toList()
+
+    val themes: List<ThemeDescriptor> get() = builtIn + _dynamicThemes
+
     val defaultTheme: ThemeDescriptor get() = themes.first()
 
     fun findByKey(key: String): ThemeDescriptor = themes.find { it.key == key } ?: defaultTheme
 
+    fun addDynamic(descriptor: ThemeDescriptor) {
+        _dynamicThemes.removeAll { it.key == descriptor.key }
+        _dynamicThemes.add(descriptor)
+    }
+
+    fun removeDynamic(key: String): Boolean = _dynamicThemes.removeAll { it.key == key }
+
+    fun isDynamic(key: String): Boolean = _dynamicThemes.any { it.key == key }
+
+    fun loadDynamic(json: String) {
+        _dynamicThemes.clear()
+        if (json.isBlank() || json == "[]") return
+        try {
+            val arr = org.json.JSONArray(json)
+            for (i in 0 until arr.length()) {
+                val obj = arr.getJSONObject(i)
+                val key = obj.getString("key")
+                val label = obj.getString("label")
+                val seedColor = Color(obj.getInt("seedColor"))
+                val isDark = obj.optBoolean("isDark", false)
+                val scheme = seedColorScheme(seedColor, isDark)
+                _dynamicThemes.add(ThemeDescriptor(
+                    key = key, label = label, isDark = isDark,
+                    usesSeedColor = false, colorScheme = scheme
+                ))
+            }
+        } catch (_: Exception) { }
+    }
+
+    fun toDynamicJson(): String {
+        if (_dynamicThemes.isEmpty()) return "[]"
+        val arr = org.json.JSONArray()
+        _dynamicThemes.forEach { theme ->
+            val obj = org.json.JSONObject()
+            obj.put("key", theme.key)
+            obj.put("label", theme.label)
+            // Extract the approximate seed color from the scheme's primary
+            val primaryArgb = theme.colorScheme?.primary?.toArgb() ?: 0xFF6750A4.toInt()
+            obj.put("seedColor", primaryArgb)
+            obj.put("isDark", theme.isDark)
+            arr.put(obj)
+        }
+        return arr.toString()
+    }
+
     val themeKeys: List<String> get() = themes.map { it.key }
+
+    fun nextDynamicKey(): String {
+        var i = 0
+        while (themes.any { it.key == "dynamic_$i" }) i++
+        return "dynamic_$i"
+    }
+}
+
+object ThemeState {
+    var themeKey by mutableStateOf("system")
+    var dynamicColor by mutableStateOf(true)
+    var seedColor by mutableStateOf(Color.Unspecified)
+    var dynamicThemesVersion by mutableStateOf(0)
+
+    fun applyTheme(key: String) {
+        themeKey = key
+    }
+
+    fun applySeedColor(color: Color) {
+        seedColor = color
+    }
+
+    fun addDynamicTheme(descriptor: ThemeDescriptor) {
+        ThemeRegistry.addDynamic(descriptor)
+        dynamicThemesVersion++
+    }
+
+    fun removeDynamicTheme(key: String) {
+        if (ThemeRegistry.removeDynamic(key)) {
+            dynamicThemesVersion++
+        }
+    }
 }
 
 @Composable

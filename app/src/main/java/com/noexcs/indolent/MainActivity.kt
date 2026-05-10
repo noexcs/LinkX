@@ -140,9 +140,19 @@ private fun MainContent() {
     val todoItemRepository = remember { TodoItemRepository(appContext) }
     val noteRepository = remember { NoteRepository(appContext) }
 
-    var themeKey by remember { mutableStateOf(settingsManager.themeKey) }
-    var dynamicColor by remember { mutableStateOf(settingsManager.dynamicColor) }
-    var seedColor by remember { mutableStateOf(Color(settingsManager.seedColor)) }
+    // Initialize global theme state from persisted settings on first composition
+    LaunchedEffect(Unit) {
+        val ts = com.noexcs.indolent.ui.theme.ThemeState
+        ts.themeKey = settingsManager.themeKey
+        ts.dynamicColor = settingsManager.dynamicColor
+        ts.seedColor = Color(settingsManager.seedColor)
+        com.noexcs.indolent.ui.theme.ThemeRegistry.loadDynamic(settingsManager.dynamicThemesJson)
+    }
+
+    // Read from global ThemeState — AI tools write here for instant theme switching
+    val themeKey = com.noexcs.indolent.ui.theme.ThemeState.themeKey
+    val dynamicColor = com.noexcs.indolent.ui.theme.ThemeState.dynamicColor
+    val seedColor = com.noexcs.indolent.ui.theme.ThemeState.seedColor
 
     IndolentTheme(
         themeKey = themeKey,
@@ -325,9 +335,15 @@ private fun MainContent() {
                     )
                     Screen.Appearance -> AppearanceSettingsScreen(
                         settingsManager = settingsManager,
-                        onThemeKeyChanged = { themeKey = it },
-                        onDynamicColorChanged = { dynamicColor = it },
-                        onSeedColorChanged = { seedColor = it },
+                        onThemeKeyChanged = {
+                            com.noexcs.indolent.ui.theme.ThemeState.applyTheme(it)
+                        },
+                        onDynamicColorChanged = {
+                            com.noexcs.indolent.ui.theme.ThemeState.dynamicColor = it
+                        },
+                        onSeedColorChanged = {
+                            com.noexcs.indolent.ui.theme.ThemeState.applySeedColor(it)
+                        },
                         onBack = { currentScreen = Screen.Settings },
                     )
                     Screen.About -> AboutScreen(

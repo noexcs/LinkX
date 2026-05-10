@@ -135,7 +135,8 @@ fun AppearanceSettingsScreen(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = stringResource(theme.labelRes),
+                                text = if (theme.label.isNotEmpty()) theme.label
+                                       else stringResource(theme.labelRes),
                                 style = MaterialTheme.typography.bodyLarge,
                                 modifier = Modifier.weight(1f)
                             )

@@ -70,6 +70,7 @@ object ToolRegistry {
         ToolInfo("audio_control", R.string.tool_audio_control, ToolGroup.SETTING),
         ToolInfo("system_setting", R.string.tool_system_setting, ToolGroup.SETTING),
         ToolInfo("app_setting", R.string.tool_app_setting, ToolGroup.SETTING),
+        ToolInfo("set_color_theme", R.string.tool_set_color_theme, ToolGroup.SETTING),
 
         // SystemInfo
         ToolInfo("get_app_info", R.string.tool_get_app_info, ToolGroup.SYSTEM_INFO),

@@ -276,6 +276,7 @@
     <string name="tool_audio_control">音频控制</string>
     <string name="tool_system_setting">系统设置</string>
     <string name="tool_app_setting">应用设置</string>
+    <string name="tool_set_color_theme">颜色主题</string>
     <string name="tool_get_app_info">获取应用信息</string>
     <string name="tool_get_battery_info">获取电池信息</string>
     <string name="tool_get_network_status">获取网络状态</string>

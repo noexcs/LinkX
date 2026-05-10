@@ -43,6 +43,7 @@ import com.noexcs.indolent.agent.tools.self.LogQueryTool
 import com.noexcs.indolent.agent.tools.sensor.GetSensorDataTool
 import com.noexcs.indolent.agent.tools.setting.AppSettingTool
 import com.noexcs.indolent.agent.tools.setting.AudioControlTool
+import com.noexcs.indolent.agent.tools.setting.SetColorThemeTool
 import com.noexcs.indolent.agent.tools.setting.SystemSettingTool
 import com.noexcs.indolent.agent.tools.systeminfo.BatteryInfoTool
 import com.noexcs.indolent.agent.tools.systeminfo.CpuInfoTool
@@ -135,6 +136,7 @@ object ToolProvider {
                 if (isToolEnabled("system_setting")) add(SystemSettingTool(appContext))
                 if (isToolEnabled("audio_control")) add(AudioControlTool(appContext))
                 if (isToolEnabled("app_setting")) add(AppSettingTool(settings))
+                if (isToolEnabled("set_color_theme")) add(SetColorThemeTool(settings))
             }
             if (useInteractTools) {
                 if (isToolEnabled("ask_user")) add(AskUserTool(appContext))

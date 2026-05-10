@@ -155,6 +155,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getInt("seed_color", 0xFF6750A4.toInt())
         set(value) = prefs.edit { putInt("seed_color", value) }
 
+    var dynamicThemesJson: String
+        get() = prefs.getString("dynamic_themes_json", "[]") ?: "[]"
+        set(value) = prefs.edit { putString("dynamic_themes_json", value) }
+
     var dynamicColor: Boolean
         get() = prefs.getBoolean("dynamic_color", true)
         set(value) = prefs.edit { putBoolean("dynamic_color", value) }

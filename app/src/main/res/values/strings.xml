@@ -313,6 +313,7 @@
     <string name="tool_audio_control">Audio Control</string>
     <string name="tool_system_setting">System Setting</string>
     <string name="tool_app_setting">App Setting</string>
+    <string name="tool_set_color_theme">Color Theme</string>
     <string name="tool_get_app_info">Get App Info</string>
     <string name="tool_get_battery_info">Get Battery Info</string>
     <string name="tool_get_network_status">Get Network Status</string>
