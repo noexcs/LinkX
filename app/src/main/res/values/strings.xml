@@ -152,6 +152,8 @@
     <string name="notification_channel_tasks">Scheduled Tasks</string>
     <string name="notification_channel_tasks_desc">Notifications from scheduled AI tasks</string>
     <string name="exact_alarm_permission_needed">Please grant the \"Alarms &amp; reminders\" permission to schedule tasks</string>
+    <string name="task_deleted">"%1$s" deleted</string>
+    <string name="undo">Undo</string>
     <string name="task_running">Running scheduled task…</string>
     <string name="task_starting">Executing task…</string>
     <string name="history">History</string>
@@ -230,10 +232,19 @@
     <string name="theme_system">System default</string>
     <string name="theme_light">Light</string>
     <string name="theme_dark">Dark</string>
-    <string name="section_theme_mode">Theme Mode</string>
-    <string name="section_theme_mode_subtitle">Choose between light, dark, or follow system default</string>
+    <string name="theme_aurora">Aurora</string>
+    <string name="theme_matcha">Matcha</string>
+    <string name="theme_cyber">Cyber</string>
+    <string name="theme_neutral">Neutral</string>
+    <string name="theme_seed">Custom seed color</string>
+    <string name="section_theme_mode">Theme</string>
+    <string name="section_theme_mode_subtitle">Choose a color theme</string>
+    <string name="section_seed_color">Seed Color</string>
+    <string name="section_seed_color_subtitle">Pick a color to generate a complete Material You theme</string>
     <string name="section_dynamic_color">Dynamic Color</string>
     <string name="section_dynamic_color_subtitle">Derive colors from your wallpaper for a personalized look</string>
+    <string name="seed_color_presets">Presets</string>
+    <string name="seed_color_custom">Custom</string>
 
     <!-- About -->
     <string name="about_description">An AI assistant and task agent that helps you automate your Android device. Built with Material Design 3 Expressive and Jetpack Compose.</string>
@@ -425,4 +436,9 @@
     <string name="note_labels_hint">Separate labels with commas</string>
     <string name="delete_note_title">Delete note?</string>
     <string name="delete_note_message">This note will be permanently deleted.</string>
+    <string name="theme_crimson">Crimson Red</string>
+    <string name="theme_sunset_orange">Sunset Orange</string>
+    <string name="theme_golden_yellow">Golden Yellow</string>
+    <string name="theme_emerald_green">Emerald Green</string>
+    <string name="theme_cyan_blue">Cyan Blue</string>
 </resources>

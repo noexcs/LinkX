@@ -165,6 +165,8 @@ dependencies {
     // Chrome Custom Tabs
     implementation("androidx.browser:browser:1.8.0")
 
+    implementation(libs.material.color.utilities)
+
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.json:json:20240303")

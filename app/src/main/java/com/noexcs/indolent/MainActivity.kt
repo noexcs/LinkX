@@ -31,6 +31,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -119,9 +120,7 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
         setContent {
-            IndolentTheme {
-                MainContent()
-            }
+            MainContent()
         }
     }
 }
@@ -141,6 +140,15 @@ private fun MainContent() {
     val todoItemRepository = remember { TodoItemRepository(appContext) }
     val noteRepository = remember { NoteRepository(appContext) }
 
+    var themeKey by remember { mutableStateOf(settingsManager.themeKey) }
+    var dynamicColor by remember { mutableStateOf(settingsManager.dynamicColor) }
+    var seedColor by remember { mutableStateOf(Color(settingsManager.seedColor)) }
+
+    IndolentTheme(
+        themeKey = themeKey,
+        dynamicColor = dynamicColor,
+        seedColor = seedColor,
+    ) {
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Chat) }
     val isRoot = currentScreen in rootScreens
     val pagerState = rememberPagerState(
@@ -316,6 +324,10 @@ private fun MainContent() {
                         onBack = { currentScreen = Screen.Settings },
                     )
                     Screen.Appearance -> AppearanceSettingsScreen(
+                        settingsManager = settingsManager,
+                        onThemeKeyChanged = { themeKey = it },
+                        onDynamicColorChanged = { dynamicColor = it },
+                        onSeedColorChanged = { seedColor = it },
                         onBack = { currentScreen = Screen.Settings },
                     )
                     Screen.About -> AboutScreen(
@@ -361,5 +373,6 @@ private fun MainContent() {
                 }
             }
         }
+    }
     }
 }

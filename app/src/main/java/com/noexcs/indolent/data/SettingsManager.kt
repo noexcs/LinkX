@@ -147,6 +147,18 @@ class SettingsManager(context: Context) {
         get() = prefs.getString("active_skill_name", "") ?: ""
         set(value) = prefs.edit { putString("active_skill_name", value) }
 
+    var themeKey: String
+        get() = prefs.getString("theme_key", "system") ?: "system"
+        set(value) = prefs.edit { putString("theme_key", value) }
+
+    var seedColor: Int
+        get() = prefs.getInt("seed_color", 0xFF6750A4.toInt())
+        set(value) = prefs.edit { putInt("seed_color", value) }
+
+    var dynamicColor: Boolean
+        get() = prefs.getBoolean("dynamic_color", true)
+        set(value) = prefs.edit { putBoolean("dynamic_color", value) }
+
     fun isSkillEnabled(skillName: String): Boolean =
         prefs.getBoolean("skill_enabled_$skillName", true)
 
