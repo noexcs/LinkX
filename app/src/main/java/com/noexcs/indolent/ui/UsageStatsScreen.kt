@@ -45,6 +45,7 @@ import com.noexcs.indolent.data.TimePeriod
 import com.noexcs.indolent.data.UsageStatisticsAggregator
 import com.noexcs.indolent.data.UsageStats
 import com.noexcs.indolent.data.fetchUserBalance
+import com.noexcs.indolent.ui.settings.SectionCard
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -247,6 +248,7 @@ fun UsageStatsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+
                     is BalanceState.NotConfigured -> {
                         Text(
                             "Configure API settings to view balance",
@@ -254,6 +256,7 @@ fun UsageStatsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
+
                     is BalanceState.Error -> {
                         Text(
                             "Failed to fetch balance",
@@ -261,11 +264,21 @@ fun UsageStatsScreen(
                             color = MaterialTheme.colorScheme.error,
                         )
                     }
+
                     is BalanceState.Success -> {
                         state.infos.forEach { info ->
-                            StatRow(label = "Total balance", value = "${info.totalBalance} ${info.currency}")
-                            StatRow(label = "Topped up", value = "${info.toppedUpBalance} ${info.currency}")
-                            StatRow(label = "Granted", value = "${info.grantedBalance} ${info.currency}")
+                            StatRow(
+                                label = "Total balance",
+                                value = "${info.totalBalance} ${info.currency}"
+                            )
+                            StatRow(
+                                label = "Topped up",
+                                value = "${info.toppedUpBalance} ${info.currency}"
+                            )
+                            StatRow(
+                                label = "Granted",
+                                value = "${info.grantedBalance} ${info.currency}"
+                            )
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -165,7 +165,9 @@ fun ApiSettingsScreen(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = providerExpanded) },
                         colors = ExposedDropdownMenuDefaults.textFieldColors(),
                     )
-                    ExposedDropdownMenu(expanded = providerExpanded, onDismissRequest = { providerExpanded = false }) {
+                    ExposedDropdownMenu(
+                        expanded = providerExpanded,
+                        onDismissRequest = { providerExpanded = false }) {
                         LLMProvider.all().forEach { provider ->
                             DropdownMenuItem(
                                 text = { Text(text = provider.displayName) },
@@ -226,14 +228,19 @@ fun ApiSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.thinking_label), style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            stringResource(R.string.thinking_label),
+                            style = MaterialTheme.typography.bodyLarge
+                        )
                         Text(
                             stringResource(R.string.thinking_subtitle),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Switch(checked = thinkingEnabled, onCheckedChange = { thinkingEnabled = it; markChanged() })
+                    Switch(
+                        checked = thinkingEnabled,
+                        onCheckedChange = { thinkingEnabled = it; markChanged() })
                 }
 
                 if (thinkingEnabled) {
@@ -256,7 +263,9 @@ fun ApiSettingsScreen(
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = reasoningEffortExpanded) },
                             colors = ExposedDropdownMenuDefaults.textFieldColors(),
                         )
-                        ExposedDropdownMenu(expanded = reasoningEffortExpanded, onDismissRequest = { reasoningEffortExpanded = false }) {
+                        ExposedDropdownMenu(
+                            expanded = reasoningEffortExpanded,
+                            onDismissRequest = { reasoningEffortExpanded = false }) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.reasoning_effort_high)) },
                                 onClick = {

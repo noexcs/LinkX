@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.settings
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -112,10 +112,10 @@ fun AppearanceSettingsScreen(onBack: () -> Unit) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (dynamicColor) stringResource(R.string.tool_switch_enabled)
-                                   else stringResource(R.string.tool_switch_disabled),
+                            else stringResource(R.string.tool_switch_disabled),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (dynamicColor) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Switch(checked = dynamicColor, onCheckedChange = { dynamicColor = it })

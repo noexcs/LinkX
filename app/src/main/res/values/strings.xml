@@ -385,4 +385,44 @@
     <string name="skill_no_user_skills_hint">Create one or import a skill file.</string>
     <string name="skill_parse_error">(parse error)</string>
     <string name="skills_disabled_message">Skills are currently disabled</string>
+
+    <!-- Todo & Notes -->
+    <string name="chat_tab">Chat</string>
+    <string name="todo_lists">Tasks</string>
+    <string name="background_tasks">Background</string>
+    <string name="notes">Notes</string>
+    <string name="my_day">My Day</string>
+    <string name="important">Important</string>
+    <string name="planned">Planned</string>
+    <string name="my_lists">My Lists</string>
+    <string name="add_list">Add List</string>
+    <string name="no_lists">No lists yet</string>
+    <string name="tasks_count">tasks</string>
+    <string name="priority_label">Priority</string>
+    <string name="priority_none">None</string>
+    <string name="priority_low">Low</string>
+    <string name="priority_medium">Medium</string>
+    <string name="priority_high">High</string>
+    <string name="task_note">Note</string>
+    <string name="set_due_date">Set Due Date</string>
+    <string name="subtasks_label">Subtasks</string>
+    <string name="subtask_hint">Add a subtask…</string>
+    <string name="add_subtask">Add Subtask</string>
+    <string name="add_to_my_day">Add to My Day</string>
+    <string name="mark_important">Mark as Important</string>
+    <string name="toggle_view">Toggle view</string>
+    <string name="note_archive">Archive</string>
+    <string name="add_note">Add Note</string>
+    <string name="edit_note">Edit Note</string>
+    <string name="no_archived_notes">No archived notes</string>
+    <string name="no_notes">No notes yet</string>
+    <string name="note_pin">Pin</string>
+    <string name="preview">Preview</string>
+    <string name="note_title_hint">Title</string>
+    <string name="note_content_hint">Write something…</string>
+    <string name="note_color">Color</string>
+    <string name="note_labels">Labels</string>
+    <string name="note_labels_hint">Separate labels with commas</string>
+    <string name="delete_note_title">Delete note?</string>
+    <string name="delete_note_message">This note will be permanently deleted.</string>
 </resources>

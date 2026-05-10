@@ -1,7 +1,8 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.chat
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
@@ -15,7 +16,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -241,7 +241,7 @@ private fun PdfContent(content: DisplayContent) {
         AndroidView(
             factory = { ctx ->
                 ImageView(ctx).apply {
-                    setBackgroundColor(android.graphics.Color.WHITE)
+                    setBackgroundColor(Color.WHITE)
                     setLayerType(View.LAYER_TYPE_HARDWARE, null)
                 }
             },

@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.settings
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -154,10 +154,10 @@ fun HeartbeatSettingsScreen(
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
                             text = if (heartbeatEnabled) stringResource(R.string.tool_switch_enabled)
-                                   else stringResource(R.string.tool_switch_disabled),
+                            else stringResource(R.string.tool_switch_disabled),
                             style = MaterialTheme.typography.bodyMedium,
                             color = if (heartbeatEnabled) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
@@ -166,7 +166,9 @@ fun HeartbeatSettingsScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Switch(checked = heartbeatEnabled, onCheckedChange = { heartbeatEnabled = it; markChanged() })
+                    Switch(
+                        checked = heartbeatEnabled,
+                        onCheckedChange = { heartbeatEnabled = it; markChanged() })
                 }
 
                 if (heartbeatEnabled) {

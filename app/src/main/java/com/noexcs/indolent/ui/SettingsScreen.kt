@@ -11,13 +11,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -34,6 +34,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.SettingsManager
+import com.noexcs.indolent.ui.settings.MenuItemCard
+import com.noexcs.indolent.ui.settings.SectionCard
 
 private data class LanguageOption(val tag: String, val labelRes: Int)
 
@@ -65,111 +67,91 @@ fun SettingsScreen(
         settingsManager.language = tag
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .imePadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        MenuItemCard(
+            title = stringResource(R.string.title_api_settings),
+            subtitle = stringResource(R.string.section_api_settings_subtitle),
+            onClick = onNavigateToApiSettings
+        )
 
-    Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-        topBar = {
-            MediumTopAppBar(
-                title = { Text(stringResource(R.string.settings)) },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.back))
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .imePadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+        MenuItemCard(
+            title = stringResource(R.string.title_system_prompt_settings),
+            subtitle = stringResource(R.string.section_system_prompt_subtitle),
+            onClick = onNavigateToSystemPromptSettings
+        )
+
+        MenuItemCard(
+            title = stringResource(R.string.title_memory_settings),
+            subtitle = stringResource(R.string.section_memory_subtitle),
+            onClick = onNavigateToMemorySettings
+        )
+
+        MenuItemCard(
+            title = stringResource(R.string.title_tool_settings),
+            subtitle = stringResource(R.string.section_tool_settings_subtitle),
+            onClick = onNavigateToToolSettings
+        )
+
+        MenuItemCard(
+            title = stringResource(R.string.title_heartbeat_settings),
+            subtitle = stringResource(R.string.section_heartbeat_settings_subtitle),
+            onClick = onNavigateToHeartbeatSettings
+        )
+
+        MenuItemCard(
+            title = stringResource(R.string.title_usage_stats),
+            subtitle = stringResource(R.string.section_usage_stats_subtitle),
+            onClick = onNavigateToUsageStats
+        )
+
+        MenuItemCard(
+            title = stringResource(R.string.title_appearance),
+            subtitle = stringResource(R.string.section_appearance_subtitle),
+            onClick = onNavigateToAppearance
+        )
+
+        // Language setting stays inline on the main page
+        SectionCard(
+            title = stringResource(R.string.section_language),
+            subtitle = stringResource(R.string.section_language_subtitle)
         ) {
-            MenuItemCard(
-                title = stringResource(R.string.title_api_settings),
-                subtitle = stringResource(R.string.section_api_settings_subtitle),
-                onClick = onNavigateToApiSettings
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_system_prompt_settings),
-                subtitle = stringResource(R.string.section_system_prompt_subtitle),
-                onClick = onNavigateToSystemPromptSettings
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_memory_settings),
-                subtitle = stringResource(R.string.section_memory_subtitle),
-                onClick = onNavigateToMemorySettings
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_tool_settings),
-                subtitle = stringResource(R.string.section_tool_settings_subtitle),
-                onClick = onNavigateToToolSettings
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_heartbeat_settings),
-                subtitle = stringResource(R.string.section_heartbeat_settings_subtitle),
-                onClick = onNavigateToHeartbeatSettings
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_usage_stats),
-                subtitle = stringResource(R.string.section_usage_stats_subtitle),
-                onClick = onNavigateToUsageStats
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_appearance),
-                subtitle = stringResource(R.string.section_appearance_subtitle),
-                onClick = onNavigateToAppearance
-            )
-
-            // Language setting stays inline on the main page
-            SectionCard(
-                title = stringResource(R.string.section_language),
-                subtitle = stringResource(R.string.section_language_subtitle)
-            ) {
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                    languageOptions.forEachIndexed { index, option ->
-                        SegmentedButton(
-                            selected = selectedLanguage == option.tag,
-                            onClick = { applyLanguage(option.tag) },
-                            shape = SegmentedButtonDefaults.itemShape(index, languageOptions.size),
-                        ) {
-                            Text(
-                                stringResource(option.labelRes),
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+                languageOptions.forEachIndexed { index, option ->
+                    SegmentedButton(
+                        selected = selectedLanguage == option.tag,
+                        onClick = { applyLanguage(option.tag) },
+                        shape = SegmentedButtonDefaults.itemShape(index, languageOptions.size),
+                    ) {
+                        Text(
+                            stringResource(option.labelRes),
+                            style = MaterialTheme.typography.labelMedium
+                        )
                     }
                 }
             }
-
-            MenuItemCard(
-                title = stringResource(R.string.title_skill_settings),
-                subtitle = stringResource(R.string.section_skill_settings_subtitle),
-                onClick = onNavigateToSkillSettings
-            )
-
-            MenuItemCard(
-                title = stringResource(R.string.title_about),
-                subtitle = stringResource(R.string.section_about_subtitle),
-                onClick = onNavigateToAbout
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
+
+        MenuItemCard(
+            title = stringResource(R.string.title_skill_settings),
+            subtitle = stringResource(R.string.section_skill_settings_subtitle),
+            onClick = onNavigateToSkillSettings
+        )
+
+        MenuItemCard(
+            title = stringResource(R.string.title_about),
+            subtitle = stringResource(R.string.section_about_subtitle),
+            onClick = onNavigateToAbout
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
+
 }
+

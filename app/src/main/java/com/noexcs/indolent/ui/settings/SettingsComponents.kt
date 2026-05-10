@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.settings
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically

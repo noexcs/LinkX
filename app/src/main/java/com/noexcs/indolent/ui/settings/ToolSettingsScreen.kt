@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.settings
 
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -26,7 +26,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,7 +38,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
@@ -339,11 +337,16 @@ fun ToolSettingsScreen(
                         if (!hasAllFilesAccess && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                             Button(onClick = {
                                 try {
-                                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                                    val intent =
+                                        Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
                                     intent.data = Uri.parse("package:${context.packageName}")
                                     context.startActivity(intent)
                                 } catch (e: Exception) {
-                                    Toast.makeText(context, "This device does not support the All Files Access settings page.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(
+                                        context,
+                                        "This device does not support the All Files Access settings page.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             }) {
                                 Text(stringResource(R.string.grant_all_files_access))

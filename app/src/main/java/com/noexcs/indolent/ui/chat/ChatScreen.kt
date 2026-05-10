@@ -1,9 +1,10 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.chat
 
 import kotlin.math.roundToInt
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
@@ -19,7 +20,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,11 +39,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.Send
 import androidx.compose.material.icons.filled.AddComment
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Psychology
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,18 +50,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MediumTopAppBar
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -103,9 +97,6 @@ import kotlinx.coroutines.launch
 fun ChatScreen(
     viewModel: AgentViewModel,
     conversationRepository: FileChatHistoryProvider,
-    onOpenSettings: () -> Unit = {},
-    onOpenScheduledTasks: () -> Unit = {},
-    onOpenConditionalTriggers: () -> Unit = {},
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -141,9 +132,6 @@ fun ChatScreen(
             conversationRepository = conversationRepository,
             refreshTrigger = refreshTrigger,
             onOpenDrawer = { scope.launch { drawerState.open() } },
-            onOpenSettings = onOpenSettings,
-            onOpenScheduledTasks = onOpenScheduledTasks,
-            onOpenConditionalTriggers = onOpenConditionalTriggers,
         )
     }
 }
@@ -157,9 +145,6 @@ private fun ChatContent(
     conversationRepository: FileChatHistoryProvider,
     refreshTrigger: Int,
     onOpenDrawer: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenScheduledTasks: () -> Unit,
-    onOpenConditionalTriggers: () -> Unit = {},
 ) {
     val messages = viewModel.messages
     val isLoading by viewModel.isLoading
@@ -200,72 +185,38 @@ private fun ChatContent(
         }
     }
 
-    val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            MediumTopAppBar(
-                title = {
-                    Text(
-                        stringResource(R.string.chat_title),
-                        style = MaterialTheme.typography.titleLarge
-                    )
-                },
-                scrollBehavior = scrollBehavior,
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    scrolledContainerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-                navigationIcon = {
-                    IconButton(onClick = onOpenDrawer) {
-                        Icon(
-                            Icons.Default.Menu,
-                            contentDescription = stringResource(R.string.conversations),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.newConversation() }) {
-                        Icon(
-                            Icons.Default.AddComment,
-                            contentDescription = stringResource(R.string.new_chat),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onOpenScheduledTasks) {
-                        Icon(
-                            Icons.Default.DateRange,
-                            contentDescription = stringResource(R.string.scheduled_tasks),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onOpenConditionalTriggers) {
-                        Icon(
-                            Icons.Default.Refresh,
-                            contentDescription = stringResource(R.string.conditional_triggers),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(
-                            Icons.Default.Settings,
-                            contentDescription = stringResource(R.string.settings),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
                 .imePadding()
                 .background(MaterialTheme.colorScheme.surface)
         ) {
+            // Actions bar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 4.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = onOpenDrawer) {
+                    Icon(
+                        Icons.Default.Menu,
+                        contentDescription = stringResource(R.string.conversations),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                IconButton(onClick = { viewModel.newConversation() }) {
+                    Icon(
+                        Icons.Default.AddComment,
+                        contentDescription = stringResource(R.string.new_chat),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
             // ── Messages ──────────────────────────────────────────────────
             Column(
                 modifier = Modifier
@@ -507,7 +458,7 @@ private fun ThinkingIndicator() {
                 targetValue = -6f,
                 animationSpec = infiniteRepeatable(
                     animation = tween(420, delayMillis = index * 140),
-                    repeatMode = androidx.compose.animation.core.RepeatMode.Reverse,
+                    repeatMode = RepeatMode.Reverse,
                 ),
                 label = "dot$index"
             )

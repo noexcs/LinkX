@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.settings
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -23,10 +23,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -171,7 +168,9 @@ fun SkillSettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = if (skillsEnabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                        text = if (skillsEnabled) stringResource(R.string.enabled) else stringResource(
+                            R.string.disabled
+                        ),
                         style = MaterialTheme.typography.bodyLarge
                     )
                     Switch(
@@ -326,15 +325,31 @@ fun SkillSettingsScreen(
                             onClick = { showCreateDialog = true },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.skill_create))
                         }
                         OutlinedButton(
-                            onClick = { importLauncher.launch(arrayOf("text/markdown", "text/plain", "*/*")) },
+                            onClick = {
+                                importLauncher.launch(
+                                    arrayOf(
+                                        "text/markdown",
+                                        "text/plain",
+                                        "*/*"
+                                    )
+                                )
+                            },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Icon(Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(
+                                Icons.Default.FileOpen,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
                             Spacer(Modifier.width(6.dp))
                             Text(stringResource(R.string.skill_import))
                         }

@@ -1,4 +1,4 @@
-package com.noexcs.indolent.ui
+package com.noexcs.indolent.ui.chat
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
