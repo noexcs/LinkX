@@ -22,6 +22,7 @@ object ToolRegistry {
         ToolInfo("update_memory", R.string.tool_update_memory, ToolGroup.COMMON),
         ToolInfo("send_intent", R.string.tool_send_intent, ToolGroup.COMMON),
         ToolInfo("clipboard", R.string.tool_clipboard, ToolGroup.COMMON),
+        ToolInfo("agent_clipboard", R.string.tool_agent_clipboard, ToolGroup.COMMON),
         ToolInfo("calendar", R.string.tool_calendar, ToolGroup.COMMON),
         ToolInfo("get_current_time", R.string.tool_get_current_time, ToolGroup.COMMON),
         ToolInfo("http_request", R.string.tool_http_request, ToolGroup.COMMON),

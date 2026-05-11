@@ -5,7 +5,8 @@ object SystemPromptBuilder {
         baseInstruction: String,
         userSystemPrompt: String,
         memory: String,
-        activeSkillContent: String = ""
+        activeSkillContent: String = "",
+        clipboardInstruction: String = ""
     ): String {
         return buildString {
             appendLine(baseInstruction.trimEnd())
@@ -25,6 +26,11 @@ object SystemPromptBuilder {
                 appendLine()
                 appendLine("# Active Skill")
                 appendLine(activeSkillContent)
+            }
+            if (clipboardInstruction.isNotBlank()) {
+                appendLine()
+                appendLine("# Agent Clipboard")
+                appendLine(clipboardInstruction)
             }
         }
     }

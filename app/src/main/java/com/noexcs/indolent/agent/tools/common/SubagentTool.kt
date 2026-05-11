@@ -4,6 +4,7 @@ import com.noexcs.indolent.agent.Agent
 import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 
 class SubagentTool : AgentTool {
     override val name = "agent"
@@ -33,6 +34,7 @@ class SubagentTool : AgentTool {
     private var defaultMaxIterations: Int = 500
     private var thinkingEnabled: Boolean = true
     private var reasoningEffort: String = "high"
+    var clipboardStore: AgentClipboardStore? = null
 
     fun init(
         baseUrl: String,
@@ -56,12 +58,18 @@ class SubagentTool : AgentTool {
 
         val maxIterations = defaultMaxIterations
 
-        val subagent = Agent(baseUrl, apiKey, model, thinkingEnabled, reasoningEffort)
+        val subagent = Agent(baseUrl, apiKey, model, thinkingEnabled, reasoningEffort, clipboardStore = clipboardStore)
         val history = mutableListOf<LLMMessage>()
+        val systemPrompt = buildString {
+            append("You are a subagent. Complete the assigned task autonomously and return a concise result. Use tools as needed. Do not ask follow-up questions — just do the work and report back.")
+            if (clipboardStore != null) {
+                append("\n\n# Agent Clipboard\nYou share an agent clipboard with the parent agent. Use the agent_clipboard tool or {{agent_clipboard}} syntax.")
+            }
+        }
         return subagent.execute(
             history = history,
             message = prompt,
-            systemPrompt = "You are a subagent. Complete the assigned task autonomously and return a concise result. Use tools as needed. Do not ask follow-up questions — just do the work and report back.",
+            systemPrompt = systemPrompt,
             tools = tools,
             maxIterations = maxIterations
         )

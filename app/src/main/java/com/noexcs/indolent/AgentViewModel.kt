@@ -17,6 +17,7 @@ import com.noexcs.indolent.agent.SystemPromptBuilder
 import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolProvider
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 import com.noexcs.indolent.agent.tools.interact.ContentDisplayManager
 import com.noexcs.indolent.agent.tools.interact.DisplayContent
 import com.noexcs.indolent.data.FileChatHistoryProvider
@@ -37,6 +38,7 @@ class AgentViewModel(
 ) : ViewModel() {
 
     val contentDisplayManager = ContentDisplayManager()
+    private val clipboardStore = AgentClipboardStore()
     val messages = mutableStateListOf<MessageViewModel>()
     val isLoading = mutableStateOf(false)
     val error = mutableStateOf<String?>(null)
@@ -61,7 +63,7 @@ class AgentViewModel(
 
         if (session == null || agentApiKey != apiKey || agentBaseUrl != baseUrl || agentModel != model) {
             val existingHistory = session?.history?.toList()
-            val agent = Agent(baseUrl, apiKey, model, settingsManager.thinkingEnabled, settingsManager.reasoningEffort)
+            val agent = Agent(baseUrl, apiKey, model, settingsManager.thinkingEnabled, settingsManager.reasoningEffort, clipboardStore = clipboardStore)
             session = Session(
                 sessionId = sessionId,
                 agent = agent,
@@ -186,6 +188,9 @@ class AgentViewModel(
                             tokenUsage.value = "Prompt: ${MessageFormatter.formatTokens(event.promptTokens)} | Completion: ${MessageFormatter.formatTokens(event.completionTokens)} | Total: ${MessageFormatter.formatTokens(total)}"
                             Lumberjack.i("AgentViewModel", "Token usage: $tokenUsage")
                         }
+                        is AgentEvent.PasteContent -> {
+                            messages.add(MessageViewModel(role = MessageRole.Assistant, content = event.content))
+                        }
                         is AgentEvent.Truncated -> {
                             assistantMsg?.let {
                                 it.content.value += "\n\n*[Response truncated due to length limit]*"
@@ -236,16 +241,44 @@ class AgentViewModel(
     }
 
     fun buildSystemPrompt(): String {
+        val clipboardInstruction = if (
+            settingsManager.commonToolsEnabled &&
+            settingsManager.isToolEnabled("agent_clipboard")
+        ) {
+            """
+                You have an agent-internal clipboard with named slots (separate from the system clipboard).
+
+                ## Slots
+                Content is organized into named slots via the `ns` parameter. The default slot is "default" when `ns` is omitted.
+
+                ## Operations
+                - action="copy" with `text`: Store text into a slot.
+                - action="copy" with `prefix`+`suffix`: Extract content between two text anchors from a single history message. Must match exactly one message.
+                - action="copy" with `source`: Read content from a file path into a slot.
+                - action="paste": Display a slot's content to the user in the conversation.
+                - action="clear": Clear a specific slot (with `ns`), or all slots (without `ns`).
+                - action="info": Show status of a slot, or list all slots.
+
+                ## Interpolation
+                Use {{agent_clipboard}} in any tool parameter to inject the default slot's content.
+                Use {{agent_clipboard:slotname}} to inject a named slot's content.
+                Example: agent_clipboard(action="copy", text="Hello World") then fs_write(path="/sdcard/hello.txt", content="{{agent_clipboard}}")
+
+                Shared with subagents.
+            """.trimIndent()
+        } else ""
+
         return SystemPromptBuilder.build(
             baseInstruction = "You are a helpful Android assistant.",
             userSystemPrompt = settingsManager.userSystemPrompt,
             memory = memoryManager.read(),
-            activeSkillContent = skillRepository.getActiveSkillContent()
+            activeSkillContent = skillRepository.getActiveSkillContent(),
+            clipboardInstruction = clipboardInstruction
         )
     }
 
     suspend fun buildTools(): List<AgentTool> {
-        return ToolProvider.build(appContext, settingsManager, memoryManager, contentDisplayManager)
+        return ToolProvider.build(appContext, settingsManager, memoryManager, contentDisplayManager, clipboardStore, historyProvider = { session?.history })
     }
 
     fun clearMessages() {

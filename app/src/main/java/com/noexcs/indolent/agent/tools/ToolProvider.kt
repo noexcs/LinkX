@@ -3,8 +3,11 @@ package com.noexcs.indolent.agent.tools
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.MemoryProvider
 import com.noexcs.indolent.agent.termux.TermuxExecutor
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
+import com.noexcs.indolent.agent.tools.common.AgentClipboardTool
 import com.noexcs.indolent.agent.tools.common.CalendarTool
 import com.noexcs.indolent.agent.tools.common.ClipboardTool
 import com.noexcs.indolent.agent.tools.common.GetCurrentTimeTool
@@ -68,6 +71,8 @@ object ToolProvider {
         settings: SettingsManager,
         memoryProvider: MemoryProvider,
         contentDisplayManager: ContentDisplayManager? = null,
+        clipboardStore: AgentClipboardStore? = null,
+        historyProvider: () -> List<LLMMessage>? = { null },
     ): List<AgentTool> {
         val appContext = context.applicationContext
         val hasTermux = ContextCompat.checkSelfPermission(
@@ -106,6 +111,7 @@ object ToolProvider {
                 if (isToolEnabled("update_memory")) add(UpdateMemoryTool(memoryProvider))
                 if (isToolEnabled("send_intent")) add(IntentTool(appContext))
                 if (isToolEnabled("clipboard")) add(ClipboardTool(appContext))
+                if (isToolEnabled("agent_clipboard") && clipboardStore != null) add(AgentClipboardTool(clipboardStore, historyProvider))
                 if (isToolEnabled("calendar")) add(CalendarTool(appContext))
                 if (isToolEnabled("get_current_time")) add(GetCurrentTimeTool())
                 if (isToolEnabled("http_request")) add(HttpRequestTool())
@@ -184,6 +190,7 @@ object ToolProvider {
                 thinkingEnabled = settings.thinkingEnabled,
                 reasoningEffort = settings.reasoningEffort,
             )
+            subagent.clipboardStore = clipboardStore
             baseTools + subagent
         } else {
             baseTools

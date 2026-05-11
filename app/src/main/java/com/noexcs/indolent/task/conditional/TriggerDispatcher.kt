@@ -6,6 +6,7 @@ import androidx.core.app.NotificationCompat
 import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.BackgroundSessionRunner
 import com.noexcs.indolent.agent.SessionType
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.task.ExecutionStatus
 import com.noexcs.indolent.task.TaskExecutionRecord
@@ -52,8 +53,10 @@ class TriggerDispatcher(private val context: Context) {
         val contextualPrompt = buildContextualPrompt(trigger)
 
         try {
+            val clipboardStore = AgentClipboardStore()
             val session = try {
-                BackgroundSessionRunner.create(context, trigger.id, SessionType.CONDITIONAL_TRIGGER)
+                BackgroundSessionRunner.create(context, trigger.id, SessionType.CONDITIONAL_TRIGGER,
+                    clipboardStore = clipboardStore)
             } catch (e: IllegalStateException) {
                 Lumberjack.w(TAG, "${e.message}, skipping trigger: ${trigger.id}")
                 return
@@ -64,9 +67,14 @@ class TriggerDispatcher(private val context: Context) {
                     appendLine("You are a helpful Android assistant executing a condition-triggered task.")
                     appendLine("This task was triggered because specific device conditions were met.")
                     appendLine("Your role is to execute the given instructions precisely and efficiently.")
-                }.trimEnd()
+                }.trimEnd(),
+                clipboardStore = clipboardStore
             )
-            val tools = BackgroundSessionRunner.buildTools(context)
+            val tools = BackgroundSessionRunner.buildTools(
+                context,
+                clipboardStore = clipboardStore,
+                historyProvider = { session.history }
+            )
 
             // Timeout: 5 minutes to avoid hanging
             val reply = withTimeoutOrNull(300_000) {

@@ -6,6 +6,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.BackgroundSessionRunner
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 import com.noexcs.indolent.task.ForegroundInfoFactory
 import com.noexcs.indolent.agent.SessionType
 import com.noexcs.indolent.logging.Lumberjack
@@ -59,8 +60,10 @@ class TaskExecutionWorker(
         val startTime = System.currentTimeMillis()
 
         return try {
+            val clipboardStore = AgentClipboardStore()
             val session = try {
-                BackgroundSessionRunner.create(applicationContext, taskId, SessionType.SCHEDULED_TASK)
+                BackgroundSessionRunner.create(applicationContext, taskId, SessionType.SCHEDULED_TASK,
+                    clipboardStore = clipboardStore)
             } catch (e: IllegalStateException) {
                 Lumberjack.w("TaskExecutionWorker", "${e.message}, cannot run task: $taskId")
                 return Result.failure()
@@ -73,9 +76,14 @@ class TaskExecutionWorker(
                     appendLine("You are a helpful Android assistant specialized in executing scheduled tasks.")
                     appendLine("This is an automated task execution context - there will be no user conversation.")
                     appendLine("Your role is to execute the given task instructions precisely and efficiently.")
-                }.trimEnd()
+                }.trimEnd(),
+                clipboardStore = clipboardStore
             )
-            val tools = BackgroundSessionRunner.buildTools(applicationContext)
+            val tools = BackgroundSessionRunner.buildTools(
+                applicationContext,
+                clipboardStore = clipboardStore,
+                historyProvider = { session.history }
+            )
 
             val reply = session.execute(task.prompt, systemPrompt, tools, 100, true)
 

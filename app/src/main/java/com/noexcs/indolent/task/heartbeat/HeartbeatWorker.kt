@@ -8,6 +8,7 @@ import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
 import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.BackgroundSessionRunner
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 import com.noexcs.indolent.task.ForegroundInfoFactory
 import com.noexcs.indolent.agent.SessionType
 import androidx.core.app.NotificationCompat
@@ -45,11 +46,13 @@ class HeartbeatWorker(
         val startTime = System.currentTimeMillis()
 
         return try {
+            val clipboardStore = AgentClipboardStore()
             val session = try {
                 BackgroundSessionRunner.create(
                     applicationContext,
                     "heartbeat_${System.currentTimeMillis()}",
-                    SessionType.HEARTBEAT
+                    SessionType.HEARTBEAT,
+                    clipboardStore = clipboardStore
                 )
             } catch (e: IllegalStateException) {
                 Lumberjack.w("HeartbeatWorker", "${e.message}")
@@ -64,9 +67,14 @@ class HeartbeatWorker(
                     appendLine("This is an automated heartbeat check — there is no direct user conversation.")
                     appendLine("Your role is to take initiative: check on things, discover useful information, and act on it autonomously.")
                     appendLine("Be practical and helpful. Don't fabricate urgency or make up tasks.")
-                }.trimEnd()
+                }.trimEnd(),
+                clipboardStore = clipboardStore
             )
-            val tools = BackgroundSessionRunner.buildTools(applicationContext)
+            val tools = BackgroundSessionRunner.buildTools(
+                applicationContext,
+                clipboardStore = clipboardStore,
+                historyProvider = { session.history }
+            )
             val heartbeatPrompt = buildHeartbeatPrompt(applicationContext)
 
             val reply = session.execute(heartbeatPrompt, systemPrompt, tools, 100, true)

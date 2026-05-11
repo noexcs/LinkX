@@ -90,7 +90,7 @@
     <string name="section_fund_tools">基金工具</string>
     <string name="section_fund_tools_subtitle">允许 AI 查询基金数据、排名和持仓信息</string>
     <string name="section_common_tools">通用工具</string>
-    <string name="section_common_tools_subtitle">允许 AI 使用剪贴板、日历、意图、记忆和其他通用工具</string>
+    <string name="section_common_tools_subtitle">允许 AI 使用剪贴板、代理剪贴板、日历、意图、记忆和其他通用工具</string>
     <string name="section_conditional_tools">条件触发工具</string>
     <string name="section_conditional_tools_subtitle">允许 AI 创建、编辑、删除和列出条件触发器</string>
     <string name="section_filesystem_tools">文件系统工具</string>
@@ -245,6 +245,7 @@
     <string name="tool_update_memory">更新记忆</string>
     <string name="tool_send_intent">发送意图</string>
     <string name="tool_clipboard">剪贴板</string>
+    <string name="tool_agent_clipboard">代理剪贴板</string>
     <string name="tool_calendar">日历</string>
     <string name="tool_get_current_time">获取当前时间</string>
     <string name="tool_create_conditional_trigger">创建条件触发器</string>
@@ -377,6 +378,12 @@
     <string name="note_labels_hint">用逗号分隔标签</string>
     <string name="delete_note_title">删除笔记？</string>
     <string name="delete_note_message">此笔记将被永久删除。</string>
+    <string name="clear">清除</string>
+    <string name="note_search_hint">搜索笔记…</string>
+    <string name="note_no_search_results">无匹配笔记</string>
+    <string name="note_discard_title">放弃修改？</string>
+    <string name="note_discard_message">你有未保存的更改。确定放弃吗？</string>
+    <string name="note_edit_content">编辑</string>
     <string name="theme_crimson">Crimson Red</string>
     <string name="theme_sunset_orange">Sunset Orange</string>
     <string name="theme_golden_yellow">Golden Yellow</string>

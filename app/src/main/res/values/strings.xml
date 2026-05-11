@@ -90,7 +90,7 @@
     <string name="section_fund_tools">Fund Tools</string>
     <string name="section_fund_tools_subtitle">Allow AI to query fund data, rankings, and portfolio information</string>
     <string name="section_common_tools">Common Tools</string>
-    <string name="section_common_tools_subtitle">Allow AI to use clipboard, calendar, intent, memory, and other general-purpose tools</string>
+    <string name="section_common_tools_subtitle">Allow AI to use clipboard, agent clipboard, calendar, intent, memory, and other general-purpose tools</string>
     <string name="section_conditional_tools">Conditional Trigger Tools</string>
     <string name="section_conditional_tools_subtitle">Allow AI to create, edit, delete, and list conditional triggers</string>
     <string name="section_filesystem_tools">File System Tools</string>
@@ -281,6 +281,7 @@
     <string name="tool_update_memory">Update Memory</string>
     <string name="tool_send_intent">Send Intent</string>
     <string name="tool_clipboard">Clipboard</string>
+    <string name="tool_agent_clipboard">Agent Clipboard</string>
     <string name="tool_calendar">Calendar</string>
     <string name="tool_get_current_time">Get Current Time</string>
     <string name="tool_http_request">HTTP Request</string>
@@ -437,6 +438,12 @@
     <string name="note_labels_hint">Separate labels with commas</string>
     <string name="delete_note_title">Delete note?</string>
     <string name="delete_note_message">This note will be permanently deleted.</string>
+    <string name="clear">Clear</string>
+    <string name="note_search_hint">Search notes…</string>
+    <string name="note_no_search_results">No matching notes</string>
+    <string name="note_discard_title">Discard changes?</string>
+    <string name="note_discard_message">You have unsaved changes. Discard them?</string>
+    <string name="note_edit_content">Edit</string>
     <string name="theme_crimson">Crimson Red</string>
     <string name="theme_sunset_orange">Sunset Orange</string>
     <string name="theme_golden_yellow">Golden Yellow</string>

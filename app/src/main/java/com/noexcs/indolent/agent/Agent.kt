@@ -1,6 +1,7 @@
 package com.noexcs.indolent.agent
 
 import com.noexcs.indolent.agent.tools.AgentTool
+import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 import com.noexcs.indolent.logging.Lumberjack
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -15,7 +16,8 @@ class Agent(
     private val apiKey: String,
     private val model: String,
     private val thinkingEnabled: Boolean = true,
-    private val reasoningEffort: String = "high"
+    private val reasoningEffort: String = "high",
+    val clipboardStore: AgentClipboardStore? = null
 ) {
     private val client = LLMClient(baseUrl, apiKey)
 
@@ -186,11 +188,14 @@ class Agent(
                     val toolArgs = toolCalls.map { tc ->
                         tc to parseArgs(tc.function.arguments)
                     }
-                    for ((tc, args) in toolArgs) {
+                    val interpolatedToolArgs = toolArgs.map { (tc, args) ->
+                        tc to interpolateClipboard(args)
+                    }
+                    for ((tc, args) in interpolatedToolArgs) {
                         emit(AgentEvent.ToolCallBegin(tc.id, tc.function.name, args))
                     }
 
-                    val results = executeToolsInParallel(toolArgs, toolMap)
+                    val results = executeToolsInParallel(interpolatedToolArgs, toolMap)
 
                     for ((tc, args, result) in results) {
                         history += LLMMessage(
@@ -199,6 +204,17 @@ class Agent(
                             toolCallId = tc.id
                         )
                         emit(AgentEvent.ToolResult(tc.id, tc.function.name, args, result))
+
+                        if (tc.function.name == "agent_clipboard") {
+                            val paste = clipboardStore?.consumePendingPasteContent()
+                            if (paste != null) {
+                                history += LLMMessage(
+                                    role = "assistant",
+                                    content = paste.second,
+                                )
+                                emit(AgentEvent.PasteContent(paste.second))
+                            }
+                        }
                     }
                     trimHistory(history)
                     // loop continues → LLM sees tool results
@@ -273,13 +289,26 @@ class Agent(
             val toolArgs = toolCalls.map { tc ->
                 tc to parseArgs(tc.function.arguments)
             }
-            val results = executeToolsInParallel(toolArgs, toolMap, " in execute")
+            val interpolatedToolArgs = toolArgs.map { (tc, args) ->
+                tc to interpolateClipboard(args)
+            }
+            val results = executeToolsInParallel(interpolatedToolArgs, toolMap, " in execute")
             for ((tc, _, result) in results) {
                 history += LLMMessage(
                     role = "tool",
                     content = result,
                     toolCallId = tc.id
                 )
+
+                if (tc.function.name == "agent_clipboard") {
+                    val paste = clipboardStore?.consumePendingPasteContent()
+                    if (paste != null) {
+                        history += LLMMessage(
+                            role = "assistant",
+                            content = paste.second,
+                        )
+                    }
+                }
             }
             trimHistory(history)
         }
@@ -364,6 +393,23 @@ class Agent(
                 n += (tc.function.name.length + tc.function.arguments.length).toLong() / 3L
             }
             n
+        }
+    }
+
+    private val clipboardPlaceholder = Regex("""\{\{agent_clipboard(?::(\w+))?\}\}""")
+
+    private fun interpolateClipboard(args: Map<String, Any?>): Map<String, Any?> {
+        val store = clipboardStore ?: return args
+        return args.mapValues { (_, value) ->
+            if (value is String && value.contains("{{agent_clipboard")) {
+                clipboardPlaceholder.replace(value) { match ->
+                    val slot = match.groupValues.getOrNull(1)?.ifBlank { null }
+                        ?: AgentClipboardStore.DEFAULT_SLOT
+                    store.read(slot) ?: match.value
+                }
+            } else {
+                value
+            }
         }
     }
 

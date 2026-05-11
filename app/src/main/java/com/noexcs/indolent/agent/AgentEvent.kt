@@ -10,4 +10,5 @@ sealed class AgentEvent {
     data class Usage(val promptTokens: Int, val completionTokens: Int, val totalTokens: Int) : AgentEvent()
     data class Error(val message: String) : AgentEvent()
     data class Truncated(val reason: String) : AgentEvent()
+    data class PasteContent(val content: String) : AgentEvent()
 }
