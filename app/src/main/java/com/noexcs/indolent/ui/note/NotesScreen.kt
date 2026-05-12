@@ -27,8 +27,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material3.*
@@ -43,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.note.NoteItem
 import com.noexcs.indolent.note.NoteRepository
+import kotlinx.coroutines.launch
 import java.util.UUID
 
 private sealed class NoteView {
@@ -59,11 +62,29 @@ fun NotesScreen(
     var currentView by remember { mutableStateOf<NoteView>(NoteView.Grid) }
     var showArchive by remember { mutableStateOf(false) }
     var isGridView by remember { mutableStateOf(true) }
+    var searchQuery by remember { mutableStateOf("") }
+    var filterLabel by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     var refreshTrigger by remember { mutableStateOf(0) }
-    val activeNotes = remember(refreshTrigger) { noteRepository.listActive() }
-    val archivedNotes = remember(refreshTrigger) { noteRepository.listArchived() }
-    val notes = if (showArchive) archivedNotes else activeNotes
+    var activeNotes by remember { mutableStateOf(emptyList<NoteItem>()) }
+    var archivedNotes by remember { mutableStateOf(emptyList<NoteItem>()) }
+
+    LaunchedEffect(refreshTrigger) {
+        activeNotes = noteRepository.listActive()
+        archivedNotes = noteRepository.listArchived()
+    }
+
+    val baseNotes = if (showArchive) archivedNotes else activeNotes
+    val notes = remember(baseNotes, searchQuery, filterLabel) {
+        baseNotes.filter { note ->
+            val matchesSearch = searchQuery.isBlank() ||
+                note.title.contains(searchQuery, ignoreCase = true) ||
+                note.content.contains(searchQuery, ignoreCase = true)
+            val matchesLabel = filterLabel == null || filterLabel in note.labels
+            matchesSearch && matchesLabel
+        }
+    }
 
     AnimatedContent(
         targetState = currentView,
@@ -78,35 +99,54 @@ fun NotesScreen(
                 notes = notes,
                 showArchive = showArchive,
                 isGridView = isGridView,
+                searchQuery = searchQuery,
+                filterLabel = filterLabel,
                 onBack = onBack,
+                onSearchChange = { searchQuery = it },
+                onClearFilter = { filterLabel = null },
                 onToggleArchive = { showArchive = !showArchive },
                 onToggleView = { isGridView = !isGridView },
                 onNoteClick = { note -> currentView = NoteView.Edit(note.id) },
                 onCreateNote = { currentView = NoteView.Edit(null) },
+                onLabelClick = { label -> filterLabel = if (filterLabel == label) null else label },
                 onArchiveNote = { note ->
-                    noteRepository.save(note.copy(isArchived = !note.isArchived, updatedAt = System.currentTimeMillis()))
-                    refreshTrigger++
+                    scope.launch {
+                        noteRepository.save(note.copy(isArchived = !note.isArchived, updatedAt = System.currentTimeMillis()))
+                        refreshTrigger++
+                    }
                 },
                 onPinNote = { note ->
-                    noteRepository.save(note.copy(isPinned = !note.isPinned, updatedAt = System.currentTimeMillis()))
-                    refreshTrigger++
+                    scope.launch {
+                        noteRepository.save(note.copy(isPinned = !note.isPinned, updatedAt = System.currentTimeMillis()))
+                        refreshTrigger++
+                    }
                 },
             )
             is NoteView.Edit -> {
-                val note = view.noteId?.let { noteRepository.load(it) }
-                NoteEditScreen(
-                    note = note,
-                    onBack = { currentView = NoteView.Grid },
-                    onSave = { updatedNote ->
-                        noteRepository.save(updatedNote)
-                        refreshTrigger++
-                    },
-                    onDelete = { id ->
-                        noteRepository.delete(id)
-                        currentView = NoteView.Grid
-                        refreshTrigger++
-                    },
-                )
+                var loadedNote by remember { mutableStateOf<NoteItem?>(null) }
+                LaunchedEffect(view.noteId) {
+                    loadedNote = view.noteId?.let { noteRepository.load(it) }
+                }
+                // Wait for existing notes to load before showing editor
+                if (view.noteId == null || loadedNote != null) {
+                    NoteEditScreen(
+                        note = loadedNote,
+                        onBack = { currentView = NoteView.Grid },
+                        onSave = { updatedNote ->
+                            scope.launch {
+                                noteRepository.save(updatedNote)
+                                refreshTrigger++
+                            }
+                        },
+                        onDelete = { id ->
+                            scope.launch {
+                                noteRepository.delete(id)
+                            }
+                            currentView = NoteView.Grid
+                            refreshTrigger++
+                        },
+                    )
+                }
             }
         }
     }
@@ -118,16 +158,74 @@ private fun NotesGridContent(
     notes: List<NoteItem>,
     showArchive: Boolean,
     isGridView: Boolean,
+    searchQuery: String,
+    filterLabel: String?,
     onBack: () -> Unit,
+    onSearchChange: (String) -> Unit,
+    onClearFilter: () -> Unit,
     onToggleArchive: () -> Unit,
     onToggleView: () -> Unit,
     onNoteClick: (NoteItem) -> Unit,
     onCreateNote: () -> Unit,
+    onLabelClick: (String) -> Unit,
     onArchiveNote: (NoteItem) -> Unit,
     onPinNote: (NoteItem) -> Unit,
 ) {
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize()) {
+            // Search bar
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                placeholder = { Text(stringResource(R.string.note_search_hint)) },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Search,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { onSearchChange("") }) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.clear))
+                        }
+                    }
+                },
+                singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                ),
+                textStyle = MaterialTheme.typography.bodyMedium,
+            )
+
+            // Label filter chip
+            if (filterLabel != null) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 2.dp),
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    InputChip(
+                        selected = true,
+                        onClick = onClearFilter,
+                        label = { Text(filterLabel) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.clear),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    )
+                }
+            }
+
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -159,7 +257,11 @@ private fun NotesGridContent(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        if (showArchive) stringResource(R.string.no_archived_notes) else stringResource(R.string.no_notes),
+                        when {
+                            searchQuery.isNotBlank() || filterLabel != null -> stringResource(R.string.note_no_search_results)
+                            showArchive -> stringResource(R.string.no_archived_notes)
+                            else -> stringResource(R.string.no_notes)
+                        },
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -181,6 +283,7 @@ private fun NotesGridContent(
                         onClick = { onNoteClick(note) },
                         onArchive = { onArchiveNote(note) },
                         onPin = { onPinNote(note) },
+                        onLabelClick = onLabelClick,
                     )
                 }
             }
@@ -198,6 +301,7 @@ private fun NotesGridContent(
                         onClick = { onNoteClick(note) },
                         onArchive = { onArchiveNote(note) },
                         onPin = { onPinNote(note) },
+                        onLabelClick = onLabelClick,
                     )
                 }
             }
@@ -223,6 +327,7 @@ private fun NoteGridCard(
     onClick: () -> Unit,
     onArchive: () -> Unit,
     onPin: () -> Unit,
+    onLabelClick: (String) -> Unit,
 ) {
     val bgColor = Color(note.color)
     val onBgColor = if (bgColor.red + bgColor.green + bgColor.blue > 1.5f) Color.Black else Color.White
@@ -263,6 +368,7 @@ private fun NoteGridCard(
                         Surface(
                             shape = RoundedCornerShape(4.dp),
                             color = onBgColor.copy(alpha = 0.15f),
+                            modifier = Modifier.clickable { onLabelClick(label) }
                         ) {
                             Text(
                                 label,
@@ -305,8 +411,10 @@ private fun NoteListItem(
     onClick: () -> Unit,
     onArchive: () -> Unit,
     onPin: () -> Unit,
+    onLabelClick: (String) -> Unit,
 ) {
     val bgColor = Color(note.color)
+    val onBgColor = if (bgColor.red + bgColor.green + bgColor.blue > 1.5f) Color.Black else Color.White
 
     ElevatedCard(
         modifier = Modifier
@@ -324,7 +432,7 @@ private fun NoteListItem(
                     Text(
                         note.title,
                         style = MaterialTheme.typography.titleSmall,
-                        color = Color.White,
+                        color = onBgColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -333,7 +441,7 @@ private fun NoteListItem(
                     Text(
                         note.content.take(100),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f),
+                        color = onBgColor.copy(alpha = 0.7f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -344,12 +452,13 @@ private fun NoteListItem(
                         note.labels.take(3).forEach { label ->
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
-                                color = Color.White.copy(alpha = 0.15f),
+                                color = onBgColor.copy(alpha = 0.15f),
+                                modifier = Modifier.clickable { onLabelClick(label) }
                             ) {
                                 Text(
                                     label,
                                     style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White.copy(alpha = 0.7f),
+                                    color = onBgColor.copy(alpha = 0.7f),
                                     modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
                                 )
                             }
@@ -362,7 +471,7 @@ private fun NoteListItem(
                     Icon(
                         Icons.Default.PushPin,
                         contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.6f),
+                        tint = onBgColor.copy(alpha = 0.6f),
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -370,7 +479,7 @@ private fun NoteListItem(
                 Text(
                     java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault()).format(java.util.Date(note.updatedAt)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = Color.White.copy(alpha = 0.5f),
+                    color = onBgColor.copy(alpha = 0.5f),
                 )
             }
         }

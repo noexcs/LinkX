@@ -58,6 +58,8 @@ fun NoteEditScreen(
     var labelsText by remember { mutableStateOf(note?.labels?.joinToString(", ") ?: "") }
     var isPreview by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showDiscardConfirm by remember { mutableStateOf(false) }
+    var hasManualChanges by remember { mutableStateOf(false) }
 
     // Auto-save after 1.5s of inactivity
     LaunchedEffect(title, content, color, isPinned, isArchived, labelsText) {
@@ -77,6 +79,7 @@ fun NoteEditScreen(
                     updatedAt = System.currentTimeMillis(),
                 )
             )
+            hasManualChanges = false
         }
     }
 
@@ -88,7 +91,7 @@ fun NoteEditScreen(
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onBack) {
+            IconButton(onClick = { if (hasManualChanges) showDiscardConfirm = true else onBack() }) {
                 Icon(
                     Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = stringResource(R.string.back),
@@ -170,7 +173,7 @@ fun NoteEditScreen(
                 ) {
                     OutlinedTextField(
                         value = title,
-                        onValueChange = { title = it },
+                        onValueChange = { title = it; hasManualChanges = true },
                         placeholder = { Text(stringResource(R.string.note_title_hint)) },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
@@ -183,7 +186,7 @@ fun NoteEditScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = content,
-                        onValueChange = { content = it },
+                        onValueChange = { content = it; hasManualChanges = true },
                         placeholder = { Text(stringResource(R.string.note_content_hint)) },
                         minLines = 10,
                         modifier = Modifier.fillMaxWidth(),
@@ -234,7 +237,7 @@ fun NoteEditScreen(
                 Spacer(modifier = Modifier.height(12.dp))
                 OutlinedTextField(
                     value = labelsText,
-                    onValueChange = { labelsText = it },
+                    onValueChange = { labelsText = it; hasManualChanges = true },
                     label = { Text(stringResource(R.string.note_labels)) },
                     placeholder = { Text(stringResource(R.string.note_labels_hint)) },
                     singleLine = true,
@@ -262,6 +265,30 @@ fun NoteEditScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // Discard confirmation
+    if (showDiscardConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDiscardConfirm = false },
+            title = { Text(stringResource(R.string.note_discard_title)) },
+            text = { Text(stringResource(R.string.note_discard_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDiscardConfirm = false
+                        onBack()
+                    }
+                ) {
+                    Text(stringResource(R.string.discard), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDiscardConfirm = false }) {
                     Text(stringResource(R.string.cancel))
                 }
             }
