@@ -1,5 +1,6 @@
 package com.noexcs.indolent
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -15,6 +16,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -36,9 +38,7 @@ import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.data.FileChatHistoryProvider
-import com.noexcs.indolent.data.UsageStatisticsAggregator
 import com.noexcs.indolent.data.MemoryManager
 import com.noexcs.indolent.data.SettingsManager
 
@@ -48,23 +48,22 @@ import com.noexcs.indolent.task.scheduler.TaskScheduler
 import com.noexcs.indolent.todo.TodoItemRepository
 import com.noexcs.indolent.todo.TodoListRepository
 import com.noexcs.indolent.ui.BackgroundTasksScreen
-import com.noexcs.indolent.ui.note.NotesScreen
-import com.noexcs.indolent.ui.settings.AboutScreen
-import com.noexcs.indolent.ui.settings.AppearanceSettingsScreen
 import com.noexcs.indolent.ui.chat.ChatScreen
 import com.noexcs.indolent.ui.ConditionalTriggerListScreen
 import com.noexcs.indolent.ui.HeartbeatHistoryScreen
-import com.noexcs.indolent.ui.settings.HeartbeatSettingsScreen
-import com.noexcs.indolent.ui.settings.McpSettingsScreen
-import com.noexcs.indolent.ui.settings.MemorySettingsScreen
+import com.noexcs.indolent.ui.note.NotesScreen
 import com.noexcs.indolent.ui.ScheduledTaskListScreen
 import com.noexcs.indolent.ui.SettingsScreen
 import com.noexcs.indolent.ui.todo.TodoListsScreen
-import com.noexcs.indolent.ui.settings.SkillSettingsScreen
-import com.noexcs.indolent.ui.settings.SystemPromptSettingsScreen
-import com.noexcs.indolent.ui.settings.ToolSettingsScreen
-import com.noexcs.indolent.ui.UsageStatsScreen
-import com.noexcs.indolent.ui.settings.ApiSettingsScreen
+import com.noexcs.indolent.ui.settings.AboutActivity
+import com.noexcs.indolent.ui.settings.ApiSettingsActivity
+import com.noexcs.indolent.ui.settings.AppearanceSettingsActivity
+import com.noexcs.indolent.ui.settings.HeartbeatSettingsActivity
+import com.noexcs.indolent.ui.settings.MemorySettingsActivity
+import com.noexcs.indolent.ui.settings.SkillSettingsActivity
+import com.noexcs.indolent.ui.settings.SystemPromptSettingsActivity
+import com.noexcs.indolent.ui.settings.ToolSettingsActivity
+import com.noexcs.indolent.ui.settings.UsageStatsActivity
 import com.noexcs.indolent.ui.theme.IndolentTheme
 
 private sealed class Screen {
@@ -73,16 +72,6 @@ private sealed class Screen {
     data object ScheduledTasks : Screen()
     data object HeartbeatHistory : Screen()
     data object ConditionalTriggers : Screen()
-    data object ApiSettings : Screen()
-    data object SystemPromptSettings : Screen()
-    data object MemorySettings : Screen()
-    data object ToolSettings : Screen()
-    data object HeartbeatSettings : Screen()
-    data object UsageStats : Screen()
-    data object Appearance : Screen()
-    data object About : Screen()
-    data object McpSettings : Screen()
-    data object SkillSettings : Screen()
     data object TodoLists : Screen()
     data object Notes : Screen()
     data object BackgroundTasks : Screen()
@@ -104,11 +93,6 @@ private val navItems = listOf(
 )
 
 private val rootScreens = navItems.map { it.screen }.toSet()
-private val settingsSubScreens = setOf(
-    Screen.ApiSettings, Screen.SystemPromptSettings, Screen.MemorySettings,
-    Screen.ToolSettings, Screen.HeartbeatSettings, Screen.UsageStats,
-    Screen.Appearance, Screen.About, Screen.McpSettings, Screen.SkillSettings,
-)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -131,11 +115,9 @@ private fun MainContent() {
     val memoryManager = remember { MemoryManager(appContext) }
     val settingsManager = remember { SettingsManager(appContext) }
     val conversationRepository = remember { FileChatHistoryProvider(appContext) }
-    val skillRepository = remember { SkillRepository(appContext, settingsManager) }
     val viewModel = remember {
         AgentViewModel(appContext, memoryManager, settingsManager, conversationRepository)
     }
-    val usageStatsAggregator = remember { UsageStatisticsAggregator(appContext) }
     val todoListRepository = remember { TodoListRepository(appContext) }
     val todoItemRepository = remember { TodoItemRepository(appContext) }
     val noteRepository = remember { NoteRepository(appContext) }
@@ -188,13 +170,15 @@ private fun MainContent() {
     // Back press: sub-screens return to their parent root
     BackHandler(enabled = !isRoot) {
         currentScreen = when (currentScreen) {
-            in settingsSubScreens -> Screen.Settings
             is Screen.HeartbeatHistory -> Screen.BackgroundTasks
             is Screen.ConditionalTriggers -> Screen.BackgroundTasks
             is Screen.ScheduledTasks -> Screen.BackgroundTasks
             else -> Screen.Chat
         }
     }
+
+    val settingsScrollState = rememberScrollState()
+    val context = LocalContext.current
 
     val onViewExecutionInChat: (String, String, String) -> Unit = { title, prompt, result ->
         viewModel.loadExecutionAsConversation(title, prompt, result)
@@ -267,16 +251,17 @@ private fun MainContent() {
                     )
                     Screen.Settings -> SettingsScreen(
                         settingsManager = settingsManager,
+                        scrollState = settingsScrollState,
                         onBack = { currentScreen = Screen.Chat },
-                        onNavigateToApiSettings = { currentScreen = Screen.ApiSettings },
-                        onNavigateToSystemPromptSettings = { currentScreen = Screen.SystemPromptSettings },
-                        onNavigateToMemorySettings = { currentScreen = Screen.MemorySettings },
-                        onNavigateToToolSettings = { currentScreen = Screen.ToolSettings },
-                        onNavigateToHeartbeatSettings = { currentScreen = Screen.HeartbeatSettings },
-                        onNavigateToUsageStats = { currentScreen = Screen.UsageStats },
-                        onNavigateToAppearance = { currentScreen = Screen.Appearance },
-                        onNavigateToAbout = { currentScreen = Screen.About },
-                        onNavigateToSkillSettings = { currentScreen = Screen.SkillSettings },
+                        onNavigateToApiSettings = { context.startActivity(Intent(context, ApiSettingsActivity::class.java)) },
+                        onNavigateToSystemPromptSettings = { context.startActivity(Intent(context, SystemPromptSettingsActivity::class.java)) },
+                        onNavigateToMemorySettings = { context.startActivity(Intent(context, MemorySettingsActivity::class.java)) },
+                        onNavigateToToolSettings = { context.startActivity(Intent(context, ToolSettingsActivity::class.java)) },
+                        onNavigateToHeartbeatSettings = { context.startActivity(Intent(context, HeartbeatSettingsActivity::class.java)) },
+                        onNavigateToUsageStats = { context.startActivity(Intent(context, UsageStatsActivity::class.java)) },
+                        onNavigateToAppearance = { context.startActivity(Intent(context, AppearanceSettingsActivity::class.java)) },
+                        onNavigateToAbout = { context.startActivity(Intent(context, AboutActivity::class.java)) },
+                        onNavigateToSkillSettings = { context.startActivity(Intent(context, SkillSettingsActivity::class.java)) },
                     )
                     else -> {}
                 }
@@ -292,8 +277,7 @@ private fun MainContent() {
                 targetState = currentScreen,
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(top = scaffoldPadding.calculateTopPadding()),
+                    .background(MaterialTheme.colorScheme.surface),
                 transitionSpec = {
                     (slideInHorizontally(tween(enterDuration, easing = enterEasing)) { it / 4 } +
                         fadeIn(tween(enterDuration, easing = enterEasing)))
@@ -305,59 +289,6 @@ private fun MainContent() {
                 label = "subScreenTransition"
             ) { screen ->
                 when (screen) {
-                    Screen.ApiSettings -> ApiSettingsScreen(
-                        settingsManager = settingsManager,
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.SystemPromptSettings -> SystemPromptSettingsScreen(
-                        settingsManager = settingsManager,
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.MemorySettings -> MemorySettingsScreen(
-                        memoryManager = memoryManager,
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.ToolSettings -> ToolSettingsScreen(
-                        settingsManager = settingsManager,
-                        onBack = { currentScreen = Screen.Settings },
-                        onNavigateToMcpSettings = { currentScreen = Screen.McpSettings },
-                    )
-                    Screen.HeartbeatSettings -> HeartbeatSettingsScreen(
-                        settingsManager = settingsManager,
-                        onBack = { currentScreen = Screen.Settings },
-                        onOpenHeartbeatHistory = { currentScreen = Screen.HeartbeatHistory },
-                        onOpenConditionalTriggers = { currentScreen = Screen.ConditionalTriggers },
-                    )
-                    Screen.UsageStats -> UsageStatsScreen(
-                        settingsManager = settingsManager,
-                        aggregator = usageStatsAggregator,
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.Appearance -> AppearanceSettingsScreen(
-                        settingsManager = settingsManager,
-                        onThemeKeyChanged = {
-                            com.noexcs.indolent.ui.theme.ThemeState.applyTheme(it)
-                        },
-                        onDynamicColorChanged = {
-                            com.noexcs.indolent.ui.theme.ThemeState.dynamicColor = it
-                        },
-                        onSeedColorChanged = {
-                            com.noexcs.indolent.ui.theme.ThemeState.applySeedColor(it)
-                        },
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.About -> AboutScreen(
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.McpSettings -> McpSettingsScreen(
-                        settingsManager = settingsManager,
-                        onBack = { currentScreen = Screen.Settings },
-                    )
-                    Screen.SkillSettings -> SkillSettingsScreen(
-                        skillRepository = skillRepository,
-                        settingsManager = settingsManager,
-                        onBack = { currentScreen = Screen.Settings },
-                    )
                     Screen.ScheduledTasks -> ScheduledTaskListScreen(
                         onBack = { currentScreen = Screen.BackgroundTasks },
                         onViewInChat = { record ->

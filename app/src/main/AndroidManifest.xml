@@ -68,7 +68,8 @@
         android:localeConfig="@xml/locales_config"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Indolent">
+        android:theme="@style/Theme.Indolent"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -87,6 +88,17 @@
             android:exported="false"
             android:theme="@style/Theme.Indolent.Transparent"
             android:excludeFromRecents="true" />
+
+        <activity android:name=".ui.settings.ApiSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SystemPromptSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.MemorySettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.ToolSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.HeartbeatSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.UsageStatsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.AppearanceSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.AboutActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SkillSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.McpSettingsActivity" android:exported="false" />
         
         <!-- Receiver to get Termux command results via PendingIntent.getBroadcast -->
         <receiver android:name=".agent.termux.TermuxResultReceiver" android:exported="false" />
