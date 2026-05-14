@@ -99,6 +99,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("system_info_tools_enabled", true)
         set(value) = prefs.edit { putBoolean("system_info_tools_enabled", value) }
 
+    var screenToolsEnabled: Boolean
+        get() = prefs.getBoolean("screen_tools_enabled", false)
+        set(value) = prefs.edit { putBoolean("screen_tools_enabled", value) }
+
     var heartbeatEnabled: Boolean
         get() = prefs.getBoolean("heartbeat_enabled", false)
         set(value) = prefs.edit { putBoolean("heartbeat_enabled", value) }

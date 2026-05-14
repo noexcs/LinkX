@@ -8,12 +8,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.noexcs.indolent.agent.Agent
 import com.noexcs.indolent.agent.AgentEvent
+import com.noexcs.indolent.agent.ContextConfig
 import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.MessageRole
 import com.noexcs.indolent.agent.MessageRoleMapper
 import com.noexcs.indolent.agent.Session
 import com.noexcs.indolent.agent.SessionType
-import com.noexcs.indolent.agent.SystemPromptBuilder
 import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolProvider
@@ -106,9 +106,9 @@ class AgentViewModel(
         viewModelScope.launch {
             try {
 
-                val systemPrompt = buildSystemPrompt()
                 val tools = buildTools()
                 val session = resolveSession()
+                session.context = buildContextConfig()
 
                 // Streaming assistant message placeholder
                 var assistantMsg: MessageViewModel? = null
@@ -117,7 +117,7 @@ class AgentViewModel(
                 val toolArgsBuf = mutableMapOf<String, StringBuilder>()
 
                 withTimeout(600_000) {
-                    session.run(userText, systemPrompt, tools).collect { event ->
+                    session.run(userText, tools).collect { event ->
                     Lumberjack.v("Agent", "Event: $event")
                     when (event) {
                         is AgentEvent.Reasoning -> {
@@ -240,7 +240,7 @@ class AgentViewModel(
         }
     }
 
-    fun buildSystemPrompt(): String {
+    fun buildContextConfig(): ContextConfig {
         val clipboardInstruction = if (
             settingsManager.commonToolsEnabled &&
             settingsManager.isToolEnabled("agent_clipboard")
@@ -268,12 +268,33 @@ class AgentViewModel(
             """.trimIndent()
         } else ""
 
-        return SystemPromptBuilder.build(
+        val screenInstruction = if (
+            settingsManager.screenToolsEnabled &&
+            settingsManager.isToolEnabled("screen_read")
+        ) {
+            """
+                You can read and interact with the device screen via accessibility service tools.
+                The accessibility service must be enabled in Settings → Accessibility → Indolent.
+
+                Workflow:
+                1. screen_read(mode="summary") — get an overview of what's on screen
+                2. screen_click(index=N) or screen_click(text="Button") — click an element
+                3. screen_screenshot — capture a screenshot for visual reference
+                4. screen_scroll(direction="down") — scroll the screen
+                5. screen_input(text="hello") — type text into a focused input field
+
+                Use screen_read indexes to precisely target elements for clicks.
+                Screen tools are unavailable if the accessibility service is not running.
+            """.trimIndent()
+        } else ""
+
+        return ContextConfig(
             baseInstruction = "You are a helpful Android assistant.",
             userSystemPrompt = settingsManager.userSystemPrompt,
             memory = memoryManager.read(),
             activeSkillContent = skillRepository.getActiveSkillContent(),
-            clipboardInstruction = clipboardInstruction
+            clipboardInstruction = clipboardInstruction,
+            screenInstruction = screenInstruction
         )
     }
 
@@ -291,20 +312,50 @@ class AgentViewModel(
 
     fun newConversation() = clearMessages()
 
-    fun loadExecutionAsConversation(title: String, prompt: String, result: String) {
+    fun loadExecutionAsConversation(taskId: String?, title: String, prompt: String, messages: List<LLMMessage>) {
+        viewModelScope.launch {
+            // Try loading the full session history first (with tool calls preserved)
+            if (taskId != null) {
+                val session = resolveSession()
+                if (session.load(taskId) && session.history.isNotEmpty()) {
+                    loadConversation(taskId)
+                    return@launch
+                }
+            }
+            // Fallback: build view from the provided message list
+            loadExecutionAsConversationFallback(title, prompt, messages)
+        }
+    }
+
+    private fun loadExecutionAsConversationFallback(title: String, prompt: String, historyMessages: List<LLMMessage>) {
         clearMessages()
         messages.add(MessageViewModel(role = MessageRole.System, content = title))
         messages.add(MessageViewModel(role = MessageRole.User, content = prompt))
-        messages.add(MessageViewModel(role = MessageRole.Assistant, content = result))
-        // Restore session context so follow-up messages have history
-        resolveSession().setHistory(
-            listOf(
-                LLMMessage(role = "user", content = prompt),
-                LLMMessage(role = "assistant", content = result)
-            )
-        )
+        // Render the messages list, skipping the system prompt message (first one)
+        val json = Json { ignoreUnknownKeys = true }
+        val assistantToolCalls = historyMessages
+            .filter { it.role == "assistant" }
+            .flatMap { it.toolCalls.orEmpty() }
+            .associateBy { it.id }
+        historyMessages.drop(1).forEach { msg ->  // skip system prompt
+            // Emit Thinking bubble for reasoning content
+            if (msg.role == "assistant" && !msg.reasoningContent.isNullOrBlank()) {
+                this.messages.add(MessageViewModel(MessageRole.Thinking, msg.reasoningContent))
+            }
+            val displayContent = if (msg.role == "tool" && msg.toolCallId != null) {
+                val tc = assistantToolCalls[msg.toolCallId]
+                if (tc != null) {
+                    val args = try { json.decodeFromString<Map<String, Any?>>(tc.function.arguments) } catch (_: Exception) { emptyMap() }
+                    val argsStr = MessageFormatter.formatArgsJson(args)
+                    val resultPreview = msg.content.lines().take(20).joinToString("\n")
+                        .let { if (msg.content.lines().size > 20) "$it\n…" else it }
+                    "🔧 ${tc.function.name}\n$argsStr\n$resultPreview"
+                } else msg.content
+            } else msg.content
+            this.messages.add(MessageViewModel(MessageRoleMapper.toMessageRole(msg.role), displayContent))
+        }
+        resolveSession().setHistory(historyMessages)
         hasNotifiedFirstResponse = true
-        // Save to file so it appears in the conversation drawer
         viewModelScope.launch {
             session?.let { s ->
                 s.title = title
@@ -320,8 +371,35 @@ class AgentViewModel(
             val loaded = session.load(id)
             if (loaded && session.history.isNotEmpty()) {
                 val json = Json { ignoreUnknownKeys = true }
-                val viewModels = session.history.map { msg ->
-                    val vm = MessageViewModel(MessageRoleMapper.toMessageRole(msg.role), msg.content)
+                // Build toolCallId -> ToolCall map from all assistant messages for history reload
+                val assistantToolCalls = session.history
+                    .filter { it.role == "assistant" }
+                    .flatMap { it.toolCalls.orEmpty() }
+                    .associateBy { it.id }
+
+                val viewModels = session.history.flatMap { msg ->
+                    val result = mutableListOf<MessageViewModel>()
+
+                    // Emit a Thinking bubble for assistant reasoning content persisted in history
+                    if (msg.role == "assistant" && !msg.reasoningContent.isNullOrBlank()) {
+                        result.add(MessageViewModel(MessageRole.Thinking, msg.reasoningContent))
+                    }
+
+                    val displayContent = if (msg.role == "tool" && msg.toolCallId != null) {
+                        val tc = assistantToolCalls[msg.toolCallId]
+                        if (tc != null) {
+                            val args = try {
+                                json.decodeFromString<Map<String, Any?>>(tc.function.arguments)
+                            } catch (_: Exception) { emptyMap() }
+                            val argsStr = MessageFormatter.formatArgsJson(args)
+                            val resultPreview = msg.content.lines()
+                                .take(20).joinToString("\n")
+                                .let { if (msg.content.lines().size > 20) "$it\n…" else it }
+                            "🔧 ${tc.function.name}\n$argsStr\n$resultPreview"
+                        } else msg.content
+                    } else msg.content
+
+                    val vm = MessageViewModel(MessageRoleMapper.toMessageRole(msg.role), displayContent)
                     msg.displayContentJson?.let { jsonStr ->
                         try {
                             val content = json.decodeFromString(DisplayContent.serializer(), jsonStr)
@@ -329,7 +407,8 @@ class AgentViewModel(
                             vm.displayContentId = content.id
                         } catch (_: Exception) { }
                     }
-                    vm
+                    result.add(vm)
+                    result
                 }
                 messages.clear()
                 messages.addAll(viewModels)

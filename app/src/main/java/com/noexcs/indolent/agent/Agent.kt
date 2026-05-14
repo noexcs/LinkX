@@ -17,9 +17,16 @@ class Agent(
     private val model: String,
     private val thinkingEnabled: Boolean = true,
     private val reasoningEffort: String = "high",
-    val clipboardStore: AgentClipboardStore? = null
+    val clipboardStore: AgentClipboardStore? = null,
+    /** Maximum context window budget in tokens. Defaults to 128K. */
+    private val contextBudgetTokens: Int = 128_000
 ) {
     private val client = LLMClient(baseUrl, apiKey)
+
+    // ── Token tracking for calibration ──
+
+    /** Running actual token count from API usage responses (approximate). */
+    private var lastActualPromptTokens: Int = 0
 
     fun run(
         history: MutableList<LLMMessage>,
@@ -32,15 +39,19 @@ class Agent(
         val toolMap = tools.associateBy { it.name }
 
         for (round in 0 until maxIterations) {
+            // ── manage context budget before this round ──
+            maybeManageContext(history, systemPrompt, tools, emit)
+
             val textBuf = StringBuilder()
             val reasoningBuf = StringBuilder()
             val toolAcc = mutableMapOf<Int, ToolCallBuilder>()
             var finishReason: String? = null
 
             // ── stream from LLM ──
+            val builtMessages = buildMessages(systemPrompt, history)
             val request = LLMRequest(
                 model = model,
-                messages = buildMessages(systemPrompt, history),
+                messages = builtMessages,
                 stream = true,
                 toolDefinitions = toolDefs(tools),
                 thinkingEnabled = if (thinkingEnabled) true else null,
@@ -116,8 +127,9 @@ class Agent(
 
                     // usage stats (sent in final chunk when stream_options.include_usage is set)
                     json.optJSONObject("usage")?.let { u ->
+                        lastActualPromptTokens = u.optInt("prompt_tokens", 0)
                         emit(AgentEvent.Usage(
-                            promptTokens = u.optInt("prompt_tokens", 0),
+                            promptTokens = lastActualPromptTokens,
                             completionTokens = u.optInt("completion_tokens", 0),
                             totalTokens = u.optInt("total_tokens", 0)
                         ))
@@ -216,7 +228,7 @@ class Agent(
                             }
                         }
                     }
-                    trimHistory(history)
+                    structuredTrim(history)
                     // loop continues → LLM sees tool results
                 }
 
@@ -240,9 +252,9 @@ class Agent(
         message: String,
         systemPrompt: String,
         tools: List<AgentTool> = emptyList(),
-        maxIterations: Int = 100,
-        completeProcess: Boolean = false
-    ): String {
+        maxIterations: Int = 100
+    ): List<LLMMessage> {
+        history += LLMMessage(role = "system", content = systemPrompt)
         history += LLMMessage(role = "user", content = message)
         val toolMap = tools.associateBy { it.name }
         for (round in 0 until maxIterations) {
@@ -263,11 +275,11 @@ class Agent(
                     role = "system",
                     content = "Error: ${e.message}"
                 )
-                return if (completeProcess)
-                    history2String(history)
-                else
-                    "Error: ${e.message}"
+                return history.toList()
             }
+
+            // Track actual usage for calibration
+            response.usage?.let { lastActualPromptTokens = it.promptTokens }
 
             val content = response.content
             val toolCalls = response.toolCalls
@@ -280,10 +292,7 @@ class Agent(
             )
 
             if (toolCalls.isNullOrEmpty()) {
-                return if (completeProcess)
-                    history2String(history)
-                else
-                    content
+                return history.toList()
             }
 
             val toolArgs = toolCalls.map { tc ->
@@ -310,27 +319,22 @@ class Agent(
                     }
                 }
             }
-            trimHistory(history)
+            structuredTrim(history)
         }
         history.add(LLMMessage(role = "system", content = "(max iterations reached)"))
-
-        return if (completeProcess) history2String(history) else history.last().content
+        return history.toList()
     }
 
     // ── helpers ──
 
-    private fun history2String(history: List<LLMMessage>): String {
-        return history.joinToString("\n") {
-            if (it.role == "tool")
-                "\n```\n${it.content}\n```\n"
-            else
-                it.content
-        }
-    }
-
     private fun buildMessages(systemPrompt: String, history: List<LLMMessage>): List<LLMMessage> {
-        return ArrayList<LLMMessage>(history.size + 1).apply {
-            add(LLMMessage(role = "system", content = systemPrompt))
+        // If history already starts with a system message (persisted from execute()),
+        // don't duplicate it — use the one in history as the system prompt for the API
+        val hasSystemInHistory = history.firstOrNull()?.role == "system"
+        return ArrayList<LLMMessage>(history.size + (if (hasSystemInHistory) 0 else 1)).apply {
+            if (!hasSystemInHistory) {
+                add(LLMMessage(role = "system", content = systemPrompt))
+            }
             addAll(history)
         }
     }
@@ -380,37 +384,241 @@ class Agent(
         }
     }
 
-    private fun trimHistory(history: MutableList<LLMMessage>, maxTokens: Int = 100_000) {
-        while (estimateTokens(history) > maxTokens && history.size > 4) {
-            history.removeAt(0)
+    // ═══════════════════════════════════════════════════════════════
+    //  Context budget management
+    // ═══════════════════════════════════════════════════════════════
+
+    /** Fraction of context budget at which we emit a warning. */
+    private val warningThreshold = 0.75
+
+    /** Fraction of context budget at which we trigger summarization. */
+    private val summarizeThreshold = 0.85
+
+    /**
+     * Checks whether the current history + system prompt fits within the
+     * context budget, and manages it if not: emit warnings, summarize old
+     * turns, or trim as a last resort.
+     */
+    private suspend fun maybeManageContext(
+        history: MutableList<LLMMessage>,
+        systemPrompt: String,
+        tools: List<AgentTool>,
+        emit: suspend (AgentEvent) -> Unit
+    ) {
+        val estimated = estimateTokens(history) + estimateSystemTokens(systemPrompt)
+        val budget = contextBudgetTokens.toLong()
+
+        // Emit warning when approaching the limit
+        if (estimated > budget * warningThreshold) {
+            emit(
+                AgentEvent.ContextWarning(
+                    estimatedTokens = estimated,
+                    budgetTokens = contextBudgetTokens,
+                    message = "Context at ${(estimated * 100 / budget)}% of budget"
+                )
+            )
+        }
+
+        // Trigger summarization when exceeding the threshold
+        if (estimated > budget * summarizeThreshold) {
+            val messagesBefore = history.size
+            summarizeHistory(history, systemPrompt)
+            val messagesAfter = history.size
+            if (messagesBefore != messagesAfter) {
+                Lumberjack.i("Agent", "Summarized history: $messagesBefore → $messagesAfter messages")
+                emit(
+                    AgentEvent.ContextSummarized(
+                        messagesBefore = messagesBefore,
+                        messagesAfter = messagesAfter,
+                        summaryLength = history.firstOrNull { it.content.startsWith("<conversation_summary>") }?.content?.length ?: 0
+                    )
+                )
+            }
+        }
+
+        // If still over budget (unlikely after summarization), trim
+        if (estimateTokens(history) + estimateSystemTokens(systemPrompt) > budget) {
+            structuredTrim(history)
         }
     }
 
+    /**
+     * Summarizes older conversation turns into a compressed system message
+     * and replaces them in [history]. Preserves the most recent turns intact.
+     *
+     * Strategy:
+     * 1. Find the system message at the front (keep it)
+     * 2. Take the next N turns that collectively exceed half the budget
+     * 3. Ask the LLM to summarize those turns
+     * 4. Replace them with the summary
+     */
+    private suspend fun summarizeHistory(
+        history: MutableList<LLMMessage>,
+        systemPrompt: String
+    ) {
+        // Need at least a few turns to make summarization worthwhile
+        if (history.size < 6) return
+
+        // Find the first user message — everything from here onward is conversation
+        val startIdx = history.indexOfFirst { it.role == "user" }
+        if (startIdx < 0) return
+
+        // Calculate how many messages to keep (the most recent ~35% of budget)
+        val budget = contextBudgetTokens.toLong()
+        val keepBudget = (budget * 0.35).toLong()
+        var keepCount = 0
+        var keepTokens = 0L
+        for (i in history.size - 1 downTo startIdx) {
+            keepTokens += estimateMessageTokens(history[i])
+            keepCount++
+            if (keepTokens >= keepBudget) break
+        }
+        val keepFromIndex = history.size - keepCount
+
+        // Messages to summarize: from startIdx to keepFromIndex (exclusive)
+        val toSummarize = history.subList(startIdx, keepFromIndex).toList()
+        if (toSummarize.isEmpty()) return
+
+        // Don't bother summarizing very short histories
+        if (toSummarize.size < 3) return
+
+        Lumberjack.i("Agent", "Summarizing ${toSummarize.size} turns, keeping $keepCount recent messages")
+
+        val summaryMsg = ContextSummarizer.summarize(client, model, toSummarize)
+        if (summaryMsg == null) {
+            Lumberjack.w("Agent", "Summarization returned null, falling back to trim")
+            return
+        }
+
+        // Remove old messages and insert summary after the system message (if any)
+        val systemCount = if (history.firstOrNull()?.role == "system") 1 else 0
+        val removeCount = keepFromIndex - systemCount
+        repeat(removeCount) { history.removeAt(systemCount) }
+        history.add(systemCount, summaryMsg)
+    }
+
+    /**
+     * Structured trimming: removes the oldest complete conversation turns
+     * (user → assistant → tool results) while preserving:
+     * - The first system message (if present)
+     * - Any existing summary message
+     * - The most recent turns
+     *
+     * A "turn" starts with a user message and includes all assistant and tool
+     * messages until the next user message (or end of history).
+     */
+    private fun structuredTrim(history: MutableList<LLMMessage>) {
+        val estimated = estimateTokens(history)
+        if (estimated <= contextBudgetTokens * 0.9) return  // still comfortable
+
+        // Keep the first system message and summary if present
+        var firstRemovableIdx = 0
+        if (history.firstOrNull()?.role == "system") {
+            firstRemovableIdx = 1
+            // Also keep a conversation summary if it follows the system message
+            if (history.size > 1 && history[1].role == "system" &&
+                history[1].content.startsWith("<conversation_summary>")
+            ) {
+                firstRemovableIdx = 2
+            }
+        }
+
+        // Identify turn boundaries (positions of user messages)
+        val turnStarts = history.indices
+            .filter { i -> i >= firstRemovableIdx && history[i].role == "user" }
+            .toMutableList()
+
+        if (turnStarts.size <= 1) {
+            // Only one turn — can't trim by turns, fall back to simple removal
+            while (estimateTokens(history) > contextBudgetTokens * 0.9 &&
+                   history.size > firstRemovableIdx + 2) {
+                history.removeAt(firstRemovableIdx)
+            }
+            return
+        }
+
+        // Remove the oldest complete turn(s) until we're within budget
+        while (estimateTokens(history) > contextBudgetTokens * 0.9 &&
+               turnStarts.size > 1 &&
+               history.size > firstRemovableIdx + 4) {
+            // Remove from firstRemovableIdx to the start of the next user message
+            val nextTurnStart = turnStarts.getOrElse(1) {
+                // Fallback: just remove one message
+                history.removeAt(firstRemovableIdx)
+                history.size
+            }
+            val removeCount = nextTurnStart - firstRemovableIdx
+            repeat(removeCount) { history.removeAt(firstRemovableIdx) }
+
+            // Update turnStarts after removal
+            turnStarts.removeAt(0)
+            for (i in turnStarts.indices) {
+                turnStarts[i] -= removeCount
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    //  Token estimation (role-aware)
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Estimates total tokens across all messages in [history].
+     * Uses character/3 as a baseline with role-aware adjustments.
+     * When actual usage data is available from the API, it serves as
+     * a calibration point.
+     */
     private fun estimateTokens(messages: List<LLMMessage>): Long {
-        return messages.fold(0L) { acc, msg ->
-            var n = acc + msg.content.length / 3L
-            msg.toolCalls?.forEach { tc ->
-                n += (tc.function.name.length + tc.function.arguments.length).toLong() / 3L
-            }
-            n
+        return messages.fold(0L) { acc, msg -> acc + estimateMessageTokens(msg) }
+    }
+
+    /**
+     * Estimates tokens for a single message using role-aware ratios.
+     */
+    private fun estimateMessageTokens(msg: LLMMessage): Long {
+        // Character count for the main content
+        var tokens = msg.content.length / charsPerTokenForRole(msg.role)
+
+        // Tool call definitions (function name + arguments JSON)
+        msg.toolCalls?.forEach { tc ->
+            tokens += (tc.function.name.length + tc.function.arguments.length) / 3L
+        }
+
+        // Reasoning content (if preserved)
+        if (!msg.reasoningContent.isNullOrBlank()) {
+            tokens += msg.reasoningContent.length / 3L
+        }
+
+        // Tool call ID overhead
+        if (msg.toolCallId != null) {
+            tokens += msg.toolCallId.length / 3L
+        }
+
+        // Message framing overhead (role, structure) ~4 tokens per message
+        tokens += 4
+
+        return tokens
+    }
+
+    /**
+     * Returns the characters-per-token divisor for a given role.
+     * System messages tend to be denser (more structure/formatting).
+     */
+    private fun charsPerTokenForRole(role: String): Double {
+        return when (role) {
+            "system" -> 2.5   // denser: markdown formatting, structure
+            "user" -> 3.0     // natural language
+            "assistant" -> 3.0
+            "tool" -> 3.0
+            else -> 3.0
         }
     }
 
-    private val clipboardPlaceholder = Regex("""\{\{agent_clipboard(?::(\w+))?\}\}""")
-
-    private fun interpolateClipboard(args: Map<String, Any?>): Map<String, Any?> {
-        val store = clipboardStore ?: return args
-        return args.mapValues { (_, value) ->
-            if (value is String && value.contains("{{agent_clipboard")) {
-                clipboardPlaceholder.replace(value) { match ->
-                    val slot = match.groupValues.getOrNull(1)?.ifBlank { null }
-                        ?: AgentClipboardStore.DEFAULT_SLOT
-                    store.read(slot) ?: match.value
-                }
-            } else {
-                value
-            }
-        }
+    /**
+     * Estimates the token cost of the system prompt string.
+     */
+    private fun estimateSystemTokens(systemPrompt: String): Long {
+        return systemPrompt.length / 2.5.toLong()
     }
 
     // ── internal accumulator for streaming tool calls ──

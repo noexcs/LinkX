@@ -4,6 +4,21 @@ import com.noexcs.indolent.agent.tools.AgentTool
 import kotlinx.coroutines.flow.Flow
 import java.util.UUID
 
+/**
+ * Configuration for the context that is injected into every LLM call
+ * for this session. The session builds its system prompt from this config.
+ */
+data class ContextConfig(
+    val baseInstruction: String = "You are a helpful Android assistant.",
+    val userSystemPrompt: String = "",
+    val memory: String = "",
+    val activeSkillContent: String = "",
+    val clipboardInstruction: String = "",
+    val screenInstruction: String = "",
+    /** Model's maximum context window size in tokens. */
+    val maxContextTokens: Int = 128_000
+)
+
 class Session(
     val sessionId: String = UUID.randomUUID().toString(),
     private val agent: Agent,
@@ -13,23 +28,41 @@ class Session(
     val history: MutableList<LLMMessage> = mutableListOf()
     var title: String = ""
 
+    /**
+     * The context configuration for this session.
+     * Update this before calling [run] or [execute] when external context
+     * (memory, skills, instructions) changes.
+     */
+    var context: ContextConfig = ContextConfig()
+
+    /**
+     * Builds the full system prompt from the current [context].
+     */
+    fun buildSystemPrompt(): String {
+        return SystemPromptBuilder.build(context)
+    }
+
+    /**
+     * Streaming conversation run. Uses [context] to build the system prompt.
+     */
     fun run(
         message: String,
-        systemPrompt: String,
         tools: List<AgentTool> = emptyList(),
         maxIterations: Int = 1000
     ): Flow<AgentEvent> {
-        return agent.run(history, message, systemPrompt, tools, maxIterations)
+        return agent.run(history, message, buildSystemPrompt(), tools, maxIterations)
     }
 
+    /**
+     * Non-streaming execution. Uses [context] to build the system prompt.
+     * Used for background tasks (scheduled execution, heartbeats, etc.).
+     */
     suspend fun execute(
         message: String,
-        systemPrompt: String,
         tools: List<AgentTool> = emptyList(),
-        maxIterations: Int = 100,
-        completeProcess: Boolean = false
-    ): String {
-        return agent.execute(history, message, systemPrompt, tools, maxIterations, completeProcess)
+        maxIterations: Int = 100
+    ): List<LLMMessage> {
+        return agent.execute(history, message, buildSystemPrompt(), tools, maxIterations)
     }
 
     fun setHistory(messages: List<LLMMessage>) {
@@ -58,15 +91,5 @@ class Session(
 
     suspend fun delete() {
         persistence?.delete(sessionId)
-    }
-
-    fun toChatMessages(): List<ChatMessage> {
-        return history.map { msg ->
-            ChatMessage(
-                role = MessageRoleMapper.toMessageRole(msg.role),
-                content = msg.content,
-                displayContentJson = msg.displayContentJson
-            )
-        }
     }
 }

@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.agent.SessionMetadata
+import com.noexcs.indolent.agent.SessionType
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -29,7 +30,7 @@ fun ConversationDrawerContent(
     onNewChat: () -> Unit,
     refreshTrigger: Int = 0
 ) {
-    var conversations by remember { mutableStateOf(repository.listSessions()) }
+    var conversations by remember { mutableStateOf(repository.listSessions().filter { it.type == SessionType.CONVERSATION }) }
     var searchQuery by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<SessionMetadata?>(null) }
@@ -37,7 +38,7 @@ fun ConversationDrawerContent(
     var renameText by remember { mutableStateOf("") }
 
     fun refresh() {
-        conversations = repository.listSessions()
+        conversations = repository.listSessions().filter { it.type == SessionType.CONVERSATION }
     }
 
     // Refresh when trigger changes or on initial load

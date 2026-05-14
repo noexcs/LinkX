@@ -180,8 +180,8 @@ private fun MainContent() {
     val settingsScrollState = rememberScrollState()
     val context = LocalContext.current
 
-    val onViewExecutionInChat: (String, String, String) -> Unit = { title, prompt, result ->
-        viewModel.loadExecutionAsConversation(title, prompt, result)
+    val onViewExecutionInChat: (String, String, List<com.noexcs.indolent.agent.LLMMessage>, String?) -> Unit = { title, prompt, messages, taskId ->
+        viewModel.loadExecutionAsConversation(taskId, title, prompt, messages)
         currentScreen = Screen.Chat
     }
 
@@ -246,7 +246,8 @@ private fun MainContent() {
                         onViewInChat = { record ->
                             onViewExecutionInChat(record.taskTitle, record.prompt,
                                 if (record.status == com.noexcs.indolent.task.ExecutionStatus.SUCCESS) record.result
-                                else record.errorMessage)
+                                else listOf(com.noexcs.indolent.agent.LLMMessage(role = "assistant", content = record.errorMessage)),
+                                record.taskId)
                         }
                     )
                     Screen.Settings -> SettingsScreen(
@@ -294,7 +295,8 @@ private fun MainContent() {
                         onViewInChat = { record ->
                             onViewExecutionInChat(record.taskTitle, record.prompt,
                                 if (record.status == com.noexcs.indolent.task.ExecutionStatus.SUCCESS) record.result
-                                else record.errorMessage)
+                                else listOf(com.noexcs.indolent.agent.LLMMessage(role = "assistant", content = record.errorMessage)),
+                                record.taskId)
                         }
                     )
                     Screen.HeartbeatHistory -> HeartbeatHistoryScreen(
@@ -304,7 +306,8 @@ private fun MainContent() {
                                 "Heartbeat",
                                 "Heartbeat check at ${java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(record.executedAt))}",
                                 if (record.status == com.noexcs.indolent.task.ExecutionStatus.SUCCESS) record.result
-                                else record.errorMessage
+                                else listOf(com.noexcs.indolent.agent.LLMMessage(role = "assistant", content = record.errorMessage)),
+                                null
                             )
                         }
                     )
@@ -313,7 +316,8 @@ private fun MainContent() {
                         onViewInChat = { record ->
                             onViewExecutionInChat(record.taskTitle, record.prompt,
                                 if (record.status == com.noexcs.indolent.task.ExecutionStatus.SUCCESS) record.result
-                                else record.errorMessage)
+                                else listOf(com.noexcs.indolent.agent.LLMMessage(role = "assistant", content = record.errorMessage)),
+                                record.taskId)
                         }
                     )
                     else -> {}

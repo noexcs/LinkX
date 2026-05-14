@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Indolent</string>
+    <string name="accessibility_service_description">允许 Indolent 读取屏幕内容并执行点��操作，使 AI 助手能够理解并操作屏幕上的内容。</string>
 
     <!-- Chat -->
     <string name="chat_title">Indolent</string>
@@ -101,6 +102,8 @@
     <string name="section_notification_tools_subtitle">允许 AI 创建、更新、取消和查询通知</string>
     <string name="section_scheduled_task_tools">定时任务工具</string>
     <string name="section_scheduled_task_tools_subtitle">允许 AI 创建、编辑、删除和列出定时任务</string>
+    <string name="section_screen_tools">屏幕交互工具</string>
+    <string name="section_screen_tools_subtitle">允许 AI 读取屏幕内容、截图和执行点击操作（需要开启无障碍服务）</string>
     <string name="section_self_tools">自我工具</string>
     <string name="section_self_tools_subtitle">允许 AI 查询自身内部日志以进行调试</string>
     <string name="section_sensor_tools">传感器工具</string>
@@ -136,6 +139,7 @@
     <string name="history">历史</string>
     <string name="execution_history">执行历史</string>
     <string name="no_execution_records">暂无执行记录</string>
+    <string name="clear_execution_records">清除记录</string>
     <string name="execution_detail">执行详情</string>
     <string name="execution_time">执行时间</string>
     <string name="execution_duration">耗时</string>
@@ -239,6 +243,11 @@
     <!-- Individual tool names -->
     <string name="tool_execute_command">执行命令</string>
     <string name="tool_execute_python">执行 Python</string>
+    <string name="tool_screen_read">屏幕阅读</string>
+    <string name="tool_screen_click">屏幕点击</string>
+    <string name="tool_screen_screenshot">屏幕截图</string>
+    <string name="tool_screen_scroll">屏幕滚动</string>
+    <string name="tool_screen_input">屏幕输入</string>
     <string name="tool_read_file">读取文件 (Termux)</string>
     <string name="tool_write_file">写入文件 (Termux)</string>
     <string name="tool_show_dialog">显示对话框</string>

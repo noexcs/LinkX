@@ -66,12 +66,15 @@ class SubagentTool : AgentTool {
                 append("\n\n# Agent Clipboard\nYou share an agent clipboard with the parent agent. Use the agent_clipboard tool or {{agent_clipboard}} syntax.")
             }
         }
-        return subagent.execute(
+        val result = subagent.execute(
             history = history,
             message = prompt,
             systemPrompt = systemPrompt,
             tools = tools,
             maxIterations = maxIterations
         )
+        return result.lastOrNull { it.role == "assistant" }?.content
+            ?: result.firstOrNull()?.content
+            ?: ""
     }
 }

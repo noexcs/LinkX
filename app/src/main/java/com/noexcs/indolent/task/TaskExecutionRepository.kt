@@ -1,7 +1,6 @@
 package com.noexcs.indolent.task
 
 import android.content.Context
-import com.noexcs.indolent.logging.Lumberjack
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -18,10 +17,7 @@ class TaskExecutionRepository(context: Context) {
             ?.mapNotNull { file ->
                 try {
                     json.decodeFromString<TaskExecutionRecord>(file.readText())
-                } catch (e: Exception) {
-                    Lumberjack.e("TaskExecutionRepository", "Error decoding task execution record listing by task ID", e)
-                    null
-                }
+                } catch (_: Exception) { null }
             }
             ?.filter { it.taskId == taskId }
             ?.sortedByDescending { it.executedAt }
@@ -33,10 +29,7 @@ class TaskExecutionRepository(context: Context) {
             ?.mapNotNull { file ->
                 try {
                     json.decodeFromString<TaskExecutionRecord>(file.readText())
-                } catch (e: Exception) {
-                    Lumberjack.e("TaskExecutionRepository", "Error decoding task execution record in listAll", e)
-                    null
-                }
+                } catch (_: Exception) { null }
             }
             ?.sortedByDescending { it.executedAt }
             ?: emptyList()
@@ -47,10 +40,7 @@ class TaskExecutionRepository(context: Context) {
             ?.filter { file ->
                 try {
                     json.decodeFromString<TaskExecutionRecord>(file.readText()).taskId == taskId
-                } catch (e: Exception) {
-                    Lumberjack.e("TaskExecutionRepository", "Error decoding task execution record in deleteByTaskId", e)
-                    false
-                }
+                } catch (_: Exception) { false }
             }
             ?.forEach { it.delete() }
     }

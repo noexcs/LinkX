@@ -11,4 +11,23 @@ sealed class AgentEvent {
     data class Error(val message: String) : AgentEvent()
     data class Truncated(val reason: String) : AgentEvent()
     data class PasteContent(val content: String) : AgentEvent()
+
+    /**
+     * Emitted when the context window is approaching its budget limit.
+     * The caller may choose to summarize or truncate history.
+     */
+    data class ContextWarning(
+        val estimatedTokens: Long,
+        val budgetTokens: Int,
+        val message: String
+    ) : AgentEvent()
+
+    /**
+     * Emitted after history has been summarized to fit the context budget.
+     */
+    data class ContextSummarized(
+        val messagesBefore: Int,
+        val messagesAfter: Int,
+        val summaryLength: Int
+    ) : AgentEvent()
 }

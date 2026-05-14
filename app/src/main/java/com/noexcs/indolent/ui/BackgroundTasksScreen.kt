@@ -39,6 +39,8 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -70,7 +72,7 @@ fun BackgroundTasksScreen(
     }
 }
 
-// ─── Scheduled Task List Content (no Scaffold) ─────────────────────────────────
+// ─── Scheduled Task List Content ────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,6 +88,9 @@ private fun ScheduledTaskListContent(
     var editingTask by remember { mutableStateOf<ScheduledTask?>(null) }
     var historyTaskId by remember { mutableStateOf<String?>(null) }
     var batteryOptimizationIgnored by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var pendingDeleteTask by remember { mutableStateOf<ScheduledTask?>(null) }
 
     var notificationPermissionGranted by remember {
         mutableStateOf(
@@ -120,86 +125,113 @@ private fun ScheduledTaskListContent(
         }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        if (tasks.isEmpty()) {
-            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text(
-                    stringResource(R.string.no_tasks),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { editingTask = null; showSheet = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
             ) {
-                if (!batteryOptimizationIgnored) {
-                    item(key = "battery_warning") {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                        ) {
-                            Column(
-                                modifier = Modifier.padding(16.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_task))
+            }
+        }
+    ) { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            if (tasks.isEmpty()) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        stringResource(R.string.no_tasks),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (!batteryOptimizationIgnored) {
+                        item(key = "battery_warning") {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
                             ) {
-                                Text(
-                                    "Battery optimization may prevent tasks from running on time.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    TextButton(onClick = {
-                                        DeviceOptimizationHelper.openBatteryOptimizationSettings(
-                                            context
-                                        )
-                                    }) { Text("Disable optimization") }
-                                    TextButton(onClick = {
-                                        if (!DeviceOptimizationHelper.openAutoStartSettings(context)) {
-                                            Toast.makeText(
-                                                context,
-                                                "Auto-start settings not found for this device.",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }) { Text("Auto-start") }
+                                Column(
+                                    modifier = Modifier.padding(16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        "Battery optimization may prevent tasks from running on time.",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onErrorContainer
+                                    )
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        TextButton(onClick = {
+                                            DeviceOptimizationHelper.openBatteryOptimizationSettings(
+                                                context
+                                            )
+                                        }) { Text("Disable optimization") }
+                                        TextButton(onClick = {
+                                            if (!DeviceOptimizationHelper.openAutoStartSettings(context)) {
+                                                Toast.makeText(
+                                                    context,
+                                                    "Auto-start settings not found for this device.",
+                                                    Toast.LENGTH_SHORT
+                                                ).show()
+                                            }
+                                        }) { Text("Auto-start") }
+                                    }
                                 }
                             }
                         }
                     }
-                }
-                items(tasks, key = { it.id }) { task ->
-                    TaskCard(
-                        task = task,
-                        onClick = { editingTask = task; showSheet = true },
-                        onToggle = { enabled ->
-                            val updated = task.copy(enabled = enabled)
-                            repo.save(updated)
-                            if (enabled) trySchedule(updated) else scheduler.cancel(task.id)
-                            tasks = repo.listAll()
-                        },
-                        onDelete = {
-                            scheduler.cancel(task.id)
-                            executionRepo.deleteByTaskId(task.id)
-                            repo.delete(task.id)
-                            tasks = repo.listAll()
-                        },
-                        onHistory = { historyTaskId = task.id }
-                    )
+                    items(tasks, key = { it.id }) { task ->
+                        TaskCard(
+                            task = task,
+                            onClick = { editingTask = task; showSheet = true },
+                            onToggle = { enabled ->
+                                val updated = task.copy(enabled = enabled)
+                                repo.save(updated)
+                                if (enabled) trySchedule(updated) else scheduler.cancel(task.id)
+                                tasks = repo.listAll()
+                            },
+                            onDelete = {
+                                pendingDeleteTask = task
+                                tasks = tasks.filter { it.id != task.id }
+                                coroutineScope.launch {
+                                    val autoDismissJob = coroutineScope.launch {
+                                        delay(15_000)
+                                        snackbarHostState.currentSnackbarData?.dismiss()
+                                    }
+                                    val result = snackbarHostState.showSnackbar(
+                                        message = context.getString(R.string.task_deleted, task.title),
+                                        actionLabel = context.getString(R.string.undo),
+                                        duration = SnackbarDuration.Indefinite
+                                    )
+                                    autoDismissJob.cancel()
+                                    when (result) {
+                                        SnackbarResult.ActionPerformed -> {
+                                            pendingDeleteTask = null
+                                            tasks = repo.listAll()
+                                        }
+                                        SnackbarResult.Dismissed -> {
+                                            pendingDeleteTask?.let { t ->
+                                                scheduler.cancel(t.id)
+                                                executionRepo.deleteByTaskId(t.id)
+                                                repo.delete(t.id)
+                                            }
+                                            pendingDeleteTask = null
+                                            tasks = repo.listAll()
+                                        }
+                                    }
+                                }
+                            },
+                            onHistory = { historyTaskId = task.id }
+                        )
+                    }
                 }
             }
-        }
-
-        FloatingActionButton(
-            onClick = { editingTask = null; showSheet = true },
-            modifier = Modifier
-                .align(Alignment.BottomEnd)
-                .padding(16.dp),
-            containerColor = MaterialTheme.colorScheme.primary,
-            contentColor = MaterialTheme.colorScheme.onPrimary,
-        ) {
-            Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_task))
         }
     }
 
@@ -673,7 +705,7 @@ private fun TriggerHistoryItem(
             }
             if (record.status == ExecutionStatus.SUCCESS) {
                 Text(
-                    record.result,
+                    record.resultPreview,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,

@@ -5,6 +5,7 @@ import android.content.Context
 import androidx.core.app.NotificationCompat
 import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.BackgroundSessionRunner
+import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.SessionType
 import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
 import com.noexcs.indolent.logging.Lumberjack
@@ -78,10 +79,11 @@ class TriggerDispatcher(private val context: Context) {
 
             // Timeout: 5 minutes to avoid hanging
             val reply = withTimeoutOrNull(300_000) {
-                session.execute(contextualPrompt, systemPrompt, tools, 100, true)
-            } ?: "Conditional trigger execution timed out after 5 minutes."
+                session.execute(contextualPrompt, systemPrompt, tools, 100)
+            } ?: listOf(LLMMessage(role = "system", content = "Conditional trigger execution timed out after 5 minutes."))
 
-            Lumberjack.i(TAG, "Trigger '${trigger.title}' completed (${reply.length} chars)")
+            Lumberjack.i(TAG, "Trigger '${trigger.title}' completed (${reply.size} messages)")
+            session.save()
 
             // Save execution record
             val record = TaskExecutionRecord(
@@ -98,7 +100,8 @@ class TriggerDispatcher(private val context: Context) {
 
             // Notify if enabled
             if (trigger.notifyEnabled) {
-                showNotification(trigger.title, reply.take(200))
+                val replyText = reply.lastOrNull { it.role == "assistant" }?.content ?: ""
+                showNotification(trigger.title, replyText.take(200))
             }
 
         } catch (e: Exception) {

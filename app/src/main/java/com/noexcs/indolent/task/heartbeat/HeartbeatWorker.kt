@@ -77,10 +77,10 @@ class HeartbeatWorker(
             )
             val heartbeatPrompt = buildHeartbeatPrompt(applicationContext)
 
-            val reply = session.execute(heartbeatPrompt, systemPrompt, tools, 100, true)
+            val reply = session.execute(heartbeatPrompt, systemPrompt, tools, 100)
 
             val durationMs = System.currentTimeMillis() - startTime
-            Lumberjack.i("HeartbeatWorker", "Heartbeat completed (${durationMs}ms, ${reply.length} chars)")
+            Lumberjack.i("HeartbeatWorker", "Heartbeat completed (${durationMs}ms, ${reply.size} messages)")
             val recordRepo = HeartbeatRecordRepository(applicationContext)
             recordRepo.save(
                 HeartbeatRecord(
@@ -94,7 +94,8 @@ class HeartbeatWorker(
             recordRepo.pruneOldRecords()
 
             // Notify completion
-            val summary = if (reply.length > 200) reply.take(200) + "…" else reply
+            val replyText = reply.lastOrNull { it.role == "assistant" }?.content ?: ""
+            val summary = if (replyText.length > 200) replyText.take(200) + "…" else replyText
             nm.notify(COMPLETE_NOTIFICATION_ID, buildCompleteNotification(summary, null, durationMs))
             // Cancel the start notification
             nm.cancel(START_NOTIFICATION_ID)
@@ -183,8 +184,9 @@ class HeartbeatWorker(
                 appendLine()
                 appendLine("### Previous Heartbeat")
                 appendLine("Status: ${lastRecord.status.name}")
-                if (lastRecord.result.isNotBlank()) {
-                    appendLine("Result: ${lastRecord.result.take(500)}")
+                val lastResultText = lastRecord.resultPreview
+                if (lastResultText.isNotBlank()) {
+                    appendLine("Result: ${lastResultText.take(500)}")
                 }
                 if (lastRecord.errorMessage.isNotBlank()) {
                     appendLine("Error: ${lastRecord.errorMessage}")

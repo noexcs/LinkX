@@ -58,6 +58,7 @@ class TaskExecutionWorker(
 
         setForeground(getForegroundInfo())
         val startTime = System.currentTimeMillis()
+        var backgroundSession: com.noexcs.indolent.agent.Session? = null
 
         return try {
             val clipboardStore = AgentClipboardStore()
@@ -68,6 +69,7 @@ class TaskExecutionWorker(
                 Lumberjack.w("TaskExecutionWorker", "${e.message}, cannot run task: $taskId")
                 return Result.failure()
             }
+            backgroundSession = session
 
             Lumberjack.i("TaskExecutionWorker", "Agent starting — promptLen=${task.prompt.length}")
             val systemPrompt = BackgroundSessionRunner.buildSystemPrompt(
@@ -85,10 +87,12 @@ class TaskExecutionWorker(
                 historyProvider = { session.history }
             )
 
-            val reply = session.execute(task.prompt, systemPrompt, tools, 100, true)
+            val reply = session.execute(task.prompt, systemPrompt, tools, 100)
+            session.save()
 
             val durationMs = System.currentTimeMillis() - startTime
-            Lumberjack.i("TaskExecutionWorker", "Task completed: '${task.title}' (${durationMs}ms, ${reply.length} chars)")
+            val replyText = reply.lastOrNull { it.role == "assistant" }?.content ?: ""
+            Lumberjack.i("TaskExecutionWorker", "Task completed: '${task.title}' (${durationMs}ms, ${reply.size} messages)")
 
             val record = TaskExecutionRecord(
                 id = UUID.randomUUID().toString(),
@@ -104,19 +108,31 @@ class TaskExecutionWorker(
             execRepo.pruneOldRecords(task.id)
 
             if (task.notifyEnabled) {
-                notificationHelper.notify(task.id, task.title, reply)
+                notificationHelper.notify(task.id, task.title, replyText)
             }
 
             if (task.frequency == TaskFrequency.ONCE) {
-                taskRepo.save(task.copy(enabled = false))
-                Lumberjack.i("TaskExecutionWorker", "Once task auto-disabled: $taskId")
+                // Reload before saving to avoid overwriting user changes during execution
+                val current = taskRepo.load(task.id)
+                if (current != null) {
+                    taskRepo.save(current.copy(enabled = false))
+                    Lumberjack.i("TaskExecutionWorker", "Once task auto-disabled: $taskId")
+                }
             } else {
-                TaskScheduler(applicationContext).schedule(task)
+                // Reload before rescheduling to avoid re-enabling a task the user disabled
+                val current = taskRepo.load(task.id)
+                if (current != null && current.enabled) {
+                    TaskScheduler(applicationContext).schedule(current)
+                } else {
+                    Lumberjack.i("TaskExecutionWorker", "Task disabled or deleted during run, skip reschedule: $taskId")
+                }
             }
 
             Result.success()
         } catch (e: Exception) {
             Lumberjack.e("TaskExecutionWorker", "Task execution failed: ${task.title}", e)
+            // Try to save partial session history for debugging
+            try { backgroundSession?.save() } catch (_: Exception) { }
             val record = TaskExecutionRecord(
                 id = UUID.randomUUID().toString(),
                 taskId = task.id,

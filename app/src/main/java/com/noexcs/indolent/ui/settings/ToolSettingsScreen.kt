@@ -63,6 +63,7 @@ import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.tools.filesystem.FsUtils
 import com.noexcs.indolent.agent.tools.ToolGroup
 import com.noexcs.indolent.agent.tools.ToolRegistry
+import com.noexcs.indolent.agent.tools.screen.AccessibilityHelper
 import com.noexcs.indolent.data.SettingsManager
 import kotlinx.coroutines.launch
 
@@ -87,8 +88,10 @@ fun ToolSettingsScreen(
     var sensorToolsEnabled by remember { mutableStateOf(settingsManager.sensorToolsEnabled) }
     var settingToolsEnabled by remember { mutableStateOf(settingsManager.settingToolsEnabled) }
     var systemInfoToolsEnabled by remember { mutableStateOf(settingsManager.systemInfoToolsEnabled) }
+    var screenToolsEnabled by remember { mutableStateOf(settingsManager.screenToolsEnabled) }
     var mcpToolsEnabled by remember { mutableStateOf(settingsManager.mcpToolsEnabled) }
     var hasUnsavedChanges by remember { mutableStateOf(false) }
+    var isAccessibilityEnabled by remember { mutableStateOf(AccessibilityHelper.isEnabled(context)) }
     var showExitDialog by remember { mutableStateOf(false) }
     val termuxPermission = "com.termux.permission.RUN_COMMAND"
     var hasTermuxPermission by remember { mutableStateOf(false) }
@@ -120,6 +123,7 @@ fun ToolSettingsScreen(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 hasAllFilesAccess = FsUtils.hasAllFilesAccess(context)
+                isAccessibilityEnabled = AccessibilityHelper.isEnabled(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -153,6 +157,7 @@ fun ToolSettingsScreen(
         settingsManager.sensorToolsEnabled = sensorToolsEnabled
         settingsManager.settingToolsEnabled = settingToolsEnabled
         settingsManager.systemInfoToolsEnabled = systemInfoToolsEnabled
+        settingsManager.screenToolsEnabled = screenToolsEnabled
         settingsManager.mcpToolsEnabled = mcpToolsEnabled
         toolEnabledStates.forEach { (name, enabled) ->
             settingsManager.setToolEnabled(name, enabled)
@@ -449,6 +454,34 @@ fun ToolSettingsScreen(
                     toolEnabledStates = toolEnabledStates + (name to enabled)
                     markChanged()
                 },
+            )
+
+            // Screen
+            ExpandableToolGroupCard(
+                title = stringResource(R.string.section_screen_tools),
+                subtitle = stringResource(R.string.section_screen_tools_subtitle),
+                groupEnabled = screenToolsEnabled,
+                onGroupToggle = { screenToolsEnabled = it; markChanged() },
+                tools = toolsByGroup[ToolGroup.SCREEN] ?: emptyList(),
+                toolStates = toolEnabledStates,
+                onToolToggle = { name, enabled ->
+                    toolEnabledStates = toolEnabledStates + (name to enabled)
+                    markChanged()
+                },
+                extraContent = {
+                    if (!isAccessibilityEnabled) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Accessibility service is not enabled",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Button(onClick = { AccessibilityHelper.openSettings(context) }) {
+                            Text("Open Accessibility Settings")
+                        }
+                    }
+                }
             )
 
             // MCP

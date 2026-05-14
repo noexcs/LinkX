@@ -38,6 +38,7 @@ import com.noexcs.indolent.R
 import com.noexcs.indolent.task.ExecutionStatus
 import com.noexcs.indolent.task.heartbeat.HeartbeatRecord
 import com.noexcs.indolent.task.heartbeat.HeartbeatRecordRepository
+import com.noexcs.indolent.task.heartbeat.resultPreview
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -145,7 +146,7 @@ private fun HeartbeatHistoryItem(
 
             if (record.status == ExecutionStatus.SUCCESS) {
                 Text(
-                    record.result,
+                    record.resultPreview,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,

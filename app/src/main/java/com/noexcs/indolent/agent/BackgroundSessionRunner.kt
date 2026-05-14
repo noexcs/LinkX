@@ -6,6 +6,7 @@ import com.noexcs.indolent.agent.skills.SkillRepository
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolProvider
 import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
+import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.data.MemoryManager
 import com.noexcs.indolent.data.SettingsManager
 
@@ -25,7 +26,8 @@ object BackgroundSessionRunner {
         val model = settings.model?.ifBlank { "deepseek-chat" } ?: "deepseek-chat"
 
         val agent = Agent(baseUrl, apiKey, model, settings.thinkingEnabled, settings.reasoningEffort, clipboardStore = clipboardStore)
-        return Session(sessionId = sessionId, agent = agent, type = type)
+        val persistence = FileChatHistoryProvider(context)
+        return Session(sessionId = sessionId, agent = agent, persistence = persistence, type = type)
     }
 
     suspend fun buildTools(
@@ -38,11 +40,16 @@ object BackgroundSessionRunner {
             clipboardStore = clipboardStore, historyProvider = historyProvider)
     }
 
-    fun buildSystemPrompt(
+    /**
+     * Builds a [ContextConfig] for background sessions.
+     * Callers should set this on the session via `session.context = config` before
+     * calling [Session.execute].
+     */
+    fun buildContextConfig(
         context: Context,
         baseInstruction: String,
         clipboardStore: AgentClipboardStore? = null,
-    ): String {
+    ): ContextConfig {
         val appContext = context.applicationContext
         val settings = SettingsManager(appContext)
         val skillRepo = SkillRepository(appContext, settings)
@@ -56,12 +63,22 @@ object BackgroundSessionRunner {
             """.trimIndent()
         } else ""
 
-        return SystemPromptBuilder.build(
+        val screenInstruction = if (
+            settings.screenToolsEnabled &&
+            settings.isToolEnabled("screen_read")
+        ) {
+            """
+                Use screen_read, screen_click, screen_screenshot, screen_scroll, screen_input tools to interact with the device screen. The accessibility service must be enabled.
+            """.trimIndent()
+        } else ""
+
+        return ContextConfig(
             baseInstruction = baseInstruction,
             userSystemPrompt = settings.userSystemPrompt,
             memory = MemoryManager(appContext).read(),
             activeSkillContent = skillRepo.getActiveSkillContent(),
-            clipboardInstruction = clipboardInstruction
+            clipboardInstruction = clipboardInstruction,
+            screenInstruction = screenInstruction
         )
     }
 }

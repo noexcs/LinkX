@@ -1,5 +1,6 @@
 <resources>
     <string name="app_name">Indolent</string>
+    <string name="accessibility_service_description">Allows Indolent to read screen content and perform clicks. This enables the AI assistant to understand and interact with what is on your screen.</string>
 
     <!-- Chat -->
     <string name="chat_title">Indolent</string>
@@ -105,6 +106,8 @@
     <string name="section_notification_tools_subtitle">Allow AI to create, update, dismiss, and query notifications</string>
     <string name="section_scheduled_task_tools">Scheduled Task Tools</string>
     <string name="section_scheduled_task_tools_subtitle">Allow AI to create, edit, delete, and list scheduled tasks</string>
+    <string name="section_screen_tools">Screen Interaction Tools</string>
+    <string name="section_screen_tools_subtitle">Allow AI to read screen content, take screenshots, and perform clicks (requires accessibility service)</string>
     <string name="section_self_tools">Self Tools</string>
     <string name="section_self_tools_subtitle">Allow AI to query its own internal logs for debugging</string>
     <string name="section_sensor_tools">Sensor Tools</string>
@@ -116,6 +119,11 @@
     <string name="section_python_tools">Python</string>
     <string name="section_python_tools_subtitle">Allow AI to execute arbitrary Python code via the embedded Python 3.12 runtime</string>
     <string name="tool_execute_python">Execute Python</string>
+    <string name="tool_screen_read">Screen Read</string>
+    <string name="tool_screen_click">Screen Click</string>
+    <string name="tool_screen_screenshot">Screen Screenshot</string>
+    <string name="tool_screen_scroll">Screen Scroll</string>
+    <string name="tool_screen_input">Screen Input</string>
 
     <string name="section_mcp_tools">MCP Tools</string>
     <string name="section_mcp_tools_subtitle">Allow AI to use tools from external MCP servers. Configure server endpoints to discover tools.</string>
@@ -159,6 +167,7 @@
     <string name="history">History</string>
     <string name="execution_history">Execution History</string>
     <string name="no_execution_records">No execution records yet</string>
+    <string name="clear_execution_records">Clear Records</string>
     <string name="execution_detail">Execution Detail</string>
     <string name="execution_time">Time</string>
     <string name="execution_duration">Duration</string>

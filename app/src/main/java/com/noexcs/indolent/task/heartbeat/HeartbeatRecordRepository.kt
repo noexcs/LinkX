@@ -1,7 +1,6 @@
 package com.noexcs.indolent.task.heartbeat
 
 import android.content.Context
-import com.noexcs.indolent.logging.Lumberjack
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -18,10 +17,7 @@ class HeartbeatRecordRepository(context: Context) {
             ?.mapNotNull { file ->
                 try {
                     json.decodeFromString<HeartbeatRecord>(file.readText())
-                } catch (e: Exception) {
-                    Lumberjack.e("HeartbeatRecordRepository", "Error decoding heartbeat record", e)
-                    null
-                }
+                } catch (_: Exception) { null }
             }
             ?.sortedByDescending { it.executedAt }
             ?: emptyList()

@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.task.ExecutionStatus
 import com.noexcs.indolent.task.TaskExecutionRecord
+import com.noexcs.indolent.task.resultPreview
 import com.noexcs.indolent.task.TaskExecutionRepository
 import com.noexcs.indolent.task.conditional.ConditionalTrigger
 import com.noexcs.indolent.task.conditional.ConditionalTriggerRepository
@@ -283,7 +284,7 @@ private fun ConditionalHistoryItem(
 
             if (record.status == ExecutionStatus.SUCCESS) {
                 Text(
-                    record.result,
+                    record.resultPreview,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,

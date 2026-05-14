@@ -2,18 +2,8 @@ package com.noexcs.indolent.agent
 
 import kotlinx.serialization.Serializable
 
-// ── Conversation / persistence models ──
-
 @Serializable
 enum class MessageRole { User, Assistant, System, Thinking, ToolInfo }
-
-@Serializable
-data class ChatMessage(
-    val role: MessageRole,
-    val content: String,
-    val timestamp: Long = System.currentTimeMillis(),
-    val displayContentJson: String? = null
-)
 
 @Serializable
 enum class SessionType { CONVERSATION, SCHEDULED_TASK, HEARTBEAT, CONDITIONAL_TRIGGER }

@@ -36,6 +36,7 @@ import com.noexcs.indolent.task.ScheduledTask
 import com.noexcs.indolent.task.ScheduledTaskRepository
 import com.noexcs.indolent.task.TaskExecutionRecord
 import com.noexcs.indolent.task.TaskExecutionRepository
+import com.noexcs.indolent.task.resultPreview
 import com.noexcs.indolent.task.TaskFrequency
 import com.noexcs.indolent.task.scheduler.TaskScheduler
 import com.noexcs.indolent.task.scheduler.DeviceOptimizationHelper
@@ -418,7 +419,8 @@ private fun ExecutionHistorySheet(
     onViewInChat: (TaskExecutionRecord) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val records = remember { executionRepo.listByTaskId(taskId) }
+    var records by remember { mutableStateOf(executionRepo.listByTaskId(taskId)) }
+    var showClearConfirm by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
 
@@ -431,10 +433,25 @@ private fun ExecutionHistorySheet(
                 .navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Text(
-                stringResource(R.string.execution_history),
-                style = MaterialTheme.typography.titleMedium
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.execution_history),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (records.isNotEmpty()) {
+                    TextButton(onClick = { showClearConfirm = true }) {
+                        Text(
+                            stringResource(R.string.clear_execution_records),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    }
+                }
+            }
 
             if (records.isEmpty()) {
                 Text(
@@ -449,6 +466,28 @@ private fun ExecutionHistorySheet(
                 }
             }
         }
+    }
+
+    if (showClearConfirm) {
+        AlertDialog(
+            onDismissRequest = { showClearConfirm = false },
+            title = { Text(stringResource(R.string.clear_execution_records)) },
+            text = { Text("Delete all execution records for this task? This cannot be undone.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    executionRepo.deleteByTaskId(taskId)
+                    records = executionRepo.listByTaskId(taskId)
+                    showClearConfirm = false
+                }) {
+                    Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showClearConfirm = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
     }
 }
 
@@ -499,7 +538,7 @@ private fun HistoryItem(
 
             if (record.status == ExecutionStatus.SUCCESS) {
                 Text(
-                    record.result,
+                    record.resultPreview,
                     style = MaterialTheme.typography.bodySmall,
                     maxLines = 4,
                     overflow = TextOverflow.Ellipsis,

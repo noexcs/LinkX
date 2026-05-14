@@ -5,6 +5,7 @@ import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.task.TaskExecutionRecord
+import com.noexcs.indolent.task.resultPreview
 import com.noexcs.indolent.task.TaskExecutionRepository
 import com.noexcs.indolent.task.conditional.ConditionalTriggerRepository
 import java.text.SimpleDateFormat
@@ -96,7 +97,7 @@ class ListConditionalTriggerHistoryTool(context: Context) : AgentTool {
                 if (record.errorMessage.isNotBlank()) {
                     appendLine("  Error: ${record.errorMessage.take(120)}")
                 } else {
-                    appendLine("  ${record.result.take(150).replace("\n", " ")}")
+                    appendLine("  ${record.resultPreview.take(150).replace("\n", " ")}")
                 }
                 appendLine()
             }
@@ -124,7 +125,7 @@ class ListConditionalTriggerHistoryTool(context: Context) : AgentTool {
             }
             appendLine()
             appendLine("Result:")
-            appendLine(record.result)
+            appendLine(record.resultPreview)
         }
     }
 }

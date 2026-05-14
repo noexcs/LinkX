@@ -38,6 +38,11 @@ import com.noexcs.indolent.agent.tools.notification.OpenNotificationAccessSettin
 import com.noexcs.indolent.agent.tools.notification.QueryNotificationTool
 import com.noexcs.indolent.agent.tools.notification.UpdateNotificationTool
 import com.noexcs.indolent.agent.tools.python.PythonExecuteTool
+import com.noexcs.indolent.agent.tools.screen.ScreenClickTool
+import com.noexcs.indolent.agent.tools.screen.ScreenInputTool
+import com.noexcs.indolent.agent.tools.screen.ScreenReadTool
+import com.noexcs.indolent.agent.tools.screen.ScreenScreenshotTool
+import com.noexcs.indolent.agent.tools.screen.ScreenScrollTool
 import com.noexcs.indolent.agent.tools.scheduledTask.CreateScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.DeleteScheduledTaskTool
 import com.noexcs.indolent.agent.tools.scheduledTask.EditScheduledTaskTool
@@ -93,6 +98,7 @@ object ToolProvider {
         val useSensorTools = settings.sensorToolsEnabled
         val useSettingTools = settings.settingToolsEnabled
         val useSystemInfoTools = settings.systemInfoToolsEnabled
+        val useScreenTools = settings.screenToolsEnabled
 
         if (useFundTools || usePythonTools) {
             PythonInit.init(appContext)
@@ -177,6 +183,13 @@ object ToolProvider {
             }
             if (settings.mcpToolsEnabled) {
                 addAll(McpClientManager.getTools(settings))
+            }
+            if (useScreenTools) {
+                if (isToolEnabled("screen_read")) add(ScreenReadTool)
+                if (isToolEnabled("screen_click")) add(ScreenClickTool)
+                if (isToolEnabled("screen_screenshot")) add(ScreenScreenshotTool)
+                if (isToolEnabled("screen_scroll")) add(ScreenScrollTool)
+                if (isToolEnabled("screen_input")) add(ScreenInputTool)
             }
         }
 
