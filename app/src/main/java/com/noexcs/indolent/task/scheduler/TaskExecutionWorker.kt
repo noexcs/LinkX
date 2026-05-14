@@ -72,7 +72,7 @@ class TaskExecutionWorker(
             backgroundSession = session
 
             Lumberjack.i("TaskExecutionWorker", "Agent starting — promptLen=${task.prompt.length}")
-            val systemPrompt = BackgroundSessionRunner.buildSystemPrompt(
+            session.context = BackgroundSessionRunner.buildContextConfig(
                 applicationContext,
                 buildString {
                     appendLine("You are a helpful Android assistant specialized in executing scheduled tasks.")
@@ -87,7 +87,7 @@ class TaskExecutionWorker(
                 historyProvider = { session.history }
             )
 
-            val reply = session.execute(task.prompt, systemPrompt, tools, 100)
+            val reply = session.execute(task.prompt, tools, 100)
             session.save()
 
             val durationMs = System.currentTimeMillis() - startTime

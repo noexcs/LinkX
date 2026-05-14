@@ -60,7 +60,7 @@ class HeartbeatWorker(
             }
 
             Lumberjack.i("HeartbeatWorker", "Agent starting — interval=${settings.heartbeatIntervalMinutes}min")
-            val systemPrompt = BackgroundSessionRunner.buildSystemPrompt(
+            session.context = BackgroundSessionRunner.buildContextConfig(
                 applicationContext,
                 buildString {
                     appendLine("You are a proactive AI assistant running on an Android device.")
@@ -77,7 +77,7 @@ class HeartbeatWorker(
             )
             val heartbeatPrompt = buildHeartbeatPrompt(applicationContext)
 
-            val reply = session.execute(heartbeatPrompt, systemPrompt, tools, 100)
+            val reply = session.execute(heartbeatPrompt, tools, 100)
 
             val durationMs = System.currentTimeMillis() - startTime
             Lumberjack.i("HeartbeatWorker", "Heartbeat completed (${durationMs}ms, ${reply.size} messages)")
