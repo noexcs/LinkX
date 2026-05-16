@@ -13,11 +13,16 @@ object SystemPromptBuilder {
                 appendLine("# User Custom Instruct")
                 appendLine(config.userSystemPrompt)
             }
-            if (config.memory.isNotBlank()) {
+            val effectiveMemory = if (config.retrievedMemory.isNotBlank()) {
+                config.retrievedMemory
+            } else {
+                config.memory
+            }
+            if (effectiveMemory.isNotBlank()) {
                 appendLine()
                 appendLine("# Memory")
                 appendLine("<memory>")
-                appendLine(config.memory)
+                appendLine(effectiveMemory)
                 appendLine("</memory>")
             }
             if (config.activeSkillContent.isNotBlank()) {

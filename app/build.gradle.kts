@@ -167,6 +167,9 @@ dependencies {
 
     implementation(libs.material.color.utilities)
 
+    // ONNX Runtime for local embedding inference
+    implementation(libs.onnxruntime.android)
+
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.json:json:20240303")

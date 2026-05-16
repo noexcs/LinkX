@@ -13,3 +13,5 @@ local.properties
 key.properties
 .claude/
 app/release-key.jks
+# Generated ONNX model assets (run scripts/export_onnx.py)
+app/src/main/assets/models/

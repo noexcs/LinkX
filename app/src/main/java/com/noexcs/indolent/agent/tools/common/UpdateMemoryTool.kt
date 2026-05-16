@@ -6,7 +6,7 @@ import com.noexcs.indolent.agent.tools.ToolParameter
 
 class UpdateMemoryTool(private val memoryProvider: MemoryProvider) : AgentTool {
     override val name = "update_memory"
-    override val description = "Store information in persistent memory"
+    override val description = "Store information in persistent, semantically searchable memory. Memories are automatically indexed and the most relevant entries will be injected into future conversations based on context."
 
     override val parameters = listOf(
         ToolParameter(

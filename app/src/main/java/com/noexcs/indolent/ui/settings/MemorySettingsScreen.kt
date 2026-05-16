@@ -61,8 +61,13 @@ fun MemorySettingsScreen(
         memoryManager.write(memory)
         hasUnsavedChanges = false
         scope.launch {
+            val msg = if (memoryManager.isRetrievalReady()) {
+                "Saved. Rebuilding search index..."
+            } else {
+                savedMsg
+            }
             snackbarHostState.showSnackbar(
-                message = savedMsg,
+                message = msg,
                 duration = SnackbarDuration.Short
             )
         }

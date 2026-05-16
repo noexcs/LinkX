@@ -15,6 +15,7 @@ import com.noexcs.indolent.agent.tools.common.HttpRequestTool
 import com.noexcs.indolent.agent.tools.common.IntentTool
 import com.noexcs.indolent.agent.tools.common.SubagentTool
 import com.noexcs.indolent.agent.tools.common.UpdateMemoryTool
+import com.noexcs.indolent.agent.tools.common.SearchMemoryTool
 import com.noexcs.indolent.agent.tools.conditional.CreateConditionalTriggerTool
 import com.noexcs.indolent.agent.tools.conditional.DeleteConditionalTriggerTool
 import com.noexcs.indolent.agent.tools.conditional.EditConditionalTriggerTool
@@ -115,6 +116,7 @@ object ToolProvider {
             }
             if (useCommonTools) {
                 if (isToolEnabled("update_memory")) add(UpdateMemoryTool(memoryProvider))
+                if (isToolEnabled("search_memory")) add(SearchMemoryTool(memoryProvider))
                 if (isToolEnabled("send_intent")) add(IntentTool(appContext))
                 if (isToolEnabled("clipboard")) add(ClipboardTool(appContext))
                 if (isToolEnabled("agent_clipboard") && clipboardStore != null) add(AgentClipboardTool(clipboardStore, historyProvider))

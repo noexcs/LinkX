@@ -108,7 +108,17 @@ class AgentViewModel(
 
                 val tools = buildTools()
                 val session = resolveSession()
-                session.context = buildContextConfig()
+
+                // Build recent conversation context for memory retrieval (last 3 turns before current)
+                val recentMessages = messages.dropLast(1).takeLast(3).mapNotNull { vm ->
+                    val roleName = when (vm.role) {
+                        MessageRole.User -> "user"
+                        MessageRole.Assistant -> "assistant"
+                        else -> null
+                    }
+                    roleName?.let { "$it: ${vm.content.value.take(500)}" }
+                }
+                session.context = buildContextConfig(userText, recentMessages)
 
                 // Streaming assistant message placeholder
                 var assistantMsg: MessageViewModel? = null
@@ -196,6 +206,12 @@ class AgentViewModel(
                                 it.content.value += "\n\n*[Response truncated due to length limit]*"
                             }
                         }
+                        is AgentEvent.ContextWarning -> {
+                            Lumberjack.w("AgentViewModel", "Context warning: ${event.message} (${event.estimatedTokens}/${event.budgetTokens})")
+                        }
+                        is AgentEvent.ContextSummarized -> {
+                            Lumberjack.i("AgentViewModel", "Context summarized: ${event.messagesBefore} → ${event.messagesAfter} messages, summary ${event.summaryLength} chars")
+                        }
                     }
                 }
                 } // withTimeout
@@ -240,7 +256,7 @@ class AgentViewModel(
         }
     }
 
-    fun buildContextConfig(): ContextConfig {
+    suspend fun buildContextConfig(currentMessage: String = "", recentMessages: List<String> = emptyList()): ContextConfig {
         val clipboardInstruction = if (
             settingsManager.commonToolsEnabled &&
             settingsManager.isToolEnabled("agent_clipboard")
@@ -288,10 +304,39 @@ class AgentViewModel(
             """.trimIndent()
         } else ""
 
+        // Build retrieval query from current message + recent conversation context
+        val queryParts = mutableListOf<String>()
+        if (recentMessages.isNotEmpty()) {
+            queryParts.addAll(recentMessages)
+        }
+        if (currentMessage.isNotBlank()) {
+            queryParts.add(currentMessage)
+        }
+        val query = queryParts.joinToString("\n")
+
+        // Attempt semantic retrieval; fall back to full dump on failure or empty results
+        val retrieved = if (query.isNotBlank()) {
+            try {
+                memoryManager.search(query, k = 5)
+            } catch (e: Exception) {
+                Lumberjack.e("AgentViewModel", "Memory search failed", e)
+                emptyList()
+            }
+        } else {
+            emptyList()
+        }
+
+        val retrievedMemory = if (retrieved.isNotEmpty()) {
+            retrieved.joinToString("\n\n---\n\n")
+        } else {
+            ""
+        }
+
         return ContextConfig(
             baseInstruction = "You are a helpful Android assistant.",
             userSystemPrompt = settingsManager.userSystemPrompt,
-            memory = memoryManager.read(),
+            memory = retrievedMemory.ifEmpty { memoryManager.read() },
+            retrievedMemory = retrievedMemory,
             activeSkillContent = skillRepository.getActiveSkillContent(),
             clipboardInstruction = clipboardInstruction,
             screenInstruction = screenInstruction

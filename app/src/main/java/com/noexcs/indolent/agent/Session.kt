@@ -12,6 +12,7 @@ data class ContextConfig(
     val baseInstruction: String = "You are a helpful Android assistant.",
     val userSystemPrompt: String = "",
     val memory: String = "",
+    val retrievedMemory: String = "",
     val activeSkillContent: String = "",
     val clipboardInstruction: String = "",
     val screenInstruction: String = "",
