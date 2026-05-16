@@ -1,6 +1,6 @@
-# Indolent
+# LinkX
 
-An on-device AI assistant agent for Android. Indolent connects to any OpenAI-compatible LLM API and equips the model with 60+ tools to read sensors, manage files, query notifications, execute scheduled tasks, access Chinese financial markets, and more — all through a streaming chat interface built with Jetpack Compose and Material Design 3.
+An on-device AI assistant agent for Android. LinkX connects to any OpenAI-compatible LLM API and equips the model with 70+ tools to read sensors, manage files, query notifications, execute scheduled tasks, access Chinese financial markets, and more — all through a streaming chat interface built with Jetpack Compose and Material Design 3.
 
 ## Features
 
@@ -10,37 +10,43 @@ An on-device AI assistant agent for Android. Indolent connects to any OpenAI-com
 - Thinking / reasoning token support (DeepSeek V4 chain-of-thought)
 - Persistent conversation history with search, rename, and delete
 - Token usage tracking per conversation
+- Subagent support — spawn independent agents with shared clipboard state
+- MCP protocol support — dynamically discover tools from external servers
 
-### Tools (60+)
+### Tools (70+)
 | Category | Capabilities |
 |---|---|
-| **System Info** | Battery, network, screen, app info |
-| **File System** | Read, write, list, delete files in SAF-authorized directories |
+| **System Info** | Battery, network, screen, app info, CPU, memory, processes |
+| **File System** | Read, write, list, delete, find in SAF-authorized directories |
 | **Sensors** | Light, accelerometer, gyroscope, step counter, and more |
-| **Settings** | Read/write system settings, audio volume control |
+| **Settings** | Read/write system settings, audio volume control, theme switching |
 | **Notifications** | Create, update, dismiss, list, query notifications |
 | **Termux** | Execute shell commands, read/write files via Termux API |
 | **Scheduled Tasks** | CRUD for time-based recurring tasks |
 | **Conditional Triggers** | CRUD for condition-based triggers + execution history |
-| **Common** | Clipboard, calendar, intents, subagent, memory update, time |
+| **Common** | Clipboard, agent clipboard, calendar, intents, subagent, memory update, time, HTTP |
 | **Interaction** | Bidirectional user prompts with 8 widget types |
 | **Self** | AI can query its own internal logs for debugging |
-| **Finance** | 50+ tools for Chinese stocks, funds, boards, and portfolios |
+| **Screen** | Read screen content, click, scroll, screenshot, text input via accessibility service |
+| **Finance** | 50+ tools for Chinese stocks, funds, boards, portfolios, and technical indicators |
+| **MCP** | Dynamic tool discovery from external Model Context Protocol servers |
 
 ### Proactive Automation
-- **Heartbeat:** Periodic AI wake-up for initiative-taking with configurable interval and focus area
+- **Heartbeat:** Periodic AI wake-up with configurable interval and focus area
 - **Scheduled Tasks:** Recurring tasks (daily, weekdays, weekly, once) with push notifications
 - **Conditional Triggers:** Fire tasks when device conditions match (battery, sensors, settings, power state)
 
 ### Persistent Memory
 - Markdown-based memory that persists across all conversations
 - AI can self-update memory via the `update_memory` tool
+- Local vector retrieval with ONNX Runtime for semantic search
+- BM25 hybrid retrieval with tunable weights and CJK tokenizer
 
 ### Finance Data (embedded Python)
 - Chaquopy-powered Python 3.12 runtime with `akshare` library
 - Real-time Chinese stock quotes, historical data, intraday data
 - Fund rankings, manager data, portfolio analysis
-- Technical indicators (trend, oscillator, volume, momentum)
+- Technical indicators (trend, oscillator, volume, momentum, directional, energy)
 
 ### Logging System
 - Custom 6-level logging facade (Verbose through Fatal)
@@ -61,7 +67,7 @@ An on-device AI assistant agent for Android. Indolent connects to any OpenAI-com
 
 ```bash
 # Clone the repository
-git clone <repo-url> && cd TwilightRain
+git clone https://github.com/noexcs/LinkX.git && cd LinkX
 
 # Set up signing (optional, for release builds)
 # Create app/key.properties with:
@@ -77,26 +83,30 @@ git clone <repo-url> && cd TwilightRain
 ./gradlew assembleRelease
 ```
 
-The APK outputs to `app/build/outputs/apk/`.
+The APK outputs to `app/build/outputs/apk/` as `LinkX-release.apk`.
 
 ## Architecture
 
 ```
 app/src/main/java/com/noexcs/indolent/
-├── MainActivity.kt          # Single-activity entry point, screen navigation
-├── AgentViewModel.kt        # ViewModel bridging chat UI and agent lifecycle
-├── agent/                   # AI core: streaming loop, LLM client, tool definitions
-│   ├── Agent.kt             # Tool-calling agent with streaming SSE
-│   ├── LLMClient.kt         # OkHttp-based OpenAI-compatible API client
-│   ├── Models.kt            # Message, event, and tool definition data classes
-│   └── tools/               # 60+ AgentTool implementations
-├── data/                    # Persistence layer: settings, sessions, memory
-├── task/                    # Background automation
-│   ├── scheduler/           # AlarmManager + WorkManager scheduled tasks
-│   ├── heartbeat/           # Periodic proactive AI wake-up
-│   └── conditional/         # Device-condition-based triggers
-├── ui/                      # Compose screens (Chat, Settings, etc.)
-└── logging/                 # Custom logging system (Lumberjack)
+├── MainActivity.kt              # Single-activity entry point, screen navigation
+├── AgentViewModel.kt            # ViewModel bridging chat UI and agent lifecycle
+├── agent/                       # AI core: streaming loop, LLM client, tool definitions
+│   ├── Agent.kt                 # Tool-calling agent with streaming SSE
+│   ├── LLMClient.kt             # OkHttp-based OpenAI-compatible API client
+│   ├── SystemPromptBuilder.kt   # Composable system prompt from multiple sources
+│   ├── ContextSummarizer.kt     # LLM-driven conversation history summarization
+│   ├── skills/                  # Pluggable skill system (Markdown-based)
+│   ├── mcp/                     # MCP client manager and tool adapter
+│   ├── memory/                  # Local vector store, embedding model, BM25 scorer
+│   └── tools/                   # 70+ AgentTool implementations
+├── data/                        # Persistence layer: settings, sessions, memory
+├── task/                        # Background automation
+│   ├── scheduler/               # AlarmManager + WorkManager scheduled tasks
+│   ├── heartbeat/               # Periodic proactive AI wake-up
+│   └── conditional/             # Device-condition-based triggers
+├── ui/                          # Compose screens (Chat, Settings, Notes, Todo, etc.)
+└── logging/                     # Custom logging system (Lumberjack)
 ```
 
 ## Setup
@@ -126,41 +136,18 @@ Finance tools require Chaquopy (embedded Python). The first use will automatical
 | Usage Stats | App usage statistics |
 | System Settings | Audio volume and system setting modification |
 | Termux RUN_COMMAND | Shell command execution (requires Termux app) |
+| Accessibility Service | Screen reading, clicks, and interaction |
 
 ## Tech Stack
 
 - **Kotlin 2.3** — Language
-- **Jetpack Compose + Material 3** — UI
+- **Jetpack Compose + Material Design 3** — UI
 - **OkHttp 4** — HTTP client with SSE streaming
 - **WorkManager + AlarmManager** — Background task scheduling
 - **Chaquopy** — Embedded Python 3.12 runtime
-- **akshare** — Chinese financial data library
-
-## Future Enhancements
-
-### Tools
-
-- [ ] **Async tools**: Async tool calls for faster execution
-- [ ] **Tool describe tool**: short description for tool registry, detailed help for tool calls 
-- [ ] **MCP tools**: Support MCP protocol
-- [ ] **Self Setting tools**: Allow AI to modify app all settings
-- [ ] **Broadcast tools**: Broadcast messages to all active agent, including scheduled tasks, heartbeat, and condition triggered agent.
-- [ ] **clipboard tools**: Copy/Paste agent's own clipboard
-- [ ] **More tools**: FileSearch, FileEdit, WebSearch, FetchURL
-
-### Features
-
-- [ ] **Plan Mode**: Plan mode for long term tasks
-- [ ] **Skill Support**: Skill support
-- [ ] **Tools Management**: Tools management for different task agent
-- [ ] **Conversation Compact**: Conversation compact for better user experience
-- [ ] **Optimize Memory mechanism**: Optimize memory mechanism for better performance
-
-### Scheduled Task 
-
-- [ ] **Execute task immediately**: Execute task immediately without waiting for next scheduled time.
-- 
-
+- **ONNX Runtime** — Local embedding model inference
+- **Ktor** — HTTP client for MCP transport
+- **kotlinx.serialization** — JSON serialization
 
 ## License
 
