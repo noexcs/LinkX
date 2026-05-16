@@ -55,7 +55,15 @@ An on-device AI assistant agent for Android. LinkX connects to any OpenAI-compat
 
 ## Screenshots
 
-*Coming soon*
+| Chat | Conversation List |
+|---|---|
+| ![Chat interface](docs/screenshots/screenshot-01.jpg) | ![Conversation list](docs/screenshots/screenshot-02.jpg) |
+| AI-powered chat with streaming responses and tool calling | Browse, search, rename, and delete conversations |
+
+| Settings | Tools Management |
+|---|---|
+| ![Settings](docs/screenshots/screenshot-03.jpg) | ![Tools management](docs/screenshots/screenshot-04.jpg) |
+| API, themes, heartbeat, and more | Granular control over 70+ tools
 
 ## Requirements
 
