@@ -2,6 +2,18 @@
 
 An on-device AI assistant agent for Android. LinkX connects to any OpenAI-compatible LLM API and equips the model with 70+ tools to read sensors, manage files, query notifications, execute scheduled tasks, access Chinese financial markets, and more — all through a streaming chat interface built with Jetpack Compose and Material Design 3.
 
+## Screenshots
+
+| Chat | Conversations |
+|---|---|
+| ![Chat](docs/screenshots/screenshot-chat.jpg) | ![Conversations](docs/screenshots/screenshot-conversations.jpg) |
+| AI-powered chat with streaming responses and tool calling | Browse, search, rename, and delete conversations |
+
+| Settings | Tools Management |
+|---|---|
+| ![Settings](docs/screenshots/screenshot-settings.jpg) | ![Tools](docs/screenshots/screenshot-tools.jpg) |
+| API, themes, heartbeat, and more | Granular control over 70+ tools
+
 ## Features
 
 ### Core Agent
@@ -52,18 +64,6 @@ An on-device AI assistant agent for Android. LinkX connects to any OpenAI-compat
 - Custom 6-level logging facade (Verbose through Fatal)
 - In-memory ring buffer (10,000 entries) + rotating file writer
 - AI can self-query logs via the `query_logs` tool
-
-## Screenshots
-
-| Chat | Conversation List |
-|---|---|
-| ![Chat interface](docs/screenshots/screenshot-01.jpg) | ![Conversation list](docs/screenshots/screenshot-02.jpg) |
-| AI-powered chat with streaming responses and tool calling | Browse, search, rename, and delete conversations |
-
-| Settings | Tools Management |
-|---|---|
-| ![Settings](docs/screenshots/screenshot-03.jpg) | ![Tools management](docs/screenshots/screenshot-04.jpg) |
-| API, themes, heartbeat, and more | Granular control over 70+ tools
 
 ## Requirements
 
