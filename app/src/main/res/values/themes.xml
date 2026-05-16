@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.Indolent" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.LinkX" parent="android:Theme.Material.Light.NoActionBar" />
 
-    <style name="Theme.Indolent.Transparent" parent="android:Theme.Material.Light.NoActionBar">
+    <style name="Theme.LinkX.Transparent" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
-    <style name="Theme.Indolent.Dialog" parent="android:Theme.Material.Light.Dialog.Alert" />
+    <style name="Theme.LinkX.Dialog" parent="android:Theme.Material.Light.Dialog.Alert" />
 </resources>

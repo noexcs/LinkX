@@ -24,7 +24,7 @@ object ScreenScreenshotTool : AgentTool {
     override suspend fun execute(args: Map<String, Any?>): String {
         Lumberjack.i("ScreenScreenshotTool", "Capturing screenshot")
 
-        val service = IndolentAccessibilityService.getInstance()
+        val service = LinkXAccessibilityService.getInstance()
             ?: return "Error: Accessibility service is not running. Enable it in Settings → Accessibility → Indolent."
 
         return try {

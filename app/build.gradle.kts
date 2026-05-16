@@ -52,6 +52,7 @@ chaquopy {
 
 android {
     namespace = "com.noexcs.indolent"
+    base { archivesName = "LinkX" }
 
     // Load keystore properties
     val keystoreProperties = Properties()

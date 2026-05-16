@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Indolent</string>
-    <string name="accessibility_service_description">Allows Indolent to read screen content and perform clicks. This enables the AI assistant to understand and interact with what is on your screen.</string>
+    <string name="app_name">LinkX</string>
+    <string name="accessibility_service_description">Allows LinkX to read screen content and perform clicks. This enables the AI assistant to understand and interact with what is on your screen.</string>
 
     <!-- Chat -->
-    <string name="chat_title">Indolent</string>
+    <string name="chat_title">LinkX</string>
     <string name="new_chat">New Chat</string>
     <string name="conversations">Conversations</string>
     <string name="settings">Settings</string>

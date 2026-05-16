@@ -48,7 +48,7 @@ object ScreenInputTool : AgentTool {
 
         Lumberjack.i("ScreenInputTool", "Input ${text.length} chars targetIndex=$targetIndex targetText=$targetText")
 
-        val service = IndolentAccessibilityService.getInstance()
+        val service = LinkXAccessibilityService.getInstance()
             ?: return "Error: Accessibility service is not running. Enable it in Settings → Accessibility → Indolent."
 
         return try {

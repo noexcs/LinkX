@@ -49,7 +49,7 @@ object ScreenScrollTool : AgentTool {
 
         Lumberjack.i("ScreenScrollTool", "Scroll $direction index=$containerIndex text=$containerText")
 
-        val service = IndolentAccessibilityService.getInstance()
+        val service = LinkXAccessibilityService.getInstance()
             ?: return "Error: Accessibility service is not running. Enable it in Settings → Accessibility → Indolent."
 
         return try {

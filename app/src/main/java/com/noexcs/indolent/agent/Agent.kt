@@ -40,7 +40,7 @@ class Agent(
 
         for (round in 0 until maxIterations) {
             // ── manage context budget before this round ──
-            maybeManageContext(history, systemPrompt, tools, emit)
+            maybeManageContext(history, systemPrompt, tools) { event -> emit(event) }
 
             val textBuf = StringBuilder()
             val reasoningBuf = StringBuilder()
@@ -363,6 +363,23 @@ class Agent(
         }
     }
 
+    private val clipboardPlaceholder = Regex("""\{\{agent_clipboard(?::(\w+))?\}\}""")
+
+    private fun interpolateClipboard(args: Map<String, Any?>): Map<String, Any?> {
+        val store = clipboardStore ?: return args
+        return args.mapValues { (_, value) ->
+            if (value is String && value.contains("{{agent_clipboard")) {
+                clipboardPlaceholder.replace(value) { match ->
+                    val slot = match.groupValues.getOrNull(1)?.ifBlank { null }
+                        ?: AgentClipboardStore.DEFAULT_SLOT
+                    store.read(slot) ?: match.value
+                }
+            } else {
+                value
+            }
+        }
+    }
+
     private suspend fun executeToolsInParallel(
         toolArgs: List<Pair<ToolCall, Map<String, Any?>>>,
         toolMap: Map<String, AgentTool>,
@@ -577,7 +594,7 @@ class Agent(
      */
     private fun estimateMessageTokens(msg: LLMMessage): Long {
         // Character count for the main content
-        var tokens = msg.content.length / charsPerTokenForRole(msg.role)
+        var tokens = (msg.content.length / charsPerTokenForRole(msg.role)).toLong()
 
         // Tool call definitions (function name + arguments JSON)
         msg.toolCalls?.forEach { tc ->

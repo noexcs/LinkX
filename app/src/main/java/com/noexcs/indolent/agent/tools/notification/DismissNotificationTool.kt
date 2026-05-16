@@ -113,7 +113,7 @@ class DismissNotificationTool(context: Context) : AgentTool {
     }
 
     private fun handleKeyOperation(key: String, snooze: String?): String {
-        if (!IndolentNotificationListenerService.isConnected()) {
+        if (!LinkXNotificationListenerService.isConnected()) {
             return "Error: Notification access not granted. The user must grant notification access in system settings first."
         }
 
@@ -123,7 +123,7 @@ class DismissNotificationTool(context: Context) : AgentTool {
             if (delayMs < MIN_SNOOZE_MS) {
                 return "Error: Snooze must be at least ${MIN_SNOOZE_MS / 1000} seconds. Received: ${delayMs}ms."
             }
-            val success = IndolentNotificationListenerService.snoozeNotification(key, delayMs)
+            val success = LinkXNotificationListenerService.snoozeNotification(key, delayMs)
             return if (success) {
                 "Notification snoozed for ${delayMs / 60_000} minute(s). key: $key"
             } else {
@@ -131,7 +131,7 @@ class DismissNotificationTool(context: Context) : AgentTool {
             }
         }
 
-        val success = IndolentNotificationListenerService.cancelNotificationKey(key)
+        val success = LinkXNotificationListenerService.cancelNotificationKey(key)
         return if (success) {
             "Notification cancelled. key: $key"
         } else {

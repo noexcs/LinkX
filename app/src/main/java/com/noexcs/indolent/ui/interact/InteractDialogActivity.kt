@@ -92,7 +92,7 @@ class InteractDialogActivity : ComponentActivity() {
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL; setPadding(48, 24, 48, 8); addView(input)
         }
-        AlertDialog.Builder(this, R.style.Theme_Indolent_Dialog)
+        AlertDialog.Builder(this, R.style.Theme_LinkX_Dialog)
             .setTitle(title).setView(container)
             .setPositiveButton("OK") { _, _ -> sendResult(requestId, input.text.toString().trim().ifBlank { "(empty)" }) }
             .setNegativeButton("Cancel") { _, _ -> sendResult(requestId, "cancelled") }
@@ -103,7 +103,7 @@ class InteractDialogActivity : ComponentActivity() {
     // ── confirm ─────────────────────────────────────────────
 
     private fun showConfirm(title: String, hint: String) {
-        AlertDialog.Builder(this, R.style.Theme_Indolent_Dialog)
+        AlertDialog.Builder(this, R.style.Theme_LinkX_Dialog)
             .setTitle(title)
             .setMessage(hint.ifBlank { "Please confirm" })
             .setPositiveButton("Yes") { _, _ -> sendResult(requestId, "yes") }
@@ -118,7 +118,7 @@ class InteractDialogActivity : ComponentActivity() {
         val items = parseValues(values) ?: run { sendResult(requestId, "error: values required"); finish(); return }
         val checked = BooleanArray(items.size)
 
-        AlertDialog.Builder(this, R.style.Theme_Indolent_Dialog)
+        AlertDialog.Builder(this, R.style.Theme_LinkX_Dialog)
             .setTitle(title)
             .setMultiChoiceItems(items.toTypedArray<CharSequence>(), checked) { _, which, isChecked ->
                 checked[which] = isChecked
@@ -140,7 +140,7 @@ class InteractDialogActivity : ComponentActivity() {
         val items = parseValues(values) ?: run { sendResult(requestId, "error: values required"); finish(); return }
         radioSelection = 0
 
-        AlertDialog.Builder(this, R.style.Theme_Indolent_Dialog)
+        AlertDialog.Builder(this, R.style.Theme_LinkX_Dialog)
             .setTitle(title)
             .setSingleChoiceItems(items.toTypedArray<CharSequence>(), 0) { _, which ->
                 radioSelection = which
@@ -162,7 +162,7 @@ class InteractDialogActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL; setPadding(48, 16, 48, 16); addView(picker)
             gravity = Gravity.CENTER
         }
-        AlertDialog.Builder(this, R.style.Theme_Indolent_Dialog)
+        AlertDialog.Builder(this, R.style.Theme_LinkX_Dialog)
             .setTitle(title)
             .setMessage("$min – $max")
             .setView(container)
@@ -177,7 +177,7 @@ class InteractDialogActivity : ComponentActivity() {
     private fun showDate(title: String, dateFormat: String) {
         val cal = Calendar.getInstance()
         DatePickerDialog(
-            this, R.style.Theme_Indolent_Dialog,
+            this, R.style.Theme_LinkX_Dialog,
             { _, year, month, day ->
                 cal.set(year, month, day)
                 val fmt = try { SimpleDateFormat(dateFormat, Locale.US) } catch (_: Exception) {
@@ -197,7 +197,7 @@ class InteractDialogActivity : ComponentActivity() {
     private fun showTime(title: String) {
         val cal = Calendar.getInstance()
         TimePickerDialog(
-            this, R.style.Theme_Indolent_Dialog,
+            this, R.style.Theme_LinkX_Dialog,
             { _, hour, minute ->
                 sendResult(requestId, "%02d:%02d".format(hour, minute))
             },

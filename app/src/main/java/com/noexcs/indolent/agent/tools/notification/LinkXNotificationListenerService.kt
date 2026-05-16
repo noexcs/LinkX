@@ -11,7 +11,7 @@ import com.noexcs.indolent.logging.Lumberjack
  * The user must grant "Notification Access" permission in system settings.
  * Holds a static reference so notification tools can query and dismiss notifications.
  */
-class IndolentNotificationListenerService : NotificationListenerService() {
+class LinkXNotificationListenerService : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -35,7 +35,7 @@ class IndolentNotificationListenerService : NotificationListenerService() {
         private const val TAG = "NotifListenerService"
 
         @Volatile
-        private var instance: IndolentNotificationListenerService? = null
+        private var instance: LinkXNotificationListenerService? = null
 
         fun isConnected(): Boolean = instance != null
 

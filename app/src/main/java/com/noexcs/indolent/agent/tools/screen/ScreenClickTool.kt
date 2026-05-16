@@ -73,7 +73,7 @@ object ScreenClickTool : AgentTool {
 
         Lumberjack.i("ScreenClickTool", "Click index=$index text=$text desc=$contentDesc id=$resourceId xy=($x,$y)")
 
-        val service = IndolentAccessibilityService.getInstance()
+        val service = LinkXAccessibilityService.getInstance()
             ?: return "Error: Accessibility service is not running. Enable it in Settings → Accessibility → Indolent."
 
         return try {

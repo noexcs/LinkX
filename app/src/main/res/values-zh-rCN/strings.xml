@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Indolent</string>
-    <string name="accessibility_service_description">允许 Indolent 读取屏幕内容并执行点��操作，使 AI 助手能够理解并操作屏幕上的内容。</string>
+    <string name="app_name">LinkX</string>
+    <string name="accessibility_service_description">允许 LinkX 读取屏幕内容并执行点击操作，使 AI 助手能够理解并操作屏幕上的内容。</string>
 
     <!-- Chat -->
-    <string name="chat_title">Indolent</string>
+    <string name="chat_title">LinkX</string>
     <string name="new_chat">新对话</string>
     <string name="conversations">对话记录</string>
     <string name="settings">设置</string>

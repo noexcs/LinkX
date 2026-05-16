@@ -46,7 +46,7 @@ object ScreenReadTool : AgentTool {
         val filterText = args["filter_text"] as? String
         Lumberjack.i("ScreenReadTool", "Reading screen mode=$mode filterText=${filterText ?: "none"}")
 
-        val service = IndolentAccessibilityService.getInstance()
+        val service = LinkXAccessibilityService.getInstance()
             ?: return "Error: Accessibility service is not running. Enable it in Settings → Accessibility → Indolent."
 
         return try {

@@ -27,7 +27,7 @@ class OpenNotificationAccessSettingsTool(context: Context) : AgentTool {
 
     override suspend fun execute(args: Map<String, Any?>): String {
         return try {
-            val intent = IndolentNotificationListenerService.getNotificationAccessSettingsIntent()
+            val intent = LinkXNotificationListenerService.getNotificationAccessSettingsIntent()
             intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
             appContext.startActivity(intent)
             "Opened Notification Access settings. The user should enable access for this app, then notification tools (list_active_notifications, dismiss_notification) will work."

@@ -7,8 +7,8 @@ import android.provider.Settings
 object AccessibilityHelper {
 
     fun isEnabled(context: Context): Boolean {
-        val fullName = "${context.packageName}/${IndolentAccessibilityService::class.java.name}"
-        val shortName = "${context.packageName}/.${IndolentAccessibilityService::class.java.simpleName}"
+        val fullName = "${context.packageName}/${LinkXAccessibilityService::class.java.name}"
+        val shortName = "${context.packageName}/.${LinkXAccessibilityService::class.java.simpleName}"
         val enabledServices = Settings.Secure.getString(
             context.contentResolver,
             Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES

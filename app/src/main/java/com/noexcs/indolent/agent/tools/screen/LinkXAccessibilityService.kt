@@ -21,7 +21,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 
-class IndolentAccessibilityService : AccessibilityService() {
+class LinkXAccessibilityService : AccessibilityService() {
 
     private var screenWidth: Int = 1080
     private var screenHeight: Int = 2400
@@ -691,9 +691,9 @@ class IndolentAccessibilityService : AccessibilityService() {
         private const val TAG = "AccessibilityService"
 
         @Volatile
-        private var instance: IndolentAccessibilityService? = null
+        private var instance: LinkXAccessibilityService? = null
 
-        fun getInstance(): IndolentAccessibilityService? = instance
+        fun getInstance(): LinkXAccessibilityService? = instance
 
         fun isConnected(): Boolean = instance != null
     }

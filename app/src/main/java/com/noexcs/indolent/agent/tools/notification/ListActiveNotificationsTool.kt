@@ -56,7 +56,7 @@ class ListActiveNotificationsTool(context: Context) : AgentTool {
 
     override suspend fun execute(args: Map<String, Any?>): String {
         return try {
-            if (!IndolentNotificationListenerService.isConnected()) {
+            if (!LinkXNotificationListenerService.isConnected()) {
                 return "Error: Notification access not granted. The user must enable it in " +
                     "Settings > Special Access > Notification Access, or you can guide them to " +
                     "open the notification access settings."
@@ -65,7 +65,7 @@ class ListActiveNotificationsTool(context: Context) : AgentTool {
             val packageFilter = (args["packageName"] as? String)?.takeIf { it.isNotBlank() }
             val limit = (args["limit"] as? Number)?.toInt() ?: 50
 
-            val allNotifications = IndolentNotificationListenerService.getActiveNotifications()
+            val allNotifications = LinkXNotificationListenerService.getActiveNotifications()
             if (allNotifications == null) {
                 return "Error: Could not retrieve active notifications. Notification listener may have disconnected."
             }
