@@ -20,7 +20,20 @@ class SearchMemoryTool(private val memoryProvider: MemoryProvider) : AgentTool {
         ToolParameter(
             name = "top_k",
             type = "integer",
-            description = "Number of results to return (default 5, max 20)"
+            description = "Number of results to return (default 5, max 20)",
+            required = false
+        ),
+        ToolParameter(
+            name = "bm25_weight",
+            type = "number",
+            description = "BM25 keyword relevance weight (0-1, default 0.6). Higher = prioritize exact keyword matches.",
+            required = false
+        ),
+        ToolParameter(
+            name = "vector_weight",
+            type = "number",
+            description = "Vector semantic similarity weight (0-1, default 0.4). Higher = prioritize meaning and synonyms.",
+            required = false
         )
     )
 
@@ -29,7 +42,9 @@ class SearchMemoryTool(private val memoryProvider: MemoryProvider) : AgentTool {
         if (query.isBlank()) return "Error: query is required"
 
         val k = ((args["top_k"] as? Number)?.toInt() ?: 5).coerceIn(1, 20)
-        val results = memoryProvider.search(query, k)
+        val bm25Weight = ((args["bm25_weight"] as? Number)?.toFloat() ?: 0.6f).coerceIn(0f, 1f)
+        val vectorWeight = ((args["vector_weight"] as? Number)?.toFloat() ?: 0.4f).coerceIn(0f, 1f)
+        val results = memoryProvider.search(query, k, bm25Weight, vectorWeight)
 
         if (results.isEmpty()) {
             return "No matching memories found for query: \"$query\""

@@ -12,6 +12,7 @@ class MemoryEmbedder(
     private val index: MemoryIndex
 ) {
     private val indexFile = File(context.filesDir, "memory_index.json")
+    private val bm25 = BM25Scorer()
 
     fun isReady(): Boolean = model.isReady()
 
@@ -67,13 +68,55 @@ class MemoryEmbedder(
     }
 
     /**
-     * Searches for the top-K most relevant chunks for the given query text.
+     * Hybrid search: blends vector similarity + BM25 keyword relevance.
+     * Falls back to pure vector search if BM25 produces no scores for this query.
      */
-    suspend fun search(query: String, k: Int = 5): List<ScoredChunk> {
+    suspend fun search(
+        query: String,
+        k: Int = 5,
+        bm25Weight: Float = 0.6f,
+        vectorWeight: Float = 0.4f
+    ): List<ScoredChunk> {
         if (!isReady()) return emptyList()
         if (vectorStore.size() == 0) return emptyList()
+
+        val chunks = vectorStore.all()
+
+        // Vector scores (cosine similarity)
         val queryEmbedding = embedQuery(query)
-        return vectorStore.search(queryEmbedding, k)
+        val vectorScores = mutableMapOf<String, Float>()
+        for (chunk in chunks) {
+            vectorScores[chunk.id] = VectorStore.cosineSimilarity(queryEmbedding, chunk.embedding)
+        }
+
+        // BM25 keyword scores
+        val bm25Scores = bm25.score(query, chunks)
+
+        // If BM25 produced nothing, fall back to pure vector
+        if (bm25Scores.isEmpty()) {
+            return chunks.map { ScoredChunk(it, vectorScores[it.id] ?: 0f) }
+                .sortedByDescending { it.score }
+                .take(k)
+        }
+
+        // Normalize BM25 to [0, 1] for blending
+        val bm25Max = bm25Scores.values.maxOrNull() ?: 0f
+        val bm25Normalized = if (bm25Max > 0f) {
+            bm25Scores.mapValues { it.value / bm25Max }
+        } else {
+            emptyMap()
+        }
+
+        // Blend
+        val blended = chunks.map { chunk ->
+            val vecScore = vectorScores[chunk.id] ?: 0f
+            val bmScore = bm25Normalized[chunk.id] ?: 0f
+            val finalScore = bm25Weight * bmScore + vectorWeight * vecScore
+            ScoredChunk(chunk, finalScore)
+        }.sortedByDescending { it.score }
+            .take(k)
+
+        return blended
     }
 
     fun loadIndex(): Boolean {

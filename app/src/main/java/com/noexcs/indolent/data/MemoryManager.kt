@@ -71,7 +71,7 @@ class MemoryManager(private val context: Context) : MemoryProvider {
 
     fun saveMemory(key: String, value: String) = save(key, value)
 
-    override suspend fun search(query: String, k: Int): List<String> {
+    override suspend fun search(query: String, k: Int, bm25Weight: Float, vectorWeight: Float): List<String> {
         val emb = ensureEmbedder()
         if (emb == null || !emb.isReady() || emb.chunkCount() == 0) {
             // Fallback to full dump
@@ -79,7 +79,7 @@ class MemoryManager(private val context: Context) : MemoryProvider {
             return if (full.isNotBlank()) listOf(full) else emptyList()
         }
         return try {
-            val results = emb.search(query, k)
+            val results = emb.search(query, k, bm25Weight, vectorWeight)
             results.map { scored ->
                 val header = scored.chunk.headerKey
                 val text = scored.chunk.text
