@@ -35,6 +35,7 @@ class MemoryEmbedder(
             )
         }
         vectorStore.replaceAll(chunks)
+        bm25.rebuildIndex(chunks)
         return chunks
     }
 
@@ -54,8 +55,10 @@ class MemoryEmbedder(
         }
         // Replace all chunks for this header key
         vectorStore.removeByHeader(headerKey)
+        bm25.removeByHeader(headerKey)
         for (chunk in chunks) {
             vectorStore.addOrUpdate(chunk)
+            bm25.addOrUpdateChunk(chunk)
         }
         return chunks
     }
@@ -123,6 +126,7 @@ class MemoryEmbedder(
         val loaded = index.load(indexFile) ?: return false
         if (loaded.isEmpty()) return false
         vectorStore.replaceAll(loaded)
+        bm25.rebuildIndex(loaded)
         Lumberjack.i("MemoryEmbedder", "Loaded index with ${loaded.size} chunks")
         return true
     }

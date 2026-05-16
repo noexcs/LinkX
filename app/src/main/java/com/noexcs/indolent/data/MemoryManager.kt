@@ -12,6 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class MemoryManager(private val context: Context) : MemoryProvider {
@@ -20,7 +21,8 @@ class MemoryManager(private val context: Context) : MemoryProvider {
 
     // Lazy-initialized vector retrieval system
     @Volatile private var embedder: MemoryEmbedder? = null
-    private var embedderInitFailed = false
+    @Volatile private var embedderInitFailed = false
+    @Volatile private var isInitializing = false
     private val initLock = Any()
 
     override fun read(): String = if (file.exists()) file.readText() else ""
@@ -111,47 +113,53 @@ class MemoryManager(private val context: Context) : MemoryProvider {
         // Fast path: already loaded
         embedder?.let { if (it.isReady()) return it }
 
-        // Fast path: previously failed
-        if (embedderInitFailed) return null
+        // Fast path: previously failed or currently initializing
+        if (embedderInitFailed || isInitializing) return null
 
         synchronized(initLock) {
             embedder?.let { if (it.isReady()) return it }
             if (embedderInitFailed) return null
+            if (isInitializing) return null
+            isInitializing = true
         }
 
-        return try {
-            val tokenizer = WordPieceTokenizer.load(
-                context.assets.open("models/tokenizer.json").bufferedReader().readText()
-            )
-            val model = EmbeddingModel().apply {
-                load(context, "models/model.onnx")
-            }
-            val store = VectorStore()
-            val memIndex = MemoryIndex()
-            val emb = MemoryEmbedder(context, tokenizer, model, store, memIndex)
-
-            // Try loading existing index first
-            if (!emb.loadIndex()) {
-                // First run: embed existing memory
-                val content = read()
-                if (content.isNotBlank()) {
-                    emb.embedAll(content)
-                    emb.saveIndex()
-                    Lumberjack.i("MemoryManager", "Initial index built: ${emb.chunkCount()} chunks")
+        // Run heavy init (assets read + ONNX session creation) off the main thread
+        return withContext(Dispatchers.Default) {
+            try {
+                val tokenizer = WordPieceTokenizer.load(
+                    context.assets.open("models/tokenizer.json").bufferedReader().readText()
+                )
+                val model = EmbeddingModel().apply {
+                    load(context, "models/model.onnx")
                 }
-            }
+                val store = VectorStore()
+                val memIndex = MemoryIndex()
+                val emb = MemoryEmbedder(context, tokenizer, model, store, memIndex)
 
-            synchronized(initLock) {
-                embedder = emb
+                // Try loading existing index first
+                if (!emb.loadIndex()) {
+                    val content = read()
+                    if (content.isNotBlank()) {
+                        emb.embedAll(content)
+                        emb.saveIndex()
+                        Lumberjack.i("MemoryManager", "Initial index built: ${emb.chunkCount()} chunks")
+                    }
+                }
+
+                synchronized(initLock) {
+                    embedder = emb
+                    isInitializing = false
+                }
+                Lumberjack.i("MemoryManager", "Vector retrieval ready: ${emb.chunkCount()} chunks")
+                emb
+            } catch (e: Exception) {
+                Lumberjack.e("MemoryManager", "Failed to initialize embedder, vector search disabled", e)
+                synchronized(initLock) {
+                    embedderInitFailed = true
+                    isInitializing = false
+                }
+                null
             }
-            Lumberjack.i("MemoryManager", "Vector retrieval ready: ${emb.chunkCount()} chunks")
-            emb
-        } catch (e: Exception) {
-            Lumberjack.e("MemoryManager", "Failed to initialize embedder, vector search disabled", e)
-            synchronized(initLock) {
-                embedderInitFailed = true
-            }
-            null
         }
     }
 }

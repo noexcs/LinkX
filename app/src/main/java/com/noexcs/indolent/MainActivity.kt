@@ -112,7 +112,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 private fun MainContent() {
     val appContext = LocalContext.current.applicationContext
-    val memoryManager = remember { MemoryManager(appContext) }
+    val memoryManager = remember { MemoryManager(appContext).also { it.warmUp() } }
     val settingsManager = remember { SettingsManager(appContext) }
     val conversationRepository = remember { FileChatHistoryProvider(appContext) }
     val viewModel = remember {
