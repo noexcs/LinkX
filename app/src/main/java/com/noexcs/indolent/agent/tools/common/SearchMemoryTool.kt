@@ -19,7 +19,7 @@ class SearchMemoryTool(private val memoryProvider: MemoryProvider) : AgentTool {
         ),
         ToolParameter(
             name = "top_k",
-            type = "int",
+            type = "integer",
             description = "Number of results to return (default 5, max 20)"
         )
     )
