@@ -2,6 +2,8 @@ package com.noexcs.indolent.agent.memory
 
 import android.content.Context
 import com.noexcs.indolent.logging.Lumberjack
+import com.noexcs.tantivy.Doc
+import com.noexcs.tantivy.TantivyBM25
 import java.io.File
 
 class MemoryEmbedder(
@@ -12,13 +14,10 @@ class MemoryEmbedder(
     private val index: MemoryIndex
 ) {
     private val indexFile = File(context.filesDir, "memory_index.json")
-    private val bm25 = BM25Scorer()
+    private val bm25 = TantivyBM25()
 
     fun isReady(): Boolean = model.isReady()
 
-    /**
-     * Embeds all sections from the memory text and populates the vector store.
-     */
     suspend fun embedAll(memoryText: String): List<MemoryChunk> {
         val chunkInputs = MemoryChunker.chunk(memoryText)
         if (chunkInputs.isEmpty()) return emptyList()
@@ -35,14 +34,10 @@ class MemoryEmbedder(
             )
         }
         vectorStore.replaceAll(chunks)
-        bm25.rebuildIndex(chunks)
+        bm25.rebuildIndex(chunks.map { it.toDoc() })
         return chunks
     }
 
-    /**
-     * Embeds a single section and updates the vector store.
-     * Removes any existing chunks for this header key first.
-     */
     suspend fun embedSingle(headerKey: String, text: String): List<MemoryChunk> {
         val chunkInputs = MemoryChunker.chunk("## $headerKey\n$text")
         val chunks = chunkInputs.map { input ->
@@ -53,27 +48,19 @@ class MemoryEmbedder(
                 embedding = embedding
             )
         }
-        // Replace all chunks for this header key
         vectorStore.removeByHeader(headerKey)
         bm25.removeByHeader(headerKey)
         for (chunk in chunks) {
             vectorStore.addOrUpdate(chunk)
-            bm25.addOrUpdateChunk(chunk)
+            bm25.addOrUpdate(chunk.toDoc())
         }
         return chunks
     }
 
-    /**
-     * Embeds a query string (used for search).
-     */
     suspend fun embedQuery(text: String): FloatArray {
         return embedText(text)
     }
 
-    /**
-     * Hybrid search: blends vector similarity + BM25 keyword relevance.
-     * Falls back to pure vector search if BM25 produces no scores for this query.
-     */
     suspend fun search(
         query: String,
         k: Int = 5,
@@ -92,17 +79,20 @@ class MemoryEmbedder(
             vectorScores[chunk.id] = VectorStore.cosineSimilarity(queryEmbedding, chunk.embedding)
         }
 
-        // BM25 keyword scores
-        val bm25Scores = bm25.score(query, chunks)
+        // BM25 keyword scores (Tantivy manages its own index, no need to pass chunks)
+        val bm25Scores = try {
+            bm25.search(query, chunks.size)
+        } catch (e: Exception) {
+            Lumberjack.e("MemoryEmbedder", "BM25 search via Tantivy failed", e)
+            emptyMap()
+        }
 
-        // If BM25 produced nothing, fall back to pure vector
         if (bm25Scores.isEmpty()) {
             return chunks.map { ScoredChunk(it, vectorScores[it.id] ?: 0f) }
                 .sortedByDescending { it.score }
                 .take(k)
         }
 
-        // Normalize BM25 to [0, 1] for blending
         val bm25Max = bm25Scores.values.maxOrNull() ?: 0f
         val bm25Normalized = if (bm25Max > 0f) {
             bm25Scores.mapValues { it.value / bm25Max }
@@ -110,7 +100,6 @@ class MemoryEmbedder(
             emptyMap()
         }
 
-        // Blend
         val blended = chunks.map { chunk ->
             val vecScore = vectorScores[chunk.id] ?: 0f
             val bmScore = bm25Normalized[chunk.id] ?: 0f
@@ -126,7 +115,7 @@ class MemoryEmbedder(
         val loaded = index.load(indexFile) ?: return false
         if (loaded.isEmpty()) return false
         vectorStore.replaceAll(loaded)
-        bm25.rebuildIndex(loaded)
+        bm25.rebuildIndex(loaded.map { it.toDoc() })
         Lumberjack.i("MemoryEmbedder", "Loaded index with ${loaded.size} chunks")
         return true
     }
@@ -145,4 +134,6 @@ class MemoryEmbedder(
         val tokens = tokenizer.encode(text)
         return model.embed(tokens.inputIds, tokens.attentionMask, tokens.tokenTypeIds)
     }
+
+    private fun MemoryChunk.toDoc() = Doc(id, headerKey, text)
 }

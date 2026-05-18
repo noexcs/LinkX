@@ -170,6 +170,8 @@ dependencies {
 
     // ONNX Runtime for local embedding inference
     implementation(libs.onnxruntime.android)
+    // Tantivy via JitPack — BM25 keyword retrieval (Rust JNI)
+    implementation(libs.tantivy.android)
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.json:json:20240303")
