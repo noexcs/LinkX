@@ -79,7 +79,7 @@ class TriggerDispatcher(private val context: Context) {
 
             // Timeout: 5 minutes to avoid hanging
             val reply = withTimeoutOrNull(300_000) {
-                session.execute(contextualPrompt, tools, 100)
+                session.execute(contextualPrompt, tools)
             } ?: listOf(LLMMessage(role = "system", content = "Conditional trigger execution timed out after 5 minutes."))
 
             Lumberjack.i(TAG, "Trigger '${trigger.title}' completed (${reply.size} messages)")

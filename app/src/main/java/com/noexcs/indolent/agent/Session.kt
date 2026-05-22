@@ -48,10 +48,9 @@ class Session(
      */
     fun run(
         message: String,
-        tools: List<AgentTool> = emptyList(),
-        maxIterations: Int = 1000
+        tools: List<AgentTool> = emptyList()
     ): Flow<AgentEvent> {
-        return agent.run(history, message, buildSystemPrompt(), tools, maxIterations)
+        return agent.run(history, message, buildSystemPrompt(), tools)
     }
 
     /**
@@ -60,10 +59,9 @@ class Session(
      */
     suspend fun execute(
         message: String,
-        tools: List<AgentTool> = emptyList(),
-        maxIterations: Int = 100
+        tools: List<AgentTool> = emptyList()
     ): List<LLMMessage> {
-        return agent.execute(history, message, buildSystemPrompt(), tools, maxIterations)
+        return agent.execute(history, message, buildSystemPrompt(), tools)
     }
 
     fun setHistory(messages: List<LLMMessage>) {

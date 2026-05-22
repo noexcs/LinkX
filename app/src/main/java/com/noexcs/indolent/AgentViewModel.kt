@@ -187,6 +187,19 @@ class AgentViewModel(
                             toolMsgs.remove(event.callId)
                             toolArgsBuf.remove(event.callId)
                         }
+                        is AgentEvent.StreamRetry -> {
+                            Lumberjack.w("AgentViewModel", "Stream retry attempt ${event.attempt}: ${event.reason}")
+                            assistantMsg?.let {
+                                it.content.value = ""
+                                assistantMsg = null
+                            }
+                            reasoningMsg?.let {
+                                it.content.value = ""
+                                reasoningMsg = null
+                            }
+                            toolMsgs.clear()
+                            toolArgsBuf.clear()
+                        }
                         is AgentEvent.Error -> {
                             Lumberjack.e("AgentViewModel", "Error: ${event.message}")
                             error.value = event.message

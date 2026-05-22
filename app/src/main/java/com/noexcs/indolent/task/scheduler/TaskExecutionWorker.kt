@@ -87,7 +87,7 @@ class TaskExecutionWorker(
                 historyProvider = { session.history }
             )
 
-            val reply = session.execute(task.prompt, tools, 100)
+            val reply = session.execute(task.prompt, tools)
             session.save()
 
             val durationMs = System.currentTimeMillis() - startTime

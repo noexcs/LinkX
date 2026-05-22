@@ -9,6 +9,7 @@ sealed class AgentEvent {
     data class ToolResult(val callId: String, val name: String, val args: Map<String, Any?>, val result: String) : AgentEvent()
     data class Usage(val promptTokens: Int, val completionTokens: Int, val totalTokens: Int) : AgentEvent()
     data class Error(val message: String) : AgentEvent()
+    data class StreamRetry(val attempt: Int, val reason: String) : AgentEvent()
     data class Truncated(val reason: String) : AgentEvent()
     data class PasteContent(val content: String) : AgentEvent()
 

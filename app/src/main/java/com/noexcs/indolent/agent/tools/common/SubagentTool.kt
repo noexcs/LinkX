@@ -58,7 +58,7 @@ class SubagentTool : AgentTool {
 
         val maxIterations = defaultMaxIterations
 
-        val subagent = Agent(baseUrl, apiKey, model, thinkingEnabled, reasoningEffort, clipboardStore = clipboardStore)
+        val subagent = Agent(baseUrl, apiKey, model, thinkingEnabled, reasoningEffort, clipboardStore = clipboardStore, maxIterations = maxIterations)
         val history = mutableListOf<LLMMessage>()
         val systemPrompt = buildString {
             append("You are a subagent. Complete the assigned task autonomously and return a concise result. Use tools as needed. Do not ask follow-up questions — just do the work and report back.")
@@ -70,8 +70,7 @@ class SubagentTool : AgentTool {
             history = history,
             message = prompt,
             systemPrompt = systemPrompt,
-            tools = tools,
-            maxIterations = maxIterations
+            tools = tools
         )
         return result.lastOrNull { it.role == "assistant" }?.content
             ?: result.firstOrNull()?.content

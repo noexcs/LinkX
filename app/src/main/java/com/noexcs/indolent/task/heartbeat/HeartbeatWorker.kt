@@ -77,7 +77,7 @@ class HeartbeatWorker(
             )
             val heartbeatPrompt = buildHeartbeatPrompt(applicationContext)
 
-            val reply = session.execute(heartbeatPrompt, tools, 100)
+            val reply = session.execute(heartbeatPrompt, tools)
 
             val durationMs = System.currentTimeMillis() - startTime
             Lumberjack.i("HeartbeatWorker", "Heartbeat completed (${durationMs}ms, ${reply.size} messages)")
