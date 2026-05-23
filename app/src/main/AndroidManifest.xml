@@ -75,6 +75,7 @@
             android:exported="true"
             android:label="@string/app_name"
             android:windowSoftInputMode="adjustResize"
+            android:configChanges="locale|layoutDirection"
             android:theme="@style/Theme.LinkX">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

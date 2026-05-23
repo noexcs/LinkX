@@ -1,6 +1,7 @@
 package com.noexcs.indolent
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -107,6 +108,11 @@ class MainActivity : ComponentActivity() {
             MainContent()
         }
     }
+
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        com.noexcs.indolent.data.LocaleNotifier.notifyChanged()
+    }
 }
 
 @Composable
@@ -141,6 +147,9 @@ private fun MainContent() {
         dynamicColor = dynamicColor,
         seedColor = seedColor,
     ) {
+    // Observe locale changes to trigger recomposition without Activity restart
+    com.noexcs.indolent.data.LocaleNotifier.Observe()
+
     var currentScreen by remember { mutableStateOf<Screen>(Screen.Chat) }
     val isRoot = currentScreen in rootScreens
     val pagerState = rememberPagerState(

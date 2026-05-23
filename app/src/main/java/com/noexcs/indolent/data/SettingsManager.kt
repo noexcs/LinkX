@@ -3,8 +3,25 @@ package com.noexcs.indolent.data
 import android.app.LocaleManager
 import android.content.Context
 import android.os.LocaleList
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.core.content.edit
 import com.noexcs.indolent.agent.LLMProvider
+
+object LocaleNotifier {
+    private val _version = mutableLongStateOf(0L)
+    val version: State<Long> = _version
+
+    fun notifyChanged() {
+        _version.value++
+    }
+
+    @Composable
+    fun Observe() {
+        version.value
+    }
+}
 
 
 class SettingsManager(context: Context) {
