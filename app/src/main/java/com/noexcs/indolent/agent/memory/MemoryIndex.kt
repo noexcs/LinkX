@@ -24,7 +24,11 @@ class MemoryIndex {
         // Atomic write via temp file
         val tmpFile = File(file.parent, "memory_index.tmp")
         tmpFile.writeText(jsonArray.toString(2))
-        tmpFile.renameTo(file)
+        if (!tmpFile.renameTo(file)) {
+            Lumberjack.e("MemoryIndex", "Failed to rename tmp file to ${file.name}, falling back to direct write")
+            file.writeText(jsonArray.toString(2))
+            tmpFile.delete()
+        }
     }
 
     fun load(file: File): List<MemoryChunk>? {

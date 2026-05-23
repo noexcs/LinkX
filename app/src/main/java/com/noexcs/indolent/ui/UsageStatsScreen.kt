@@ -72,8 +72,8 @@ fun UsageStatsScreen(
     }
 
     LaunchedEffect(Unit) {
-        val baseUrl = settingsManager.baseUrl ?: ""
-        val apiKey = settingsManager.apiKey ?: ""
+        val baseUrl = settingsManager.baseUrl
+        val apiKey = settingsManager.apiKey
         if (baseUrl.isBlank() || apiKey.isBlank()) {
             balanceState = BalanceState.NotConfigured
             return@LaunchedEffect

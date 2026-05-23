@@ -94,7 +94,7 @@ object ContextSummarizer {
                     sb.appendLine("User: ${msg.content.take(2000)}")
                 }
                 "assistant" -> {
-                    if (!msg.content.isNullOrBlank()) {
+                    if (msg.content.isNotBlank()) {
                         sb.appendLine("Assistant: ${msg.content.take(2000)}")
                     }
                     msg.toolCalls?.forEach { tc ->

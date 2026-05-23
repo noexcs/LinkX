@@ -43,26 +43,4 @@ object SystemPromptBuilder {
         }
     }
 
-    // Keep the legacy overload for gradual migration — callers that haven't
-    // been updated yet can still use individual parameters.
-    @Deprecated("Use build(ContextConfig) instead", ReplaceWith("build(ContextConfig(...))"))
-    fun build(
-        baseInstruction: String,
-        userSystemPrompt: String,
-        memory: String,
-        activeSkillContent: String = "",
-        clipboardInstruction: String = "",
-        screenInstruction: String = ""
-    ): String {
-        return build(
-            ContextConfig(
-                baseInstruction = baseInstruction,
-                userSystemPrompt = userSystemPrompt,
-                memory = memory,
-                activeSkillContent = activeSkillContent,
-                clipboardInstruction = clipboardInstruction,
-                screenInstruction = screenInstruction
-            )
-        )
-    }
 }

@@ -195,12 +195,12 @@ object ToolProvider {
             }
         }
 
-        return if (useCommonTools && settings.baseUrl != null && settings.apiKey != null && settings.model != null) {
+        return if (useCommonTools && settings.baseUrl.isNotBlank() && settings.apiKey.isNotBlank() && settings.model.isNotBlank()) {
             val subagent = SubagentTool()
             subagent.init(
-                settings.baseUrl!!,
-                settings.apiKey!!,
-                settings.model!!,
+                settings.baseUrl,
+                settings.apiKey,
+                settings.model,
                 baseTools,
                 thinkingEnabled = settings.thinkingEnabled,
                 reasoningEffort = settings.reasoningEffort,

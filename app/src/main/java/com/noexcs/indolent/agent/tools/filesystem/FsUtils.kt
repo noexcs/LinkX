@@ -15,11 +15,6 @@ import java.time.format.DateTimeFormatter
 
 object FsUtils {
 
-    private val ALLOWED_ROOTS by lazy {
-        // Lazily populated per-context; see resolveFile()
-        emptyList<File>() // placeholder, not used directly
-    }
-
     fun hasAllFilesAccess(context: Context): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Environment.isExternalStorageManager()

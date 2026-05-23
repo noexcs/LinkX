@@ -98,10 +98,12 @@ private val rootScreens = navItems.map { it.screen }.toSet()
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        TaskScheduler(applicationContext).rescheduleAll()
-        val settings = SettingsManager(applicationContext)
-        if (settings.heartbeatEnabled) {
-            HeartbeatScheduler(applicationContext).schedule()
+        if (savedInstanceState == null) {
+            TaskScheduler(applicationContext).rescheduleAll()
+            val settings = SettingsManager(applicationContext)
+            if (settings.heartbeatEnabled) {
+                HeartbeatScheduler(applicationContext).schedule()
+            }
         }
         enableEdgeToEdge()
         setContent {

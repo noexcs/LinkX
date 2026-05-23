@@ -41,16 +41,16 @@ class SettingsManager(context: Context) {
             prefs.edit { putString("provider_type", value?.id ?: "deepseek") }
         }
 
-    var baseUrl: String?
-        get() = prefs.getString("base_url", "")
+    var baseUrl: String
+        get() = prefs.getString("base_url", "") ?: ""
         set(value) = prefs.edit { putString("base_url", value) }
 
-    var apiKey: String?
-        get() = prefs.getString("api_key", "")
+    var apiKey: String
+        get() = prefs.getString("api_key", "") ?: ""
         set(value) = prefs.edit { putString("api_key", value) }
 
-    var model: String?
-        get() = prefs.getString("model", "")
+    var model: String
+        get() = prefs.getString("model", "") ?: ""
         set(value) { prefs.edit { putString("model", value) } }
 
     var thinkingEnabled: Boolean

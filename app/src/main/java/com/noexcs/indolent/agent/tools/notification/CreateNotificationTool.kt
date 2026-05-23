@@ -406,8 +406,14 @@ class CreateNotificationTool(context: Context) : AgentTool {
         }
     }
 
+    private var nextId = 1000
+
     private fun generateId(title: String, content: String): Int {
-        return ("$title$content").hashCode()
+        val base = ("$title$content").hashCode()
+        // Ensure uniqueness across the process lifetime by combining hash with a counter
+        val id = base xor nextId
+        nextId++
+        return if (id < 0) -id else id
     }
 
     companion object {

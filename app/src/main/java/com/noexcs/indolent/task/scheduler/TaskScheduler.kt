@@ -65,7 +65,7 @@ class TaskScheduler(private val context: Context) {
         }
         return PendingIntent.getBroadcast(
             context,
-            taskId.hashCode(),
+            taskId.filter { it.isLetterOrDigit() }.hashCode(),
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )

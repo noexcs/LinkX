@@ -188,6 +188,8 @@ class Agent(
         val useBeta = prefixContent != null
 
         for (round in 0 until maxIterations) {
+            maybeManageContext(history, systemPrompt, tools) { }
+
             val request = LLMRequest(
                 model = model,
                 messages = buildMessages(systemPrompt, history),

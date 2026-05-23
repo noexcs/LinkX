@@ -180,7 +180,7 @@ fun ApiSettingsScreen(
                 }
 
                 OutlinedTextField(
-                    value = apiKey ?: "",
+                    value = apiKey,
                     onValueChange = { apiKey = it; markChanged() },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.api_key_label)) },
@@ -199,7 +199,7 @@ fun ApiSettingsScreen(
                 )
 
                 OutlinedTextField(
-                    value = baseUrl ?: "",
+                    value = baseUrl,
                     onValueChange = { baseUrl = it; markChanged() },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.base_url_label)) },
@@ -210,7 +210,7 @@ fun ApiSettingsScreen(
                 )
 
                 OutlinedTextField(
-                    value = model ?: "",
+                    value = model,
                     onValueChange = { model = it; markChanged() },
                     modifier = Modifier.fillMaxWidth(),
                     label = { Text(stringResource(R.string.model_label)) },

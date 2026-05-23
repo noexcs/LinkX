@@ -1,7 +1,5 @@
 package com.noexcs.indolent.data
 
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import android.content.Context
 import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.PersistedSession
@@ -15,7 +13,7 @@ class FileChatHistoryProvider(context: Context) : SessionPersistence {
 
     private val dir = File(context.filesDir, "sessions").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
-    private val mutex = Mutex()
+    private val syncLock = Any()
 
     override suspend fun save(
         sessionId: String,
@@ -23,7 +21,7 @@ class FileChatHistoryProvider(context: Context) : SessionPersistence {
         title: String,
         type: SessionType
     ) {
-        mutex.withLock {
+        synchronized(syncLock) {
             val file = File(dir, "${sessionId}.json")
             val existingCreatedAt = if (file.exists()) {
                 try {
@@ -44,45 +42,50 @@ class FileChatHistoryProvider(context: Context) : SessionPersistence {
     }
 
     override suspend fun load(sessionId: String): List<LLMMessage>? {
-        return mutex.withLock {
+        return synchronized(syncLock) {
             val file = File(dir, "$sessionId.json")
-            if (!file.exists()) return null
-            try {
-                val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
-                return sessionData.messages
+            if (!file.exists()) null
+            else try {
+                json.decodeFromString(PersistedSession.serializer(), file.readText()).messages
             } catch (_: Exception) { null }
         }
     }
 
     override fun listSessions(): List<SessionMetadata> {
-        return dir.listFiles { f -> f.extension == "json" }
-            ?.mapNotNull { file ->
-                try {
-                    val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
-                    SessionMetadata(
-                        sessionId = sessionData.sessionId,
-                        title = sessionData.title,
-                        createdAt = sessionData.createdAt,
-                        updatedAt = sessionData.updatedAt,
-                        type = sessionData.type
-                    )
-                } catch (_: Exception) { null }
-            }
-            ?.sortedByDescending { it.updatedAt }
-            ?: emptyList()
+        synchronized(syncLock) {
+            return dir.listFiles { f -> f.extension == "json" }
+                ?.mapNotNull { file ->
+                    try {
+                        val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
+                        SessionMetadata(
+                            sessionId = sessionData.sessionId,
+                            title = sessionData.title,
+                            createdAt = sessionData.createdAt,
+                            updatedAt = sessionData.updatedAt,
+                            type = sessionData.type
+                        )
+                    } catch (_: Exception) { null }
+                }
+                ?.sortedByDescending { it.updatedAt }
+                ?: emptyList()
+        }
     }
 
     override fun delete(sessionId: String) {
-        File(dir, "$sessionId.json").delete()
+        synchronized(syncLock) {
+            File(dir, "$sessionId.json").delete()
+        }
     }
 
     override fun rename(sessionId: String, newTitle: String) {
-        val file = File(dir, "$sessionId.json")
-        if (!file.exists()) return
-        try {
-            val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
-            val updated = sessionData.copy(title = newTitle, updatedAt = System.currentTimeMillis())
-            file.writeText(json.encodeToString(PersistedSession.serializer(), updated))
-        } catch (_: Exception) { }
+        synchronized(syncLock) {
+            val file = File(dir, "$sessionId.json")
+            if (!file.exists()) return
+            try {
+                val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
+                val updated = sessionData.copy(title = newTitle, updatedAt = System.currentTimeMillis())
+                file.writeText(json.encodeToString(PersistedSession.serializer(), updated))
+            } catch (_: Exception) { }
+        }
     }
 }

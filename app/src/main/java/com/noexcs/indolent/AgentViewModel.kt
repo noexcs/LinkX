@@ -55,16 +55,21 @@ class AgentViewModel(
     // Persistent session — carries conversation history across messages.
     // Recreated only when API settings change.
     private var session: Session? = null
-    private var agentApiKey: String? = null
-    private var agentBaseUrl: String? = null
-    private var agentModel: String? = null
+    private var agentApiKey: String = ""
+    private var agentBaseUrl: String = ""
+    private var agentModel: String = ""
+    private var agentThinking: Boolean = true
+    private var agentReasoningEffort: String = ""
 
     private fun resolveSession(): Session {
-        val apiKey = settingsManager.apiKey ?: ""
-        val baseUrl = settingsManager.baseUrl ?: ""
-        val model = settingsManager.model?.ifBlank { "deepseek-chat" } ?: "deepseek-chat"
+        val apiKey = settingsManager.apiKey
+        val baseUrl = settingsManager.baseUrl
+        val model = settingsManager.model.ifBlank { "deepseek-chat" }
+        val thinking = settingsManager.thinkingEnabled
+        val effort = settingsManager.reasoningEffort
 
-        if (session == null || agentApiKey != apiKey || agentBaseUrl != baseUrl || agentModel != model) {
+        if (session == null || agentApiKey != apiKey || agentBaseUrl != baseUrl || agentModel != model
+            || agentThinking != thinking || agentReasoningEffort != effort) {
             val existingHistory = session?.history?.toList()
             val agent = Agent(baseUrl, apiKey, model, settingsManager.thinkingEnabled, settingsManager.reasoningEffort, clipboardStore = clipboardStore)
             session = Session(
@@ -79,19 +84,21 @@ class AgentViewModel(
             agentApiKey = apiKey
             agentBaseUrl = baseUrl
             agentModel = model
+            agentThinking = thinking
+            agentReasoningEffort = effort
         }
         return session!!
     }
 
     fun checkSettings(): Boolean {
-        return settingsManager.apiKey.isNullOrBlank() || settingsManager.baseUrl.isNullOrBlank()
+        return settingsManager.apiKey.isBlank() || settingsManager.baseUrl.isBlank()
     }
 
     fun sendMessage(userText: String) {
         if (userText.isBlank() || isLoading.value) return
 
-        val apiKey = settingsManager.apiKey ?: ""
-        val baseUrl = settingsManager.baseUrl ?: ""
+        val apiKey = settingsManager.apiKey
+        val baseUrl = settingsManager.baseUrl
 
         if (baseUrl.isBlank()) {
             error.value = "Base URL is not configured. Please set it in Settings."
@@ -281,52 +288,12 @@ class AgentViewModel(
     }
 
     suspend fun buildContextConfig(currentMessage: String = "", recentMessages: List<String> = emptyList()): ContextConfig {
-        val clipboardInstruction = if (
-            settingsManager.commonToolsEnabled &&
-            settingsManager.isToolEnabled("agent_clipboard")
-        ) {
-            """
-                You have an agent-internal clipboard with named slots (separate from the system clipboard).
-
-                ## Slots
-                Content is organized into named slots via the `ns` parameter. The default slot is "default" when `ns` is omitted.
-
-                ## Operations
-                - action="copy" with `text`: Store text into a slot.
-                - action="copy" with `prefix`+`suffix`: Extract content between two text anchors from a single history message. Must match exactly one message.
-                - action="copy" with `source`: Read content from a file path into a slot.
-                - action="paste": Display a slot's content to the user in the conversation.
-                - action="clear": Clear a specific slot (with `ns`), or all slots (without `ns`).
-                - action="info": Show status of a slot, or list all slots.
-
-                ## Interpolation
-                Use {{agent_clipboard}} in any tool parameter to inject the default slot's content.
-                Use {{agent_clipboard:slotname}} to inject a named slot's content.
-                Example: agent_clipboard(action="copy", text="Hello World") then fs_write(path="/sdcard/hello.txt", content="{{agent_clipboard}}")
-
-                Shared with subagents.
-            """.trimIndent()
-        } else ""
-
-        val screenInstruction = if (
-            settingsManager.screenToolsEnabled &&
-            settingsManager.isToolEnabled("screen_read")
-        ) {
-            """
-                You can read and interact with the device screen via accessibility service tools.
-                The accessibility service must be enabled in Settings → Accessibility → Indolent.
-
-                Workflow:
-                1. screen_read(mode="summary") — get an overview of what's on screen
-                2. screen_click(index=N) or screen_click(text="Button") — click an element
-                3. screen_screenshot — capture a screenshot for visual reference
-                4. screen_scroll(direction="down") — scroll the screen
-                5. screen_input(text="hello") — type text into a focused input field
-
-                Use screen_read indexes to precisely target elements for clicks.
-                Screen tools are unavailable if the accessibility service is not running.
-            """.trimIndent()
-        } else ""
+        val clipboardInstruction = com.noexcs.indolent.agent.BackgroundSessionRunner.buildClipboardInstruction(
+            settingsManager, clipboardStore, detailed = true
+        )
+        val screenInstruction = com.noexcs.indolent.agent.BackgroundSessionRunner.buildScreenInstruction(
+            settingsManager, detailed = true
+        )
 
         // Build retrieval query from current message + recent conversation context
         val queryParts = mutableListOf<String>()
@@ -400,29 +367,7 @@ class AgentViewModel(
         clearMessages()
         messages.add(MessageViewModel(role = MessageRole.System, content = title))
         messages.add(MessageViewModel(role = MessageRole.User, content = prompt))
-        // Render the messages list, skipping the system prompt message (first one)
-        val json = Json { ignoreUnknownKeys = true }
-        val assistantToolCalls = historyMessages
-            .filter { it.role == "assistant" }
-            .flatMap { it.toolCalls.orEmpty() }
-            .associateBy { it.id }
-        historyMessages.drop(1).forEach { msg ->  // skip system prompt
-            // Emit Thinking bubble for reasoning content
-            if (msg.role == "assistant" && !msg.reasoningContent.isNullOrBlank()) {
-                this.messages.add(MessageViewModel(MessageRole.Thinking, msg.reasoningContent))
-            }
-            val displayContent = if (msg.role == "tool" && msg.toolCallId != null) {
-                val tc = assistantToolCalls[msg.toolCallId]
-                if (tc != null) {
-                    val args = try { json.decodeFromString<Map<String, Any?>>(tc.function.arguments) } catch (_: Exception) { emptyMap() }
-                    val argsStr = MessageFormatter.formatArgsJson(args)
-                    val resultPreview = msg.content.lines().take(20).joinToString("\n")
-                        .let { if (msg.content.lines().size > 20) "$it\n…" else it }
-                    "🔧 ${tc.function.name}\n$argsStr\n$resultPreview"
-                } else msg.content
-            } else msg.content
-            this.messages.add(MessageViewModel(MessageRoleMapper.toMessageRole(msg.role), displayContent))
-        }
+        messages.addAll(historyToViewModels(historyMessages.drop(1))) // skip system prompt
         resolveSession().setHistory(historyMessages)
         hasNotifiedFirstResponse = true
         viewModelScope.launch {
@@ -439,46 +384,7 @@ class AgentViewModel(
             val session = resolveSession()
             val loaded = session.load(id)
             if (loaded && session.history.isNotEmpty()) {
-                val json = Json { ignoreUnknownKeys = true }
-                // Build toolCallId -> ToolCall map from all assistant messages for history reload
-                val assistantToolCalls = session.history
-                    .filter { it.role == "assistant" }
-                    .flatMap { it.toolCalls.orEmpty() }
-                    .associateBy { it.id }
-
-                val viewModels = session.history.flatMap { msg ->
-                    val result = mutableListOf<MessageViewModel>()
-
-                    // Emit a Thinking bubble for assistant reasoning content persisted in history
-                    if (msg.role == "assistant" && !msg.reasoningContent.isNullOrBlank()) {
-                        result.add(MessageViewModel(MessageRole.Thinking, msg.reasoningContent))
-                    }
-
-                    val displayContent = if (msg.role == "tool" && msg.toolCallId != null) {
-                        val tc = assistantToolCalls[msg.toolCallId]
-                        if (tc != null) {
-                            val args = try {
-                                json.decodeFromString<Map<String, Any?>>(tc.function.arguments)
-                            } catch (_: Exception) { emptyMap() }
-                            val argsStr = MessageFormatter.formatArgsJson(args)
-                            val resultPreview = msg.content.lines()
-                                .take(20).joinToString("\n")
-                                .let { if (msg.content.lines().size > 20) "$it\n…" else it }
-                            "🔧 ${tc.function.name}\n$argsStr\n$resultPreview"
-                        } else msg.content
-                    } else msg.content
-
-                    val vm = MessageViewModel(MessageRoleMapper.toMessageRole(msg.role), displayContent)
-                    msg.displayContentJson?.let { jsonStr ->
-                        try {
-                            val content = json.decodeFromString(DisplayContent.serializer(), jsonStr)
-                            contentDisplayManager.store(content)
-                            vm.displayContentId = content.id
-                        } catch (_: Exception) { }
-                    }
-                    result.add(vm)
-                    result
-                }
+                val viewModels = historyToViewModels(session.history, contentDisplayManager)
                 messages.clear()
                 messages.addAll(viewModels)
                 hasNotifiedFirstResponse = session.history.any { it.role == "assistant" }
@@ -487,6 +393,59 @@ class AgentViewModel(
             }
             sessionId = id
             session.sessionId = id
+        }
+    }
+
+    /**
+     * Converts a list of [LLMMessage] history entries to [MessageViewModel] for UI display.
+     * Handles tool call formatting (🔧 prefix, args, result preview, reasoning bubbles)
+     * and restores DisplayContent when [displayManager] is provided.
+     */
+    private fun historyToViewModels(
+        history: List<LLMMessage>,
+        displayManager: ContentDisplayManager? = null,
+    ): List<MessageViewModel> {
+        val json = Json { ignoreUnknownKeys = true }
+        val assistantToolCalls = history
+            .filter { it.role == "assistant" }
+            .flatMap { it.toolCalls.orEmpty() }
+            .associateBy { it.id }
+
+        return history.flatMap { msg ->
+            val result = mutableListOf<MessageViewModel>()
+
+            // Emit Thinking bubble for assistant reasoning content
+            if (msg.role == "assistant" && !msg.reasoningContent.isNullOrBlank()) {
+                result.add(MessageViewModel(MessageRole.Thinking, msg.reasoningContent))
+            }
+
+            val displayContent = if (msg.role == "tool" && msg.toolCallId != null) {
+                val tc = assistantToolCalls[msg.toolCallId]
+                if (tc != null) {
+                    val args = try {
+                        json.decodeFromString<Map<String, Any?>>(tc.function.arguments)
+                    } catch (_: Exception) { emptyMap() }
+                    val argsStr = MessageFormatter.formatArgsJson(args)
+                    val resultPreview = msg.content.lines()
+                        .take(20).joinToString("\n")
+                        .let { if (msg.content.lines().size > 20) "$it\n…" else it }
+                    "🔧 ${tc.function.name}\n$argsStr\n$resultPreview"
+                } else msg.content
+            } else msg.content
+
+            val vm = MessageViewModel(MessageRoleMapper.toMessageRole(msg.role), displayContent)
+            // Restore DisplayContent from persisted JSON (only during loadConversation path)
+            if (displayManager != null) {
+                msg.displayContentJson?.let { jsonStr ->
+                    try {
+                        val content = json.decodeFromString(DisplayContent.serializer(), jsonStr)
+                        displayManager.store(content)
+                        vm.displayContentId = content.id
+                    } catch (_: Exception) { }
+                }
+            }
+            result.add(vm)
+            result
         }
     }
 

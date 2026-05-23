@@ -239,9 +239,9 @@ class AppSettingTool(private val settings: SettingsManager) : AgentTool {
     private fun getRawValue(key: String): String {
         return when (key) {
             "provider_type" -> settings.providerType?.id ?: "deepseek"
-            "base_url" -> settings.baseUrl ?: ""
-            "api_key" -> settings.apiKey ?: ""
-            "model" -> settings.model ?: ""
+            "base_url" -> settings.baseUrl
+            "api_key" -> settings.apiKey
+            "model" -> settings.model
             "thinking_enabled" -> settings.thinkingEnabled.toString()
             "reasoning_effort" -> settings.reasoningEffort
             "language" -> settings.language.ifEmpty { "(system default)" }
