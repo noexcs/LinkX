@@ -28,7 +28,7 @@ class LLMClient(
     /** Non-streaming completion. */
     suspend fun chat(request: LLMRequest): LLMResponse = withContext(Dispatchers.IO) {
         val body = buildBody(request.copy(stream = false))
-        val httpRequest = buildRequest(body)
+        val httpRequest = buildRequest(body, request.useBetaEndpoint)
         val response = http.newCall(httpRequest).execute()
         if (!response.isSuccessful) {
             val errBody = response.body?.string() ?: "no body"
@@ -44,7 +44,7 @@ class LLMClient(
      */
     fun stream(request: LLMRequest): Flow<String> = flow {
         val body = buildBody(request.copy(stream = true))
-        val httpRequest = buildRequest(body)
+        val httpRequest = buildRequest(body, request.useBetaEndpoint)
         val response = http.newCall(httpRequest).execute()
         if (!response.isSuccessful) {
             val errBody = response.body?.string() ?: "no body"
@@ -125,6 +125,9 @@ class LLMClient(
         if (!msg.reasoningContent.isNullOrEmpty()) {
             put("reasoning_content", msg.reasoningContent)
         }
+        if (msg.prefix == true) {
+            put("prefix", true)
+        }
     }
 
     private fun buildToolDefinitions(request: LLMRequest): JSONArray? {
@@ -190,7 +193,7 @@ class LLMClient(
         val message = choice.optJSONObject("message")
         val content = message?.optString("content", "") ?: ""
         val model = root.optString("model", "")
-        val reasoningContent = message?.optString("reasoning_content", null)
+        val reasoningContent = message?.optString("reasoning_content", "")?.ifEmpty { null }
 
         val toolCalls = message?.optJSONArray("tool_calls")?.let { tcs ->
             (0 until tcs.length()).map { i ->
@@ -224,9 +227,22 @@ class LLMClient(
         )
     }
 
-    private fun buildRequest(jsonBody: String): Request {
+    private fun chatUrl(useBeta: Boolean): String {
+        val base = baseUrl.trimEnd('/')
+        return if (useBeta) {
+            if (base.endsWith("/v1")) {
+                base.removeSuffix("/v1") + "/beta/chat/completions"
+            } else {
+                base + "/beta/chat/completions"
+            }
+        } else {
+            "$base/chat/completions"
+        }
+    }
+
+    private fun buildRequest(jsonBody: String, useBeta: Boolean): Request {
         return Request.Builder()
-            .url("$baseUrl/chat/completions")
+            .url(chatUrl(useBeta))
             .post(jsonBody.toRequestBody("application/json".toMediaType()))
             .addHeader("Authorization", "Bearer $apiKey")
             .build()

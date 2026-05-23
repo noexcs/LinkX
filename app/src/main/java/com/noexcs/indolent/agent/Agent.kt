@@ -41,6 +41,23 @@ class Agent(
         history += LLMMessage(role = "user", content = message)
         val toolMap = tools.associateBy { it.name }
 
+        // Check for incomplete prior response — use prefix completion to resume
+        var prefixContent: String? = null
+        var prefixMsgIndex: Int = -1
+        if (history.size >= 2) {
+            val prevAssistant = history[history.size - 2]
+            if (prevAssistant.role == "assistant" && prevAssistant.content.endsWith(INCOMPLETE_RESPONSE_MARKER)) {
+                prefixContent = prevAssistant.content.removeSuffix(INCOMPLETE_RESPONSE_MARKER)
+                prefixMsgIndex = history.size - 2
+                history.removeAt(history.lastIndex) // drop the user message we just added
+                history[prefixMsgIndex] = prevAssistant.copy(
+                    content = prefixContent!!,
+                    prefix = true
+                )
+            }
+        }
+        val useBeta = prefixContent != null
+
         for (round in 0 until maxIterations) {
             maybeManageContext(history, systemPrompt, tools) { event -> emit(event) }
 
@@ -56,7 +73,8 @@ class Agent(
                 stream = true,
                 toolDefinitions = toolDefs(tools),
                 thinkingEnabled = if (thinkingEnabled) true else null,
-                reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null
+                reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null,
+                useBetaEndpoint = useBeta
             )
 
             var streamError: Exception? = null
@@ -88,12 +106,22 @@ class Agent(
 
             val toolCalls = buildToolCalls(toolAcc) { emit(it) }
 
-            history += LLMMessage(
-                role = "assistant",
-                content = textBuf.toString(),
-                toolCalls = toolCalls.ifEmpty { null },
-                reasoningContent = reasoningBuf.toString().ifEmpty { null }
-            )
+            if (prefixContent != null && prefixMsgIndex in history.indices && history[prefixMsgIndex].prefix == true) {
+                // Prefix completion: replace the prefix message with prefix + continuation
+                history[prefixMsgIndex] = LLMMessage(
+                    role = "assistant",
+                    content = prefixContent + textBuf.toString(),
+                    toolCalls = toolCalls.ifEmpty { null },
+                    reasoningContent = reasoningBuf.toString().ifEmpty { null }
+                )
+            } else {
+                history += LLMMessage(
+                    role = "assistant",
+                    content = textBuf.toString(),
+                    toolCalls = toolCalls.ifEmpty { null },
+                    reasoningContent = reasoningBuf.toString().ifEmpty { null }
+                )
+            }
 
             when (finishReason) {
                 "stop" -> return@flow
@@ -142,6 +170,23 @@ class Agent(
         history += LLMMessage(role = "user", content = message)
         val toolMap = tools.associateBy { it.name }
 
+        // Check for incomplete prior response — use prefix completion to resume
+        var prefixContent: String? = null
+        var prefixMsgIndex: Int = -1
+        if (history.size >= 2) {
+            val prevAssistant = history[history.size - 2]
+            if (prevAssistant.role == "assistant" && prevAssistant.content.endsWith(INCOMPLETE_RESPONSE_MARKER)) {
+                prefixContent = prevAssistant.content.removeSuffix(INCOMPLETE_RESPONSE_MARKER)
+                prefixMsgIndex = history.size - 2
+                history.removeAt(history.lastIndex)
+                history[prefixMsgIndex] = prevAssistant.copy(
+                    content = prefixContent!!,
+                    prefix = true
+                )
+            }
+        }
+        val useBeta = prefixContent != null
+
         for (round in 0 until maxIterations) {
             val request = LLMRequest(
                 model = model,
@@ -149,7 +194,8 @@ class Agent(
                 stream = false,
                 toolDefinitions = toolDefs(tools),
                 thinkingEnabled = if (thinkingEnabled) true else null,
-                reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null
+                reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null,
+                useBetaEndpoint = useBeta
             )
 
             val response = try {
@@ -162,12 +208,21 @@ class Agent(
 
             response.usage?.let { lastActualPromptTokens = it.promptTokens }
 
-            history += LLMMessage(
-                role = "assistant",
-                content = response.content,
-                toolCalls = response.toolCalls,
-                reasoningContent = response.reasoningContent
-            )
+            if (prefixContent != null && prefixMsgIndex in history.indices && history[prefixMsgIndex].prefix == true) {
+                history[prefixMsgIndex] = LLMMessage(
+                    role = "assistant",
+                    content = prefixContent + response.content,
+                    toolCalls = response.toolCalls,
+                    reasoningContent = response.reasoningContent
+                )
+            } else {
+                history += LLMMessage(
+                    role = "assistant",
+                    content = response.content,
+                    toolCalls = response.toolCalls,
+                    reasoningContent = response.reasoningContent
+                )
+            }
 
             if (response.toolCalls.isNullOrEmpty()) {
                 return history.toList()

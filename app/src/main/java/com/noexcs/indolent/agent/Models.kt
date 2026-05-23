@@ -10,6 +10,8 @@ enum class SessionType { CONVERSATION, SCHEDULED_TASK, HEARTBEAT, CONDITIONAL_TR
 
 // ── LLM wire models ──
 
+const val INCOMPLETE_RESPONSE_MARKER = "\n\n---\n*[Incomplete — response was interrupted]*"
+
 @Serializable
 data class LLMMessage(
     val role: String,
@@ -17,7 +19,8 @@ data class LLMMessage(
     val toolCalls: List<ToolCall>? = null,
     val toolCallId: String? = null,
     val reasoningContent: String? = null,
-    val displayContentJson: String? = null
+    val displayContentJson: String? = null,
+    val prefix: Boolean? = null
 )
 
 data class LLMRequest(
@@ -33,7 +36,8 @@ data class LLMRequest(
     val responseFormat: String? = null,
     val topP: Double? = null,
     val frequencyPenalty: Double? = null,
-    val presencePenalty: Double? = null
+    val presencePenalty: Double? = null,
+    val useBetaEndpoint: Boolean = false
 )
 
 data class LLMResponse(

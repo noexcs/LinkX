@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.noexcs.indolent.agent.Agent
 import com.noexcs.indolent.agent.AgentEvent
 import com.noexcs.indolent.agent.ContextConfig
+import com.noexcs.indolent.agent.INCOMPLETE_RESPONSE_MARKER
 import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.MessageRole
 import com.noexcs.indolent.agent.MessageRoleMapper
@@ -25,7 +26,9 @@ import com.noexcs.indolent.data.MemoryManager
 import com.noexcs.indolent.data.MessageViewModel
 import com.noexcs.indolent.data.SettingsManager
 import com.noexcs.indolent.ui.MessageFormatter
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import java.util.UUID
@@ -104,10 +107,13 @@ class AgentViewModel(
         messages.add(MessageViewModel(role = MessageRole.User, content = userText))
 
         viewModelScope.launch {
+            val session = resolveSession()
+            var assistantMsg: MessageViewModel? = null
+            var reasoningMsg: MessageViewModel? = null
+
             try {
 
                 val tools = buildTools()
-                val session = resolveSession()
 
                 // Build recent conversation context for memory retrieval (last 3 turns before current)
                 val recentMessages = messages.dropLast(1).takeLast(3).mapNotNull { vm ->
@@ -120,9 +126,6 @@ class AgentViewModel(
                 }
                 session.context = buildContextConfig(userText, recentMessages)
 
-                // Streaming assistant message placeholder
-                var assistantMsg: MessageViewModel? = null
-                var reasoningMsg: MessageViewModel? = null
                 val toolMsgs = mutableMapOf<String, MessageViewModel>()
                 val toolArgsBuf = mutableMapOf<String, StringBuilder>()
 
@@ -190,13 +193,10 @@ class AgentViewModel(
                         is AgentEvent.StreamRetry -> {
                             Lumberjack.w("AgentViewModel", "Stream retry attempt ${event.attempt}: ${event.reason}")
                             assistantMsg?.let {
-                                it.content.value = ""
+                                it.content.value += "\n\n*[Connection lost, retrying...]*"
                                 assistantMsg = null
                             }
-                            reasoningMsg?.let {
-                                it.content.value = ""
-                                reasoningMsg = null
-                            }
+                            reasoningMsg = null
                             toolMsgs.clear()
                             toolArgsBuf.clear()
                         }
@@ -229,6 +229,9 @@ class AgentViewModel(
                 }
                 } // withTimeout
 
+                // Sync partial assistant/reasoning content to history before saving
+                syncPartialToHistory(session, assistantMsg, reasoningMsg)
+
                 // Sync displayContentJson from UI messages back to session history before saving
                 val json = Json { ignoreUnknownKeys = true }
                 val displayContentIds = messages.mapNotNull { it.displayContentId }.toSet()
@@ -260,9 +263,17 @@ class AgentViewModel(
             } catch (e: kotlinx.coroutines.TimeoutCancellationException) {
                 Lumberjack.e("AgentViewModel", "Agent run timed out", e)
                 error.value = "Agent run timed out after 10 minutes"
+                syncPartialToHistory(session, assistantMsg, reasoningMsg)
+                try {
+                    withContext(NonCancellable) { session.save() }
+                } catch (_: Exception) {}
             } catch (e: Exception) {
                 Lumberjack.e("AgentViewModel", "Agent run failed", e)
                 error.value = e.message ?: "Unknown error"
+                syncPartialToHistory(session, assistantMsg, reasoningMsg)
+                try {
+                    withContext(NonCancellable) { session.save() }
+                } catch (_: Exception) {}
             } finally {
                 isLoading.value = false
             }
@@ -476,6 +487,25 @@ class AgentViewModel(
             }
             sessionId = id
             session.sessionId = id
+        }
+    }
+
+    private fun syncPartialToHistory(
+        session: Session,
+        assistantMsg: MessageViewModel?,
+        reasoningMsg: MessageViewModel?
+    ) {
+        val assistantText = assistantMsg?.content?.value?.ifBlank { null }
+        val reasoningText = reasoningMsg?.content?.value?.ifBlank { null }
+        if (assistantText == null && reasoningText == null) return
+        if (session.history.lastOrNull()?.role == "user") {
+            val marker = INCOMPLETE_RESPONSE_MARKER
+            assistantMsg?.let { it.content.value = assistantText + marker }
+            session.history += LLMMessage(
+                role = "assistant",
+                content = (assistantText ?: "") + marker,
+                reasoningContent = reasoningText
+            )
         }
     }
 }
