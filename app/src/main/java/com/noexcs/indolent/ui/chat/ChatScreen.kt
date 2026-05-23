@@ -29,8 +29,9 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -151,7 +152,7 @@ private fun ChatContent(
     val error by viewModel.error
     val tokenUsage by viewModel.tokenUsage
     var input by remember { mutableStateOf("") }
-    val scrollState = rememberScrollState()
+    val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -164,14 +165,16 @@ private fun ChatContent(
     // New message → auto-scroll to bottom if user hasn't scrolled up
     LaunchedEffect(messages.size) {
         if (!userScrolledUp && messages.isNotEmpty()) {
-            scrollState.animateScrollTo(scrollState.maxValue)
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
         }
     }
 
     // Detect when user stops scrolling — check if they scrolled away from bottom
-    LaunchedEffect(scrollState.isScrollInProgress) {
-        if (!scrollState.isScrollInProgress && scrollState.maxValue > 0) {
-            userScrolledUp = scrollState.value < scrollState.maxValue - 100
+    LaunchedEffect(listState.isScrollInProgress) {
+        if (!listState.isScrollInProgress) {
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            val totalItems = listState.layoutInfo.totalItemsCount
+            userScrolledUp = lastVisibleItem < totalItems - 1
         }
     }
 
@@ -180,7 +183,7 @@ private fun ChatContent(
     val imeVisible = WindowInsets.ime.getBottom(density) > 0
     LaunchedEffect(imeVisible) {
         if (imeVisible && !userScrolledUp && messages.isNotEmpty()) {
-            scrollState.animateScrollTo(scrollState.maxValue)
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
         }
     }
 
@@ -217,34 +220,27 @@ private fun ChatContent(
                 }
             }
             // ── Messages ──────────────────────────────────────────────────
-            Column(
+            LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .verticalScroll(scrollState)
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(2.dp)
             ) {
                 if (messages.isEmpty() && !isLoading) {
-                    EmptyState()
+                    item { EmptyState() }
                 }
 
-                messages.forEach { message ->
-                    key(message.id) {
-                        AnimatedVisibility(
-                            visible = true,
-                            enter = fadeIn(tween(300)),
-                        ) {
-                            MessageBubble(
-                                message = message,
-                                contentDisplayManager = viewModel.contentDisplayManager,
-                            )
-                        }
-                    }
+                items(messages, key = { it.id }) { message ->
+                    MessageBubble(
+                        message = message,
+                        contentDisplayManager = viewModel.contentDisplayManager,
+                    )
                 }
 
                 if (isLoading) {
-                    ThinkingIndicator()
+                    item { ThinkingIndicator() }
                 }
             }
 
@@ -292,7 +288,7 @@ private fun ChatContent(
                         userScrolledUp = false
                         viewModel.sendMessage(input.trim())
                         input = ""
-                        scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }
+                        scope.launch { listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1) }
                     }
                 }
             )
@@ -512,13 +508,13 @@ private fun ThinkingBubble(content: String) {
                 )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        "Thinking process",
+                        stringResource(R.string.thinking_process),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                     if (!expanded) {
                         Text(
-                            "Tap to view reasoning",
+                            stringResource(R.string.tap_to_view_reasoning),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                         )

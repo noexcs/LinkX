@@ -77,8 +77,9 @@ class EmbeddingModel {
                 "token_type_ids" to tokenTypeIdsTensor
             )
 
-            val result = s.run(inputs)
-            val output = result.get(0)
+            val output = s.run(inputs).use { result ->
+                result.get(0)
+            }
             val outputInfo = output.info
             val value = output.value
 

@@ -442,7 +442,7 @@ object ThemeRegistry {
         ThemeDescriptor("matcha", R.string.theme_matcha, isDark = false, colorScheme = MatchaLightScheme),
         ThemeDescriptor("cyber", R.string.theme_cyber, isDark = true, colorScheme = CyberDarkScheme),
         ThemeDescriptor("neutral", R.string.theme_neutral, isDark = false, colorScheme = NeutralLightScheme),
-        ThemeDescriptor("crimson", R.string.theme_crimson, isDark = true, colorScheme = CrimsonScheme),
+        ThemeDescriptor("crimson", R.string.theme_crimson, isDark = false, colorScheme = CrimsonScheme),
         ThemeDescriptor("sunset_orange", R.string.theme_sunset_orange, isDark = false, colorScheme = SunsetOrangeScheme),
         ThemeDescriptor("golden_yellow", R.string.theme_golden_yellow, isDark = false, colorScheme = GoldenYellowScheme),
         ThemeDescriptor("emerald_green", R.string.theme_emerald_green, isDark = false, colorScheme = EmeraldGreenScheme),

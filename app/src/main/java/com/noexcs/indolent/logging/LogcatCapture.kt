@@ -11,8 +11,8 @@ class LogcatCapture(
     private val onEntry: (LogEntry) -> Unit
 ) {
     private val running = AtomicBoolean(false)
-    private var process: Process? = null
-    private var thread: Thread? = null
+    @Volatile private var process: Process? = null
+    @Volatile private var thread: Thread? = null
 
     fun start() {
         if (running.getAndSet(true)) return

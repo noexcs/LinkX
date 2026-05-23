@@ -24,16 +24,7 @@ class HeartbeatRecordRepository(context: Context) {
             ?: emptyList()
     }
 
-    @Synchronized fun lastRecord(): HeartbeatRecord? {
-        val latestFile = dir.listFiles { f -> f.extension == "json" }
-            ?.maxByOrNull { it.lastModified() }
-            ?: return null
-        return try {
-            json.decodeFromString<HeartbeatRecord>(latestFile.readText())
-        } catch (_: Exception) {
-            null
-        }
-    }
+    @Synchronized fun lastRecord(): HeartbeatRecord? = listAll().firstOrNull()
 
     @Synchronized fun pruneOldRecords(keep: Int = 50) {
         val records = listAll()

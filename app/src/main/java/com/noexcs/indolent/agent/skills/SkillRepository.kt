@@ -83,7 +83,7 @@ class SkillRepository(
     }
 
     fun createUserSkill(name: String, description: String): Skill {
-        val fileName = "$name.md"
+        val fileName = "${sanitizeFileName(name)}.md"
         val frontmatter = buildString {
             appendLine("---")
             appendLine("name: $name")
@@ -98,7 +98,7 @@ class SkillRepository(
         if (file.exists()) {
             var suffix = 1
             while (file.exists()) {
-                file = File(userSkillsDir, "${name}-${suffix}.md")
+                file = File(userSkillsDir, "${sanitizeFileName(name)}-${suffix}.md")
                 suffix++
             }
         }
@@ -131,14 +131,14 @@ class SkillRepository(
             ?: throw IOException("Cannot read file")
 
         val parsed = SkillFileParser.parse("imported.md", content)
-        var fileName = "${parsed.name}.md"
+        var fileName = "${sanitizeFileName(parsed.name)}.md"
 
         // Avoid overwriting existing files
         var file = File(userSkillsDir, fileName)
         if (file.exists()) {
             var suffix = 1
             while (file.exists()) {
-                file = File(userSkillsDir, "${parsed.name}-${suffix}.md")
+                file = File(userSkillsDir, "${sanitizeFileName(parsed.name)}-${suffix}.md")
                 suffix++
             }
             fileName = file.name
@@ -155,6 +155,8 @@ class SkillRepository(
             fileName = fileName
         )
     }
+
+    private fun sanitizeFileName(name: String): String = name.replace(Regex("[/\\\\:*\"'?<>|]"), "_").replace("..", "_").trim().ifEmpty { "untitled" }
 
     fun exportSkill(name: String, uri: Uri) {
         val skill = getUserSkills().firstOrNull { it.name == name }

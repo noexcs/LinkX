@@ -10,6 +10,8 @@ import io.modelcontextprotocol.kotlin.sdk.client.StreamableHttpClientTransport
 import io.modelcontextprotocol.kotlin.sdk.types.Implementation
 import io.modelcontextprotocol.kotlin.sdk.types.ListToolsRequest
 import io.modelcontextprotocol.kotlin.sdk.types.TextContent
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
@@ -26,6 +28,8 @@ object McpClientManager {
 
     @Volatile
     private var configHash: Int = 0
+
+    private val rebuildLock = Mutex()
 
     private val ktorClient by lazy {
         HttpClient(OkHttp) {
@@ -50,41 +54,52 @@ object McpClientManager {
             return cachedTools
         }
 
-        disconnectAll()
-        val allTools = mutableListOf<AgentTool>()
-        for (config in configs) {
-            try {
-                val client = Client(
-                    clientInfo = Implementation(
-                        name = "indolent-mcp",
-                        version = "1.0.0"
-                    )
-                )
-                val transport = StreamableHttpClientTransport(
-                    client = ktorClient,
-                    url = config.url,
-                    reconnectionTime = 30.seconds,
-                )
-                client.connect(transport)
-
-                connections[config.id] = McpConnection(config, client)
-
-                val listResult = client.listTools(ListToolsRequest())
-                val serverPrefix = config.name.lowercase().replace(Regex("[\\s]+"), "_")
-                for (tool in listResult.tools) {
-                    allTools.add(McpToolAdapter(config.id, serverPrefix, tool, client))
-                }
-                Lumberjack.i("McpClientManager",
-                    "Connected to '${config.name}' (${config.url}), discovered ${listResult.tools.size} tools")
-            } catch (e: Exception) {
-                Lumberjack.e("McpClientManager",
-                    "Failed to connect to MCP server '${config.name}' (${config.url})", e)
+        rebuildLock.withLock {
+            // Double-check inside the lock
+            if (newHash == configHash && cachedTools.isNotEmpty()) {
+                return cachedTools
             }
-        }
 
-        cachedTools = allTools
-        configHash = newHash
-        return allTools
+            disconnectAll()
+            val allTools = mutableListOf<AgentTool>()
+            for (config in configs) {
+                try {
+                    val client = Client(
+                        clientInfo = Implementation(
+                            name = "indolent-mcp",
+                            version = "1.0.0"
+                        )
+                    )
+                    val transport = StreamableHttpClientTransport(
+                        client = ktorClient,
+                        url = config.url,
+                        reconnectionTime = 30.seconds,
+                    )
+
+                    try {
+                        client.connect(transport)
+                        val listResult = client.listTools(ListToolsRequest())
+                        connections[config.id] = McpConnection(config, client)
+                        val serverPrefix = config.name.lowercase().replace(Regex("[\\s]+"), "_")
+                        for (tool in listResult.tools) {
+                            allTools.add(McpToolAdapter(config.id, serverPrefix, tool, client))
+                        }
+                        Lumberjack.i("McpClientManager",
+                            "Connected to '${config.name}' (${config.url}), discovered ${listResult.tools.size} tools")
+                    } catch (e: Exception) {
+                        try { client.close() } catch (_: Exception) {}
+                        throw e
+                    }
+                } catch (e: Exception) {
+                    Lumberjack.e("McpClientManager",
+                        "Failed to connect to MCP server '${config.name}' (${config.url})", e)
+                }
+            }
+
+            cachedTools = allTools
+            configHash = newHash
+            return allTools
+        }
     }
 
     suspend fun callTool(serverId: String, toolName: String, args: Map<String, Any?>): String {

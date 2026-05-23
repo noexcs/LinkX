@@ -5,6 +5,9 @@ import android.os.Build
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import java.io.File
 
 class CpuInfoTool(context: Context) : AgentTool {
@@ -40,8 +43,8 @@ class CpuInfoTool(context: Context) : AgentTool {
         )
     )
 
-    override suspend fun execute(args: Map<String, Any?>): String {
-        return try {
+    override suspend fun execute(args: Map<String, Any?>): String = withContext(Dispatchers.IO) {
+        try {
             val includeFreq = args["include_frequencies"] as? Boolean ?: true
             val includeTemp = args["include_temperature"] as? Boolean ?: true
 

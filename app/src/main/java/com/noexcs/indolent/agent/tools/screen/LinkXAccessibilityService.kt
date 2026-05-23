@@ -675,7 +675,12 @@ class LinkXAccessibilityService : AccessibilityService() {
             val process = Runtime.getRuntime().exec(
                 arrayOf("screencap", "-p", file.absolutePath)
             )
-            val exitCode = process.waitFor()
+            val completed = process.waitFor(30, TimeUnit.SECONDS)
+            if (!completed) {
+                process.destroy()
+                return "Error: Screenshot capture timed out after 30 seconds"
+            }
+            val exitCode = process.exitValue()
             Lumberjack.i(TAG, "screencap exit=$exitCode, file exists=${file.exists()}, size=${if (file.exists()) file.length() else 0}")
             if (file.exists() && file.length() > 0) {
                 "Screenshot saved: ${file.absolutePath} (${file.length()} bytes)"

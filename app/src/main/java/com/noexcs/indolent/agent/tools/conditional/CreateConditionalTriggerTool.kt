@@ -5,11 +5,8 @@ import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.task.conditional.ConditionMonitorScheduler
-import com.noexcs.indolent.task.conditional.ConditionOperator
-import com.noexcs.indolent.task.conditional.ConditionSource
 import com.noexcs.indolent.task.conditional.ConditionalTrigger
 import com.noexcs.indolent.task.conditional.ConditionalTriggerRepository
-import com.noexcs.indolent.task.conditional.TriggerCondition
 import java.util.UUID
 
 class CreateConditionalTriggerTool(context: Context) : AgentTool {
@@ -82,7 +79,7 @@ class CreateConditionalTriggerTool(context: Context) : AgentTool {
             if (cooldownSeconds < 30) return "Error: cooldown_seconds must be at least 30."
             if (maxFires < 1) return "Error: max_fires_per_day must be at least 1."
 
-            val conditionEntries = parseConditions(conditionsJson)
+            val conditionEntries = ConditionParser.parseConditions(conditionsJson)
             if (conditionEntries.isEmpty()) return "Error: conditions_json must contain at least one valid condition."
 
             val trigger = ConditionalTrigger(
@@ -119,34 +116,4 @@ class CreateConditionalTriggerTool(context: Context) : AgentTool {
         }
     }
 
-    private fun parseConditions(json: String): List<TriggerCondition> {
-        // Simple JSON array parsing without kotlinx.serialization for embedded use
-        val conditions = mutableListOf<TriggerCondition>()
-        val cleaned = json.trim()
-        if (!cleaned.startsWith("[")) return conditions
-
-        // Match each object in the array: { "key": "value", ... }
-        val objectPattern = Regex("""\{[^}]+\}""")
-        objectPattern.findAll(cleaned).forEach { match ->
-            val obj = match.value
-            val source = extractJsonString(obj, "source")?.uppercase()
-            val field = extractJsonString(obj, "field")
-            val operator = extractJsonString(obj, "operator")?.uppercase()
-            val targetValue = extractJsonString(obj, "targetValue")
-
-            if (source != null && field != null && operator != null) {
-                val src = try { ConditionSource.valueOf(source) } catch (_: Exception) { null }
-                val op = try { ConditionOperator.valueOf(operator) } catch (_: Exception) { null }
-                if (src != null && op != null) {
-                    conditions.add(TriggerCondition(src, field, op, targetValue))
-                }
-            }
-        }
-        return conditions
-    }
-
-    private fun extractJsonString(json: String, key: String): String? {
-        val pattern = Regex(""""$key"\s*:\s*"([^"]*)"""")
-        return pattern.find(json)?.groupValues?.getOrNull(1)
-    }
 }

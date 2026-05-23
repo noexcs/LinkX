@@ -46,17 +46,21 @@ class LLMClient(
         val body = buildBody(request.copy(stream = true))
         val httpRequest = buildRequest(body, request.useBetaEndpoint)
         val response = http.newCall(httpRequest).execute()
-        if (!response.isSuccessful) {
-            val errBody = response.body?.string() ?: "no body"
-            throw IOException("HTTP ${response.code}: ${response.message} | body: $errBody")
-        }
-        val source = response.body?.source() ?: throw IOException("Empty response body")
-        while (!source.exhausted()) {
-            val line = source.readUtf8Line() ?: break
-            if (!line.startsWith("data: ")) continue
-            val data = line.removePrefix("data: ")
-            if (data == "[DONE]") break
-            emit(data)
+        try {
+            if (!response.isSuccessful) {
+                val errBody = response.body?.string() ?: "no body"
+                throw IOException("HTTP ${response.code}: ${response.message} | body: $errBody")
+            }
+            val source = response.body?.source() ?: throw IOException("Empty response body")
+            while (!source.exhausted()) {
+                val line = source.readUtf8Line() ?: break
+                if (!line.startsWith("data: ")) continue
+                val data = line.removePrefix("data: ")
+                if (data == "[DONE]") break
+                emit(data)
+            }
+        } finally {
+            response.close()
         }
     }.flowOn(Dispatchers.IO)
 

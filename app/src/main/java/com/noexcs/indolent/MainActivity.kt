@@ -106,6 +106,16 @@ class MainActivity : ComponentActivity() {
             }
         }
         enableEdgeToEdge()
+
+        // Load theme settings synchronously before first composition to prevent flash
+        val preloadSettings = SettingsManager(applicationContext)
+        com.noexcs.indolent.ui.theme.ThemeState.apply {
+            themeKey = preloadSettings.themeKey
+            dynamicColor = preloadSettings.dynamicColor
+            seedColor = Color(preloadSettings.seedColor)
+        }
+        com.noexcs.indolent.ui.theme.ThemeRegistry.loadDynamic(preloadSettings.dynamicThemesJson)
+
         setContent {
             MainContent()
         }
@@ -126,20 +136,11 @@ private fun MainContent() {
     val viewModel = remember {
         AgentViewModel(appContext, memoryManager, settingsManager, conversationRepository)
     }
-    val todoListRepository = remember { TodoListRepository(appContext) }
     val todoItemRepository = remember { TodoItemRepository(appContext) }
+    val todoListRepository = remember { TodoListRepository(appContext, todoItemRepository) }
     val noteRepository = remember { NoteRepository(appContext) }
 
-    // Initialize global theme state from persisted settings on first composition
-    LaunchedEffect(Unit) {
-        val ts = com.noexcs.indolent.ui.theme.ThemeState
-        ts.themeKey = settingsManager.themeKey
-        ts.dynamicColor = settingsManager.dynamicColor
-        ts.seedColor = Color(settingsManager.seedColor)
-        com.noexcs.indolent.ui.theme.ThemeRegistry.loadDynamic(settingsManager.dynamicThemesJson)
-    }
-
-    // Read from global ThemeState — AI tools write here for instant theme switching
+    // Read from global ThemeState — already initialized before setContent — AI tools write here for instant theme switching
     val themeKey = com.noexcs.indolent.ui.theme.ThemeState.themeKey
     val dynamicColor = com.noexcs.indolent.ui.theme.ThemeState.dynamicColor
     val seedColor = com.noexcs.indolent.ui.theme.ThemeState.seedColor
@@ -215,7 +216,7 @@ private fun MainContent() {
                                         }
                                     }
                                 },
-//                                text = { Text(stringResource(item.labelRes)) },
+                                text = { Text(stringResource(item.labelRes)) },
                                 icon = {
                                     Icon(
                                         if (selected) item.selectedIcon else item.unselectedIcon,

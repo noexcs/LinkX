@@ -38,9 +38,9 @@ class AgentClipboardStore {
 
     fun size(ns: String = DEFAULT_SLOT): Int = slots[ns]?.length ?: 0
 
-    fun slotNames(): Set<String> = slots.keys.toSet()
+    fun slotNames(): Set<String> = synchronized(slots) { slots.keys.toSet() }
 
-    fun slotSizes(): Map<String, Int> = slots.mapValues { it.value.length }
+    fun slotSizes(): Map<String, Int> = synchronized(slots) { slots.mapValues { it.value.length } }
 
     fun setPendingPasteContent(ns: String, content: String) {
         pendingPasteNs = ns

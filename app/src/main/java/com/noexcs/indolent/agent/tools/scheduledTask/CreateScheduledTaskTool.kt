@@ -47,7 +47,7 @@ class CreateScheduledTaskTool(context: Context) : AgentTool {
             description = "The full prompt/instructions for the task. Be detailed — include what tools to use, what to check, what to report."
         ),
         ToolParameter(
-            name = "notifyEnabled",
+            name = "notify_enabled",
             type = "boolean",
             description = "Whether to show a notification when the task completes (default: true)",
             required = false
@@ -61,7 +61,7 @@ class CreateScheduledTaskTool(context: Context) : AgentTool {
             val hour = (args["hour"] as? Number)?.toInt() ?: -1
             val minute = (args["minute"] as? Number)?.toInt() ?: -1
             val prompt = (args["prompt"] as? String)?.trim().orEmpty()
-            val notifyEnabled = args["notifyEnabled"] as? Boolean ?: true
+            val notifyEnabled = args["notify_enabled"] as? Boolean ?: true
 
             // Validate
             if (title.isBlank()) return "Error: title is required and must not be blank."

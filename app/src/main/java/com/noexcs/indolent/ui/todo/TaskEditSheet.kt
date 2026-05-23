@@ -114,8 +114,8 @@ fun TaskEditSheet(
                     color = if (dueDate != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextButton(onClick = {
-                    // TODO: Date picker
-                    dueDate = System.currentTimeMillis() + 86400000 // tomorrow
+                    // Defaults to tomorrow since date picker is not yet implemented
+                    dueDate = System.currentTimeMillis() + 86400000
                 }) {
                     Text(stringResource(R.string.set_due_date))
                 }

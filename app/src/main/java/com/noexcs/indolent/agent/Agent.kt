@@ -7,7 +7,9 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.flow
 import org.json.JSONObject
 
@@ -227,14 +229,16 @@ class Agent(
         val results = coroutineScope {
             interpolated.map { (tc, args) ->
                 async {
-                    val tool = toolMap[tc.function.name]
-                    val result = try {
-                        tool?.execute(args) ?: "Tool '${tc.function.name}' not found"
-                    } catch (e: Exception) {
-                        Lumberjack.e("Agent", "Tool '${tc.function.name}' failed", e)
-                        "Error: ${e.message}"
+                    withContext(Dispatchers.IO) {
+                        val tool = toolMap[tc.function.name]
+                        val result = try {
+                            tool?.execute(args) ?: "Tool '${tc.function.name}' not found"
+                        } catch (e: Exception) {
+                            Lumberjack.e("Agent", "Tool '${tc.function.name}' failed", e)
+                            "Error: ${e.message}"
+                        }
+                        Triple(tc, args, result)
                     }
-                    Triple(tc, args, result)
                 }
             }.awaitAll()
         }
@@ -547,9 +551,14 @@ class Agent(
             .toMutableList()
 
         if (turnStarts.size <= 1) {
-            while (estimateTokens(history) > contextBudgetTokens * 0.9 &&
-                   history.size > firstRemovableIdx + 2) {
-                history.removeAt(firstRemovableIdx)
+            // Remove complete turns: find the next user message, then remove everything from
+            // firstRemovableIdx up to (but not including) that user message.
+            var end = if (turnStarts.size == 1) turnStarts[0] else history.size
+            // Don't remove past the last user message
+            if (end <= firstRemovableIdx) end = history.size
+            val removeCount = end - firstRemovableIdx
+            if (removeCount > 0) {
+                repeat(removeCount) { history.removeAt(firstRemovableIdx) }
             }
             return
         }

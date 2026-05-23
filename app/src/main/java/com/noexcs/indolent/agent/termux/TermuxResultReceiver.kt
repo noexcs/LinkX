@@ -7,6 +7,7 @@ import android.content.Intent
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.agent.termux.CommandResult
 import com.termux.shared.termux.TermuxConstants
+import java.util.concurrent.ConcurrentHashMap
 
 class TermuxResultReceiver : BroadcastReceiver() {
 
@@ -17,7 +18,7 @@ class TermuxResultReceiver : BroadcastReceiver() {
         private const val LOG_TAG = "TermuxResultReceiver"
 
         @JvmStatic
-        val resultCallbacks = mutableMapOf<String, (CommandResult) -> Unit>()
+        val resultCallbacks = ConcurrentHashMap<String, (CommandResult) -> Unit>()
     }
 
     override fun onReceive(context: Context, intent: Intent) {

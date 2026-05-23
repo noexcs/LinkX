@@ -21,14 +21,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.data.UsageStats
 import com.noexcs.indolent.ui.theme.GentleSpring
+import androidx.compose.ui.res.stringResource
+import com.noexcs.indolent.R
 
 @Composable
 fun TaskTypeBarChart(stats: UsageStats, modifier: Modifier = Modifier) {
     val items = listOf(
-        BarItem("Conversations", stats.conversationCount.toFloat(), MaterialTheme.colorScheme.primary),
-        BarItem("Scheduled Tasks", stats.scheduledTaskStats.count.toFloat(), MaterialTheme.colorScheme.secondary),
-        BarItem("Conditional Triggers", stats.conditionalTriggerStats.count.toFloat(), MaterialTheme.colorScheme.tertiary),
-        BarItem("Heartbeat", stats.heartbeatStats.count.toFloat(), MaterialTheme.colorScheme.surfaceContainerHighest),
+        BarItem(stringResource(R.string.stats_conversations), stats.conversationCount.toFloat(), MaterialTheme.colorScheme.primary),
+        BarItem(stringResource(R.string.stats_scheduled_tasks), stats.scheduledTaskStats.count.toFloat(), MaterialTheme.colorScheme.secondary),
+        BarItem(stringResource(R.string.stats_conditional_triggers), stats.conditionalTriggerStats.count.toFloat(), MaterialTheme.colorScheme.tertiary),
+        BarItem(stringResource(R.string.stats_heartbeat_short), stats.heartbeatStats.count.toFloat(), MaterialTheme.colorScheme.surfaceContainerHighest),
     )
 
     val maxCount = items.maxOf { it.value }.coerceAtLeast(1f)
@@ -121,12 +123,12 @@ fun SuccessRateBar(
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Text(
-                text = "Success: $successCount",
+                text = "${stringResource(R.string.stats_success)}: $successCount",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                text = "Failed: $failureCount",
+                text = "${stringResource(R.string.stats_failure)}: $failureCount",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -4,6 +4,9 @@ import android.content.Context
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.tantivy.Doc
 import com.noexcs.tantivy.TantivyBM25
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 class MemoryEmbedder(
@@ -15,12 +18,13 @@ class MemoryEmbedder(
 ) {
     private val indexFile = File(context.filesDir, "memory_index.json")
     private val bm25 = TantivyBM25()
+    private val embedLock = Mutex()
 
     fun isReady(): Boolean = model.isReady()
 
-    suspend fun embedAll(memoryText: String): List<MemoryChunk> {
+    suspend fun embedAll(memoryText: String): List<MemoryChunk> = embedLock.withLock {
         val chunkInputs = MemoryChunker.chunk(memoryText)
-        if (chunkInputs.isEmpty()) return emptyList()
+        if (chunkInputs.isEmpty()) return@withLock emptyList()
 
         val chunks = mutableListOf<MemoryChunk>()
         for (input in chunkInputs) {
@@ -35,10 +39,10 @@ class MemoryEmbedder(
         }
         vectorStore.replaceAll(chunks)
         bm25.rebuildIndex(chunks.map { it.toDoc() })
-        return chunks
+        chunks
     }
 
-    suspend fun embedSingle(headerKey: String, text: String): List<MemoryChunk> {
+    suspend fun embedSingle(headerKey: String, text: String): List<MemoryChunk> = embedLock.withLock {
         val chunkInputs = MemoryChunker.chunk("## $headerKey\n$text")
         val chunks = chunkInputs.map { input ->
             val embedding = embedText(input.text)
@@ -54,7 +58,7 @@ class MemoryEmbedder(
             vectorStore.addOrUpdate(chunk)
             bm25.addOrUpdate(chunk.toDoc())
         }
-        return chunks
+        chunks
     }
 
     suspend fun embedQuery(text: String): FloatArray {
@@ -66,9 +70,9 @@ class MemoryEmbedder(
         k: Int = 5,
         bm25Weight: Float = 0.6f,
         vectorWeight: Float = 0.4f
-    ): List<ScoredChunk> {
-        if (!isReady()) return emptyList()
-        if (vectorStore.size() == 0) return emptyList()
+    ): List<ScoredChunk> = embedLock.withLock {
+        if (!isReady()) return@withLock emptyList()
+        if (vectorStore.size() == 0) return@withLock emptyList()
 
         val chunks = vectorStore.all()
 
@@ -88,7 +92,7 @@ class MemoryEmbedder(
         }
 
         if (bm25Scores.isEmpty()) {
-            return chunks.map { ScoredChunk(it, vectorScores[it.id] ?: 0f) }
+            return@withLock chunks.map { ScoredChunk(it, vectorScores[it.id] ?: 0f) }
                 .sortedByDescending { it.score }
                 .take(k)
         }
@@ -108,16 +112,18 @@ class MemoryEmbedder(
         }.sortedByDescending { it.score }
             .take(k)
 
-        return blended
+        blended
     }
 
-    fun loadIndex(): Boolean {
-        val loaded = index.load(indexFile) ?: return false
-        if (loaded.isEmpty()) return false
-        vectorStore.replaceAll(loaded)
-        bm25.rebuildIndex(loaded.map { it.toDoc() })
-        Lumberjack.i("MemoryEmbedder", "Loaded index with ${loaded.size} chunks")
-        return true
+    fun loadIndex(): Boolean = runBlocking {
+        embedLock.withLock {
+            val loaded = index.load(indexFile) ?: return@withLock false
+            if (loaded.isEmpty()) return@withLock false
+            vectorStore.replaceAll(loaded)
+            bm25.rebuildIndex(loaded.map { it.toDoc() })
+            Lumberjack.i("MemoryEmbedder", "Loaded index with ${loaded.size} chunks")
+            true
+        }
     }
 
     fun saveIndex() {

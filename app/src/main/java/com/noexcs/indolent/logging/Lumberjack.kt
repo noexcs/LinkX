@@ -11,6 +11,7 @@ object Lumberjack {
     private var minFileLevel: Level = Level.I
     private var initialized = false
     private var logcatCapture: LogcatCapture? = null
+    @Volatile
     private var capturingLogcat = false
 
     // ── Init ──────────────────────────────────────────────

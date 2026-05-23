@@ -119,7 +119,7 @@ object ToolProvider {
                 if (isToolEnabled("search_memory")) add(SearchMemoryTool(memoryProvider))
                 if (isToolEnabled("send_intent")) add(IntentTool(appContext))
                 if (isToolEnabled("clipboard")) add(ClipboardTool(appContext))
-                if (isToolEnabled("agent_clipboard") && clipboardStore != null) add(AgentClipboardTool(clipboardStore, historyProvider))
+                if (isToolEnabled("agent_clipboard") && clipboardStore != null) add(AgentClipboardTool(appContext, clipboardStore, historyProvider))
                 if (isToolEnabled("calendar")) add(CalendarTool(appContext))
                 if (isToolEnabled("get_current_time")) add(GetCurrentTimeTool())
                 if (isToolEnabled("http_request")) add(HttpRequestTool())

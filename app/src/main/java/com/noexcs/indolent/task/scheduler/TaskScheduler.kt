@@ -99,12 +99,12 @@ class TaskScheduler(private val context: Context) {
             }
         }
 
-        // For WEEKLY, find the next occurrence of the same weekday as creation
+        // For WEEKLY, find the next occurrence of the target weekday
         if (task.frequency == TaskFrequency.WEEKLY) {
-            val createdDay = Calendar.getInstance().apply {
+            val targetDay = task.dayOfWeek ?: Calendar.getInstance().apply {
                 timeInMillis = task.createdAt
             }.get(Calendar.DAY_OF_WEEK)
-            while (target.get(Calendar.DAY_OF_WEEK) != createdDay) {
+            while (target.get(Calendar.DAY_OF_WEEK) != targetDay) {
                 target.add(Calendar.DAY_OF_YEAR, 1)
             }
         }

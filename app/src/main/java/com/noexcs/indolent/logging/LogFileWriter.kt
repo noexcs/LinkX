@@ -52,6 +52,9 @@ class LogFileWriter(
     fun shutdown() {
         running.set(false)
         writerThread.interrupt()
+        try {
+            writerThread.join(2000)
+        } catch (_: InterruptedException) {}
     }
 
     private fun writeEntry(entry: LogEntry) {
@@ -59,6 +62,7 @@ class LogFileWriter(
         val line = entry.format()
         writer.write(line)
         writer.newLine()
+        writer.flush()
         currentFileSize += line.length + 1
 
         if (currentFileSize >= maxFileSize) {
@@ -105,8 +109,12 @@ class LogFileWriter(
         var total = files.sumOf { it.length() }
         for (f in files) {
             if (total <= maxTotalSize) break
-            total -= f.length()
-            f.delete()
+            val size = f.length()
+            if (f.delete()) {
+                total -= size
+            } else {
+                android.util.Log.w("LogFileWriter", "Failed to delete old log file: ${f.name}")
+            }
         }
     }
 

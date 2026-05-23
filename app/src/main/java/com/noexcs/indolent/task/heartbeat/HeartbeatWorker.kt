@@ -123,10 +123,7 @@ class HeartbeatWorker(
             nm.notify(COMPLETE_NOTIFICATION_ID, buildCompleteNotification(null, errorMsg, durationMs))
             nm.cancel(START_NOTIFICATION_ID)
 
-            // Still re-schedule on failure so heartbeat doesn't die permanently
-            HeartbeatScheduler(applicationContext).schedule()
-
-            Result.failure()
+            Result.retry()
         }
     }
 

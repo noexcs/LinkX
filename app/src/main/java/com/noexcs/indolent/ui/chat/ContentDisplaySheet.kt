@@ -35,9 +35,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.noexcs.indolent.R
 import com.noexcs.indolent.agent.tools.interact.ContentType
 import com.noexcs.indolent.agent.tools.interact.DisplayContent
 import com.noexcs.indolent.ui.theme.MarkdownContent
@@ -68,7 +70,7 @@ fun ContentDisplaySheet(
             ContentType.TEXT -> TextContent(content)
             ContentType.PDF -> PdfContent(content)
             ContentType.WEB -> Text(
-                text = "Web page opened in Chrome",
+                text = stringResource(R.string.web_page_opened_in_chrome),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodyMedium,
             )
@@ -85,7 +87,7 @@ private fun ImageContent(content: DisplayContent) {
 
     if (path == null) {
         Text(
-            text = "No image path provided",
+            text = stringResource(R.string.no_image_path_provided),
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -122,7 +124,7 @@ private fun ImageContent(content: DisplayContent) {
                     else -> {
                         val file = File(path)
                         if (!file.exists()) {
-                            loadError = "File not found: ${file.name}"
+                            loadError = context.getString(R.string.image_file_not_found, file.name)
                             return@AndroidView
                         }
                         BitmapFactory.decodeFile(path)
@@ -131,12 +133,12 @@ private fun ImageContent(content: DisplayContent) {
                 if (bitmap != null) {
                     imageView.setImageBitmap(bitmap)
                 } else {
-                    loadError = "Failed to decode image"
+                    loadError = context.getString(R.string.failed_to_decode_image)
                 }
             } catch (e: SecurityException) {
-                loadError = "Permission denied: ${e.message}"
+                loadError = context.getString(R.string.image_load_permission_denied, e.message)
             } catch (e: Exception) {
-                loadError = "Failed to load image: ${e.message}"
+                loadError = context.getString(R.string.failed_to_load_image, e.message)
             }
         },
         modifier = Modifier.fillMaxWidth(),
@@ -147,7 +149,7 @@ private fun ImageContent(content: DisplayContent) {
 private fun TextContent(content: DisplayContent) {
     if (content.textContent.isNullOrBlank()) {
         Text(
-            text = "(empty)",
+            text = stringResource(R.string.empty_text_content),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -177,7 +179,7 @@ private fun PdfContent(content: DisplayContent) {
 
     if (file == null || !file.exists()) {
         Text(
-            text = "PDF file not found",
+            text = stringResource(R.string.pdf_file_not_found),
             color = MaterialTheme.colorScheme.error,
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -187,6 +189,8 @@ private fun PdfContent(content: DisplayContent) {
     var currentPage by remember { mutableIntStateOf(0) }
     var pageCount by remember { mutableIntStateOf(0) }
     var renderError by remember { mutableStateOf<String?>(null) }
+    var currentBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    val pageFormat = stringResource(R.string.page_x_of_y)
 
     // Page navigation
     Row(
@@ -204,10 +208,10 @@ private fun PdfContent(content: DisplayContent) {
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous page", modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.previous_page), modifier = Modifier.size(18.dp))
         }
         Text(
-            text = "Page ${currentPage + 1} of ${if (pageCount > 0) pageCount else "?"}",
+            text = String.format(pageFormat, currentPage + 1, if (pageCount > 0) pageCount.toString() else stringResource(R.string.unknown_page_count)),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(horizontal = 16.dp),
@@ -221,7 +225,7 @@ private fun PdfContent(content: DisplayContent) {
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ),
         ) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next page", modifier = Modifier.size(18.dp))
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = stringResource(R.string.next_page), modifier = Modifier.size(18.dp))
         }
     }
 
@@ -246,25 +250,28 @@ private fun PdfContent(content: DisplayContent) {
                 }
             },
             update = { imageView ->
+                val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                 try {
-                    val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                     val renderer = PdfRenderer(fd)
                     try {
                         pageCount = renderer.pageCount
                         val page = renderer.openPage(currentPage.coerceIn(0, pageCount - 1))
                         try {
+                            currentBitmap?.recycle()
                             val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
                             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                             imageView.setImageBitmap(bitmap)
+                            currentBitmap = bitmap
                         } finally {
                             page.close()
                         }
                     } finally {
                         renderer.close()
-                        fd.close()
                     }
                 } catch (e: Exception) {
-                    renderError = "Failed to render PDF: ${e.message}"
+                    renderError = context.getString(R.string.failed_to_render_pdf, e.message ?: "unknown error")
+                } finally {
+                    fd.close()
                 }
             },
             modifier = Modifier.fillMaxWidth(),

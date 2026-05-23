@@ -2,21 +2,26 @@ package com.noexcs.indolent.todo
 
 import android.content.Context
 import com.noexcs.indolent.logging.Lumberjack
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import java.io.File
 
-class TodoListRepository(context: Context) {
+class TodoListRepository(
+    context: Context,
+    private val itemRepository: TodoItemRepository
+) {
     private val dir = File(context.filesDir, "todo_lists").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
-    fun save(list: TodoList) {
+    suspend fun save(list: TodoList) = withContext(Dispatchers.IO) {
         File(dir, "${list.id}.json").writeText(json.encodeToString(list))
     }
 
-    fun load(id: String): TodoList? {
+    suspend fun load(id: String): TodoList? = withContext(Dispatchers.IO) {
         val file = File(dir, "$id.json")
-        if (!file.exists()) return null
-        return try {
+        if (!file.exists()) return@withContext null
+        try {
             json.decodeFromString<TodoList>(file.readText())
         } catch (e: Exception) {
             Lumberjack.e("TodoListRepository", "Error loading list $id", e)
@@ -24,8 +29,8 @@ class TodoListRepository(context: Context) {
         }
     }
 
-    fun listAll(): List<TodoList> {
-        return dir.listFiles { f -> f.extension == "json" }
+    suspend fun listAll(): List<TodoList> = withContext(Dispatchers.IO) {
+        dir.listFiles { f -> f.extension == "json" }
             ?.mapNotNull { file ->
                 try {
                     json.decodeFromString<TodoList>(file.readText())
@@ -38,7 +43,8 @@ class TodoListRepository(context: Context) {
             ?: emptyList()
     }
 
-    fun delete(id: String) {
+    suspend fun delete(id: String) = withContext(Dispatchers.IO) {
+        itemRepository.deleteByListId(id)
         File(dir, "$id.json").delete()
     }
 }

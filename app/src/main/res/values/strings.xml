@@ -21,6 +21,25 @@
     <string name="copied">Copied</string>
     <string name="regenerate">Regenerate</string>
 
+    <!-- Thinking -->
+    <string name="thinking_process">Thinking process</string>
+    <string name="tap_to_view_reasoning">Tap to view reasoning</string>
+
+    <!-- Content Display -->
+    <string name="web_page_opened_in_chrome">Web page opened in Chrome</string>
+    <string name="no_image_path_provided">No image path provided</string>
+    <string name="empty_text_content">(empty)</string>
+    <string name="pdf_file_not_found">PDF file not found</string>
+    <string name="previous_page">Previous page</string>
+    <string name="next_page">Next page</string>
+    <string name="page_x_of_y">Page %1$d of %2$s</string>
+    <string name="failed_to_render_pdf">Failed to render PDF: %1$s</string>
+    <string name="image_file_not_found">File not found: %1$s</string>
+    <string name="failed_to_decode_image">Failed to decode image</string>
+    <string name="image_load_permission_denied">Permission denied: %1$s</string>
+    <string name="failed_to_load_image">Failed to load image: %1$s</string>
+    <string name="unknown_page_count">?</string>
+
     <!-- Conversations drawer -->
     <string name="no_conversations">No conversations yet</string>
     <string name="search_conversations">Search conversations…</string>
@@ -211,6 +230,8 @@
     <string name="condition_monitor_interval">Monitor Interval</string>
     <string name="condition_monitor_interval_hint">1–60 min (how often to check conditions)</string>
     <string name="condition_monitor_interval_suffix">min</string>
+    <string name="condition_monitor_channel_name">Condition Monitor</string>
+    <string name="condition_monitor_channel_desc">Background condition monitoring</string>
     <string name="condition_monitor_running">Checking conditions…</string>
     <string name="conditional_triggers">Conditional Triggers</string>
     <string name="conditional_triggers_view">View Triggers</string>
@@ -459,4 +480,16 @@
     <string name="theme_golden_yellow">Golden Yellow</string>
     <string name="theme_emerald_green">Emerald Green</string>
     <string name="theme_cyan_blue">Cyan Blue</string>
+
+    <!-- Usage Stats hardcoded strings -->
+    <string name="stats_balance_loading">Loading…</string>
+    <string name="stats_balance_not_configured">Configure API settings to view balance</string>
+    <string name="stats_balance_error">Failed to fetch balance</string>
+    <string name="stats_token_total">Total tokens</string>
+    <string name="stats_token_prompt">Prompt tokens</string>
+    <string name="stats_token_completion">Completion tokens</string>
+    <string name="stats_balance_total">Total balance</string>
+    <string name="stats_balance_topped_up">Topped up</string>
+    <string name="stats_balance_granted">Granted</string>
+    <string name="stats_heartbeat_short">Heartbeat</string>
 </resources>

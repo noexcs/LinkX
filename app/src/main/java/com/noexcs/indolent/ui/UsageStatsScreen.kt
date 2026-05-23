@@ -56,8 +56,8 @@ fun UsageStatsScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
 
-    val promptTokens = settingsManager.cumulativePromptTokens.toInt()
-    val completionTokens = settingsManager.cumulativeCompletionTokens.toInt()
+    val promptTokens = settingsManager.cumulativePromptTokens
+    val completionTokens = settingsManager.cumulativeCompletionTokens
     val totalTokens = promptTokens + completionTokens
 
     var selectedPeriod by remember { mutableStateOf(TimePeriod.TOTAL) }
@@ -230,9 +230,9 @@ fun UsageStatsScreen(
                 title = stringResource(R.string.section_token_usage),
                 subtitle = stringResource(R.string.section_token_usage_subtitle)
             ) {
-                StatRow(label = "Total tokens", value = formatTokens(totalTokens))
-                StatRow(label = "Prompt tokens", value = formatTokens(promptTokens))
-                StatRow(label = "Completion tokens", value = formatTokens(completionTokens))
+                StatRow(label = stringResource(R.string.stats_token_total), value = MessageFormatter.formatTokens(totalTokens.toInt()))
+                StatRow(label = stringResource(R.string.stats_token_prompt), value = MessageFormatter.formatTokens(promptTokens.toInt()))
+                StatRow(label = stringResource(R.string.stats_token_completion), value = MessageFormatter.formatTokens(completionTokens.toInt()))
             }
 
             // User Balance (preserved)
@@ -243,7 +243,7 @@ fun UsageStatsScreen(
                 when (val state = balanceState) {
                     is BalanceState.Loading -> {
                         Text(
-                            "Loading...",
+                            stringResource(R.string.stats_balance_loading),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -251,7 +251,7 @@ fun UsageStatsScreen(
 
                     is BalanceState.NotConfigured -> {
                         Text(
-                            "Configure API settings to view balance",
+                            stringResource(R.string.stats_balance_not_configured),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -259,7 +259,7 @@ fun UsageStatsScreen(
 
                     is BalanceState.Error -> {
                         Text(
-                            "Failed to fetch balance",
+                            stringResource(R.string.stats_balance_error),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.error,
                         )
@@ -268,15 +268,15 @@ fun UsageStatsScreen(
                     is BalanceState.Success -> {
                         state.infos.forEach { info ->
                             StatRow(
-                                label = "Total balance",
+                                label = stringResource(R.string.stats_balance_total),
                                 value = "${info.totalBalance} ${info.currency}"
                             )
                             StatRow(
-                                label = "Topped up",
+                                label = stringResource(R.string.stats_balance_topped_up),
                                 value = "${info.toppedUpBalance} ${info.currency}"
                             )
                             StatRow(
-                                label = "Granted",
+                                label = stringResource(R.string.stats_balance_granted),
                                 value = "${info.grantedBalance} ${info.currency}"
                             )
                         }
@@ -361,10 +361,4 @@ private fun StatRow(label: String, value: String) {
             color = MaterialTheme.colorScheme.onSurface,
         )
     }
-}
-
-private fun formatTokens(n: Int): String = when {
-    n >= 1_000_000 -> "${"%.1f".format(n / 1_000_000.0)}M"
-    n >= 1_000 -> "${"%.1f".format(n / 1_000.0)}k"
-    else -> n.toString()
 }

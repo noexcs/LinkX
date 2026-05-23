@@ -88,8 +88,7 @@ class EditConditionalTriggerTool(context: Context) : AgentTool {
             if (maxFires != null && maxFires < 1) return "Error: max_fires_per_day must be at least 1."
 
             val updatedConditions = if (conditionsJson != null) {
-                // Reuse the same mini-parser from Create tool
-                parseConditions(conditionsJson)
+                ConditionParser.parseConditions(conditionsJson)
                     .takeIf { it.isNotEmpty() }
                     ?: return "Error: conditions_json must contain at least one valid condition."
             } else null
@@ -133,34 +132,4 @@ class EditConditionalTriggerTool(context: Context) : AgentTool {
         }
     }
 
-    private fun parseConditions(json: String): List<com.noexcs.indolent.task.conditional.TriggerCondition> {
-        val conditions = mutableListOf<com.noexcs.indolent.task.conditional.TriggerCondition>()
-        val cleaned = json.trim()
-        if (!cleaned.startsWith("[")) return conditions
-
-        val objectPattern = Regex("""\{[^}]+\}""")
-        objectPattern.findAll(cleaned).forEach { match ->
-            val obj = match.value
-            val source = extractJsonString(obj, "source")?.uppercase()
-            val field = extractJsonString(obj, "field")
-            val operator = extractJsonString(obj, "operator")?.uppercase()
-            val targetValue = extractJsonString(obj, "targetValue")
-
-            if (source != null && field != null && operator != null) {
-                val src = try { com.noexcs.indolent.task.conditional.ConditionSource.valueOf(source) } catch (_: Exception) { null }
-                val op = try { com.noexcs.indolent.task.conditional.ConditionOperator.valueOf(operator) } catch (_: Exception) { null }
-                if (src != null && op != null) {
-                    conditions.add(
-                        com.noexcs.indolent.task.conditional.TriggerCondition(src, field, op, targetValue)
-                    )
-                }
-            }
-        }
-        return conditions
-    }
-
-    private fun extractJsonString(json: String, key: String): String? {
-        val pattern = Regex(""""$key"\s*:\s*"([^"]*)"""")
-        return pattern.find(json)?.groupValues?.getOrNull(1)
-    }
 }

@@ -41,6 +41,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import com.noexcs.indolent.todo.TodoItem
 import com.noexcs.indolent.todo.TodoList
 import com.noexcs.indolent.todo.TodoItemRepository
@@ -73,11 +75,12 @@ fun TodoListsScreen(
     var editingItem by remember { mutableStateOf<TodoItem?>(null) }
 
     var refreshTrigger by remember { mutableStateOf(0) }
-    val lists = remember(refreshTrigger) { todoListRepository.listAll() }
-    val myDayCount = remember(refreshTrigger) { todoItemRepository.listMyDayItems().size }
-    val importantCount = remember(refreshTrigger) { todoItemRepository.listImportantItems().size }
-    val plannedCount = remember(refreshTrigger) { todoItemRepository.listPlannedItems().size }
+    val lists = remember(refreshTrigger) { runBlocking { todoListRepository.listAll() } }
+    val myDayCount = remember(refreshTrigger) { runBlocking { todoItemRepository.listMyDayItems().size } }
+    val importantCount = remember(refreshTrigger) { runBlocking { todoItemRepository.listImportantItems().size } }
+    val plannedCount = remember(refreshTrigger) { runBlocking { todoItemRepository.listPlannedItems().size } }
     val refresh = { refreshTrigger++ }
+    val scope = rememberCoroutineScope()
 
     AnimatedContent(
         targetState = currentView,
@@ -98,38 +101,49 @@ fun TodoListsScreen(
                 onListClick = { list -> currentView = TodoView.ListDetail(list.id, list.name) },
                 onCreateList = { showCreateListDialog = true },
             )
-            is TodoView.SmartList -> TodoSmartListContent(
-                type = view.type,
-                items = when (view.type) {
-                    SmartListType.MY_DAY -> todoItemRepository.listMyDayItems()
-                    SmartListType.IMPORTANT -> todoItemRepository.listImportantItems()
-                    SmartListType.PLANNED -> todoItemRepository.listPlannedItems()
-                },
+            is TodoView.SmartList -> {
+                val smartListItems = remember(refreshTrigger, view.type) {
+                    runBlocking {
+                        when (view.type) {
+                            SmartListType.MY_DAY -> todoItemRepository.listMyDayItems()
+                            SmartListType.IMPORTANT -> todoItemRepository.listImportantItems()
+                            SmartListType.PLANNED -> todoItemRepository.listPlannedItems()
+                        }
+                    }
+                }
+                TodoSmartListContent(
+                    type = view.type,
+                    items = smartListItems,
                 onBack = { currentView = TodoView.Lists },
                 onAddTask = {
                     editingItem = null
                     showTaskEditSheet = true
                 },
                 onToggleComplete = { item ->
-                    todoItemRepository.save(item.copy(isCompleted = !item.isCompleted))
-                    refresh()
+                    scope.launch {
+                        todoItemRepository.save(item.copy(isCompleted = !item.isCompleted))
+                        refresh()
+                    }
                 },
                 onItemClick = { item ->
                     editingItem = item
                     showTaskEditSheet = true
                 },
-            )
+                )
+            }
             is TodoView.ListDetail -> TodoListDetailContent(
                 listName = view.listName,
-                items = todoItemRepository.listByListId(view.listId),
+                items = remember(refreshTrigger, view.listId) { runBlocking { todoItemRepository.listByListId(view.listId) } },
                 onBack = { currentView = TodoView.Lists },
                 onAddTask = {
                     editingItem = null
                     showTaskEditSheet = true
                 },
                 onToggleComplete = { item ->
-                    todoItemRepository.save(item.copy(isCompleted = !item.isCompleted))
-                    refresh()
+                    scope.launch {
+                        todoItemRepository.save(item.copy(isCompleted = !item.isCompleted))
+                        refresh()
+                    }
                 },
                 onItemClick = { item ->
                     editingItem = item
@@ -163,9 +177,11 @@ fun TodoListsScreen(
                                 name = listName.trim(),
                                 sortOrder = lists.size
                             )
-                            todoListRepository.save(newList)
-                            showCreateListDialog = false
-                            refresh()
+                            scope.launch {
+                                todoListRepository.save(newList)
+                                showCreateListDialog = false
+                                refresh()
+                            }
                         }
                     }
                 ) {
@@ -190,10 +206,12 @@ fun TodoListsScreen(
                 editingItem = null
             },
             onSave = { item ->
-                todoItemRepository.save(item)
-                showTaskEditSheet = false
-                editingItem = null
-                refresh()
+                scope.launch {
+                    todoItemRepository.save(item)
+                    showTaskEditSheet = false
+                    editingItem = null
+                    refresh()
+                }
             },
         )
     }

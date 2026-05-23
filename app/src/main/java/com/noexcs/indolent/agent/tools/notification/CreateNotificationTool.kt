@@ -4,6 +4,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
@@ -13,6 +17,7 @@ import com.noexcs.indolent.task.scheduler.ScheduledNotificationWorker
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
 
 class CreateNotificationTool(context: Context) : AgentTool {
     private val appContext = context.applicationContext
@@ -143,6 +148,11 @@ class CreateNotificationTool(context: Context) : AgentTool {
     )
 
     override suspend fun execute(args: Map<String, Any?>): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                return "Error: Notification permission is not granted."
+            }
+        }
         return try {
             val notificationsArg = args["notifications"] as? List<*>
             if (!notificationsArg.isNullOrEmpty()) {
@@ -373,6 +383,10 @@ class CreateNotificationTool(context: Context) : AgentTool {
         val bigText = (args["bigText"] as? String)?.takeIf { it.isNotBlank() } ?: ""
         val groupId = (args["groupId"] as? String)?.takeIf { it.isNotBlank() } ?: ""
 
+        val category = (args["category"] as? String)?.takeIf { it.isNotBlank() } ?: ""
+        val ticker = (args["ticker"] as? String)?.takeIf { it.isNotBlank() } ?: ""
+        val number = (args["number"] as? Number)?.toInt() ?: -1
+
         val data = workDataOf(
             ScheduledNotificationWorker.KEY_TITLE to title,
             ScheduledNotificationWorker.KEY_CONTENT to content,
@@ -385,6 +399,9 @@ class CreateNotificationTool(context: Context) : AgentTool {
             ScheduledNotificationWorker.KEY_SUB_TEXT to subText,
             ScheduledNotificationWorker.KEY_BIG_TEXT to bigText,
             ScheduledNotificationWorker.KEY_GROUP_ID to groupId,
+            ScheduledNotificationWorker.KEY_CATEGORY to category,
+            ScheduledNotificationWorker.KEY_TICKER to ticker,
+            ScheduledNotificationWorker.KEY_NUMBER to number,
         )
 
         val request = OneTimeWorkRequestBuilder<ScheduledNotificationWorker>()
@@ -406,13 +423,12 @@ class CreateNotificationTool(context: Context) : AgentTool {
         }
     }
 
-    private var nextId = 1000
+    private val nextId = AtomicInteger(1000)
 
     private fun generateId(title: String, content: String): Int {
         val base = ("$title$content").hashCode()
         // Ensure uniqueness across the process lifetime by combining hash with a counter
-        val id = base xor nextId
-        nextId++
+        val id = base xor nextId.getAndIncrement()
         return if (id < 0) -id else id
     }
 

@@ -78,10 +78,10 @@ class ConditionMonitorWorker(
             val nm = context.getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
             val channel = android.app.NotificationChannel(
                 CHANNEL_ID,
-                "Condition Monitor",
+                context.getString(R.string.condition_monitor_channel_name),
                 android.app.NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Background condition monitoring"
+                description = context.getString(R.string.condition_monitor_channel_desc)
                 setShowBadge(false)
             }
             nm.createNotificationChannel(channel)

@@ -15,16 +15,20 @@ class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Lumberjack.i(TAG, "Boot completed, rescheduling tasks and heartbeat")
-            goAsync()
+            val pendingResult = goAsync()
             val appContext = context.applicationContext
             CoroutineScope(Dispatchers.IO).launch {
-                TaskScheduler(appContext).rescheduleAll()
-                val settings = SettingsManager(appContext)
-                if (settings.heartbeatEnabled) {
-                    HeartbeatScheduler(appContext).schedule()
-                }
-                if (settings.conditionMonitorEnabled) {
-                    ConditionMonitorScheduler(appContext).schedule()
+                try {
+                    TaskScheduler(appContext).rescheduleAll()
+                    val settings = SettingsManager(appContext)
+                    if (settings.heartbeatEnabled) {
+                        HeartbeatScheduler(appContext).schedule()
+                    }
+                    if (settings.conditionMonitorEnabled) {
+                        ConditionMonitorScheduler(appContext).schedule()
+                    }
+                } finally {
+                    pendingResult.finish()
                 }
             }
         }

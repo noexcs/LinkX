@@ -1,9 +1,13 @@
 package com.noexcs.indolent.agent.tools.notification
 
 import android.app.NotificationChannel
+import android.Manifest
 import android.app.NotificationManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
@@ -90,6 +94,11 @@ class ManageNotificationChannelTool(context: Context) : AgentTool {
     )
 
     override suspend fun execute(args: Map<String, Any?>): String {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(appContext, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                return "Error: Notification permission is not granted."
+            }
+        }
         return try {
             val action = (args["action"] as? String)?.lowercase()?.trim()
                 ?: return "Error: 'action' is required (one of: create, delete, list)."

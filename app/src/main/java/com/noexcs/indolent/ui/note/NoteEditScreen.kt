@@ -61,10 +61,16 @@ fun NoteEditScreen(
     var showDiscardConfirm by remember { mutableStateOf(false) }
     var hasManualChanges by remember { mutableStateOf(false) }
 
+    // Guard flag to prevent auto-save after navigation away
+    var isActive by remember { mutableStateOf(true) }
+    DisposableEffect(Unit) {
+        onDispose { isActive = false }
+    }
+
     // Auto-save after 1.5s of inactivity
     LaunchedEffect(title, content, color, isPinned, isArchived, labelsText) {
         kotlinx.coroutines.delay(1500)
-        if (title.isNotBlank() || content.isNotBlank()) {
+        if (isActive && (title.isNotBlank() || content.isNotBlank())) {
             val labels = labelsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
             onSave(
                 NoteItem(

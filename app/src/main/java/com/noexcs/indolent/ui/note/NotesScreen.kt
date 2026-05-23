@@ -272,7 +272,6 @@ private fun NotesGridContent(
                     modifier = Modifier
                         .fillMaxSize()
                         .weight(1f),
-//                    .padding(padding),
                 contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalItemSpacing = 8.dp,
@@ -291,7 +290,6 @@ private fun NotesGridContent(
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize(),
-//                    .padding(padding),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {

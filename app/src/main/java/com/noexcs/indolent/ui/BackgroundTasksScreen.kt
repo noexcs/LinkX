@@ -201,9 +201,12 @@ private fun ScheduledTaskListContent(
                                 pendingDeleteTasks[task.id] = task
                                 tasks = tasks.filter { it.id != task.id }
                                 coroutineScope.launch {
+                                    var undoTriggered = false
                                     val autoDismissJob = coroutineScope.launch {
                                         delay(15_000)
-                                        snackbarHostState.currentSnackbarData?.dismiss()
+                                        if (!undoTriggered) {
+                                            snackbarHostState.currentSnackbarData?.dismiss()
+                                        }
                                     }
                                     val result = snackbarHostState.showSnackbar(
                                         message = context.getString(R.string.task_deleted, task.title),
@@ -213,16 +216,19 @@ private fun ScheduledTaskListContent(
                                     autoDismissJob.cancel()
                                     when (result) {
                                         SnackbarResult.ActionPerformed -> {
+                                            undoTriggered = true
                                             pendingDeleteTasks.remove(task.id)
                                             tasks = repo.listAll()
                                         }
                                         SnackbarResult.Dismissed -> {
-                                            pendingDeleteTasks.remove(task.id)?.let { t ->
-                                                scheduler.cancel(t.id)
-                                                executionRepo.deleteByTaskId(t.id)
-                                                repo.delete(t.id)
+                                            if (!undoTriggered) {
+                                                pendingDeleteTasks.remove(task.id)?.let { t ->
+                                                    scheduler.cancel(t.id)
+                                                    executionRepo.deleteByTaskId(t.id)
+                                                    repo.delete(t.id)
+                                                }
+                                                tasks = repo.listAll()
                                             }
-                                            tasks = repo.listAll()
                                         }
                                     }
                                 }
@@ -338,7 +344,7 @@ private fun ConditionalTriggerListContent(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun TaskCard(
+internal fun TaskCard(
     task: ScheduledTask,
     onClick: () -> Unit,
     onToggle: (Boolean) -> Unit,
@@ -428,7 +434,7 @@ private fun TaskCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ScheduledTaskEditSheet(
+internal fun ScheduledTaskEditSheet(
     task: ScheduledTask?,
     onDismiss: () -> Unit,
     onSave: (ScheduledTask) -> Unit
@@ -617,7 +623,7 @@ private fun TriggerCard(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ExecutionHistorySheet(
+internal fun ExecutionHistorySheet(
     taskId: String,
     executionRepo: TaskExecutionRepository,
     onViewInChat: (TaskExecutionRecord) -> Unit,
@@ -662,7 +668,7 @@ private fun ExecutionHistorySheet(
 // ─── Trigger History Item ────────────────────────────────────────────────────────
 
 @Composable
-private fun TriggerHistoryItem(
+internal fun TriggerHistoryItem(
     record: TaskExecutionRecord,
     dateFormat: SimpleDateFormat,
     onClick: () -> Unit

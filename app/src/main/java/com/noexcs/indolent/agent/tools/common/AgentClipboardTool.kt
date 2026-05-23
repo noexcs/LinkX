@@ -1,15 +1,19 @@
 package com.noexcs.indolent.agent.tools.common
 
+import android.content.Context
 import com.noexcs.indolent.agent.LLMMessage
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
+import com.noexcs.indolent.agent.tools.filesystem.FsUtils
 import com.noexcs.indolent.logging.Lumberjack
 import java.io.File
 
 class AgentClipboardTool(
+    context: Context,
     private val store: AgentClipboardStore,
     private val historyProvider: () -> List<LLMMessage>?
 ) : AgentTool {
+    private val appContext = context.applicationContext
 
     override val name = "agent_clipboard"
     override val description = """
@@ -145,7 +149,9 @@ class AgentClipboardTool(
     }
 
     private fun copyFromFile(ns: String, path: String, appendText: String?): String {
-        val file = File(path)
+        val file = FsUtils.resolveFile(path, appContext)
+            ?: return "Error: Invalid path '$path'"
+
         if (!file.exists()) {
             return "Error: File not found: $path"
         }
@@ -154,6 +160,10 @@ class AgentClipboardTool(
         }
         if (!file.canRead()) {
             return "Error: Cannot read file: $path"
+        }
+
+        if (file.length() > 10 * 1024 * 1024) {
+            return "Error: File too large (max 10MB)"
         }
 
         val content = try {

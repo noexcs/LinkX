@@ -402,7 +402,7 @@ class CalendarTool(context: Context) : AgentTool {
                     return parsed.time
                 }
             } catch (e: Exception) {
-                Lumberjack.e("CalendarTool", "Error parsing time format", e)
+                Lumberjack.d("CalendarTool", "Error parsing time format")
             }
         }
 

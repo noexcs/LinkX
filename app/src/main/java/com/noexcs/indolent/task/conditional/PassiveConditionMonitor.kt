@@ -23,7 +23,8 @@ import kotlinx.coroutines.launch
  */
 class PassiveConditionMonitor(private val context: Context) {
 
-    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private var scopeJob = SupervisorJob()
+    private var scope = CoroutineScope(scopeJob + Dispatchers.IO)
     private val handler = Handler(Looper.getMainLooper())
     private var registered = false
 
@@ -45,6 +46,10 @@ class PassiveConditionMonitor(private val context: Context) {
 
     fun start() {
         if (registered) return
+        if (!scopeJob.isActive) {
+            scopeJob = SupervisorJob()
+            scope = CoroutineScope(scopeJob + Dispatchers.IO)
+        }
         try {
             context.registerReceiver(
                 batteryReceiver,
@@ -69,23 +74,18 @@ class PassiveConditionMonitor(private val context: Context) {
 
     fun stop() {
         if (!registered) return
-        var receiverUnregistered = false
-        var observerUnregistered = false
         try {
             context.unregisterReceiver(batteryReceiver)
-            receiverUnregistered = true
         } catch (e: Exception) {
             Lumberjack.e(TAG, "Error unregistering battery receiver", e)
         }
         try {
             context.contentResolver.unregisterContentObserver(settingsObserver)
-            observerUnregistered = true
         } catch (e: Exception) {
             Lumberjack.e(TAG, "Error unregistering settings observer", e)
         }
-        if (receiverUnregistered && observerUnregistered) {
-            registered = false
-        }
+        registered = false
+        scopeJob.cancel()
         Lumberjack.d(TAG, "Passive monitoring stopped")
     }
 

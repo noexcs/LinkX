@@ -40,7 +40,7 @@ object PythonInit {
     private fun runTests() {
         try {
             val mod = Python.getInstance().getModule("test_deps")
-            val result = mod.callAttr("test").toString()
+            val result = mod.callAttr("test")?.toString() ?: "No result"
             Lumberjack.i("PythonInit", "\n=== Dependency Tests ===\n$result")
         } catch (e: Exception) {
             Lumberjack.e("PythonInit", "Test harness error: ${e.message}", e)

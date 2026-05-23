@@ -5,6 +5,7 @@ import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.logging.Lumberjack
 import java.io.File
+import java.nio.charset.Charset
 
 class ReadFileTool(private val context: Context) : AgentTool {
     private val appContext = context.applicationContext
@@ -45,6 +46,8 @@ class ReadFileTool(private val context: Context) : AgentTool {
     override suspend fun execute(args: Map<String, Any?>): String {
         val rawPath = args["path"] as? String ?: return "Error: path is required"
         val maxBytes = (args["max_bytes"] as? Number)?.toInt() ?: 100000
+        val encodingName = args["encoding"] as? String ?: "UTF-8"
+        val charset = try { Charset.forName(encodingName) } catch (_: Exception) { Charsets.UTF_8 }
 
         if (FsUtils.isPathTraversal(rawPath)) {
             Lumberjack.w("ReadFileTool", "Path traversal rejected: $rawPath")
@@ -55,9 +58,9 @@ class ReadFileTool(private val context: Context) : AgentTool {
 
         return try {
             if (rawPath.startsWith("content://")) {
-                readSAF(rawPath, maxBytes)
+                readSAF(rawPath, maxBytes, charset)
             } else {
-                readFile(rawPath, maxBytes)
+                readFile(rawPath, maxBytes, charset)
             }
         } catch (e: SecurityException) {
             Lumberjack.e("ReadFileTool", "Permission denied: $rawPath", e)
@@ -68,7 +71,7 @@ class ReadFileTool(private val context: Context) : AgentTool {
         }
     }
 
-    private fun readFile(rawPath: String, maxBytes: Int): String {
+    private fun readFile(rawPath: String, maxBytes: Int, charset: Charset = Charsets.UTF_8): String {
         val file = FsUtils.resolveFile(rawPath, appContext)
             ?: return "Error: Path '$rawPath' is outside allowed directories. Use ~/filename for app-local files, or a content:// URI for external storage."
 
@@ -87,7 +90,7 @@ class ReadFileTool(private val context: Context) : AgentTool {
             "\n[Warning: File appears to be binary, showing text preview only]\n"
         } else ""
 
-        val text = String(bytes, Charsets.UTF_8)
+        val text = String(bytes, charset)
         val truncated = if (size > maxBytes) "\n[Truncated at $maxBytes / $size bytes]" else ""
 
         return buildString {
@@ -102,7 +105,7 @@ class ReadFileTool(private val context: Context) : AgentTool {
         }
     }
 
-    private fun readSAF(uri: String, maxBytes: Int): String {
+    private fun readSAF(uri: String, maxBytes: Int, charset: Charset = Charsets.UTF_8): String {
         val docFile = FsUtils.resolveDocumentFile(uri, appContext)
             ?: return "Error: Cannot resolve SAF URI — $uri"
 
@@ -118,7 +121,7 @@ class ReadFileTool(private val context: Context) : AgentTool {
             "\n[Warning: File appears to be binary, showing text preview only]\n"
         } else ""
 
-        val text = String(bytes, Charsets.UTF_8)
+        val text = String(bytes, charset)
         val truncated = if (bytes.size >= maxBytes) "\n[Truncated at $maxBytes bytes]" else ""
 
         return buildString {

@@ -48,6 +48,7 @@ class SettingsManager(context: Context) {
             null
         }
     }
+    private val encryptionFailed = securePrefs == null
 
     var userSystemPrompt: String
         get() = prefs.getString("user_system_prompt", "") ?: ""
@@ -67,11 +68,13 @@ class SettingsManager(context: Context) {
         set(value) = prefs.edit { putString("base_url", value) }
 
     var apiKey: String
-        get() = securePrefs?.getString("api_key", null) ?: prefs.getString("api_key", "") ?: ""
+        get() = if (encryptionFailed) "" else securePrefs?.getString("api_key", null) ?: ""
         set(value) {
-            val sp = securePrefs ?: prefs
-            sp.edit { putString("api_key", value) }
+            if (encryptionFailed) return
+            securePrefs?.edit { putString("api_key", value) }
         }
+
+    fun isEncryptionAvailable(): Boolean = !encryptionFailed
 
     var model: String
         get() = prefs.getString("model", "") ?: ""
@@ -252,5 +255,6 @@ class SettingsManager(context: Context) {
         } else {
             LocaleList.forLanguageTags(tag)
         }
+        LocaleNotifier.notifyChanged()
     }
 }

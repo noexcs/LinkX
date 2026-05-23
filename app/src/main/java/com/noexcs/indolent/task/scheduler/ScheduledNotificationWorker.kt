@@ -32,6 +32,9 @@ class ScheduledNotificationWorker(
             val subText = inputData.getString(KEY_SUB_TEXT) ?: ""
             val bigText = inputData.getString(KEY_BIG_TEXT) ?: ""
             val groupId = inputData.getString(KEY_GROUP_ID) ?: ""
+            val category = inputData.getString(KEY_CATEGORY) ?: ""
+            val ticker = inputData.getString(KEY_TICKER) ?: ""
+            val number = inputData.getInt(KEY_NUMBER, -1)
 
             val nm = applicationContext.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             ensureChannel(nm, channelId, channelName, priority)
@@ -54,6 +57,9 @@ class ScheduledNotificationWorker(
                         .setSummaryText(subText.ifBlank { null })
                 )
             }
+            if (ticker.isNotEmpty()) builder.setTicker(ticker)
+            if (number >= 0) builder.setNumber(number)
+            if (category.isNotEmpty()) normalizeCategory(category)?.let { builder.setCategory(it) }
             if (groupId.isNotEmpty()) builder.setGroup(groupId)
 
             val notificationId = ("$title$content").hashCode()
@@ -81,6 +87,26 @@ class ScheduledNotificationWorker(
         nm.createNotificationChannel(NotificationChannel(channelId, channelName, importance))
     }
 
+    private fun normalizeCategory(category: String): String? = when (category.lowercase()) {
+        "alarm" -> NotificationCompat.CATEGORY_ALARM
+        "call" -> NotificationCompat.CATEGORY_CALL
+        "email" -> NotificationCompat.CATEGORY_EMAIL
+        "event" -> NotificationCompat.CATEGORY_EVENT
+        "message" -> NotificationCompat.CATEGORY_MESSAGE
+        "navigation" -> NotificationCompat.CATEGORY_NAVIGATION
+        "progress" -> NotificationCompat.CATEGORY_PROGRESS
+        "promo" -> NotificationCompat.CATEGORY_PROMO
+        "recommendation" -> NotificationCompat.CATEGORY_RECOMMENDATION
+        "reminder" -> NotificationCompat.CATEGORY_REMINDER
+        "service" -> NotificationCompat.CATEGORY_SERVICE
+        "social" -> NotificationCompat.CATEGORY_SOCIAL
+        "status" -> NotificationCompat.CATEGORY_STATUS
+        "system" -> NotificationCompat.CATEGORY_SYSTEM
+        "transport" -> NotificationCompat.CATEGORY_TRANSPORT
+        "workout" -> NotificationCompat.CATEGORY_WORKOUT
+        else -> null
+    }
+
     companion object {
         private const val TAG = "ScheduledNotifWorker"
         private const val DEFAULT_CHANNEL_ID = "ai_tools"
@@ -96,5 +122,8 @@ class ScheduledNotificationWorker(
         const val KEY_SUB_TEXT = "sub_text"
         const val KEY_BIG_TEXT = "big_text"
         const val KEY_GROUP_ID = "group_id"
+        const val KEY_CATEGORY = "category"
+        const val KEY_TICKER = "ticker"
+        const val KEY_NUMBER = "number"
     }
 }

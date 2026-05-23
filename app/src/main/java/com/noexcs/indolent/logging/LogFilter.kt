@@ -15,10 +15,10 @@ data class LogFilter(
 
         fun parseSince(raw: String): Long? {
             val trimmed = raw.trim()
-            // Try epoch millis
-            trimmed.toLongOrNull()?.let { return it }
-            // Try epoch seconds
-            trimmed.toLongOrNull()?.let { return it * 1000 }
+            trimmed.toLongOrNull()?.let { longVal ->
+                // 10-digit numbers or values < ~Sept 2001 in millis → treat as epoch seconds
+                return if (trimmed.length <= 10 || longVal < 1_000_000_000_000L) longVal * 1000 else longVal
+            }
             // Try relative: "5m", "1h", "30s", "2d", "10min"
             val re = Regex("""^(\d+)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes|h|hr|hrs|hour|hours|d|day|days)?$""", RegexOption.IGNORE_CASE)
             val match = re.find(trimmed) ?: return null

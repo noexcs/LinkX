@@ -17,7 +17,9 @@ object DeviceOptimizationHelper {
         val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
             data = Uri.parse("package:${context.packageName}")
         }
-        context.startActivity(intent)
+        if (intent.resolveActivity(context.packageManager) != null) {
+            context.startActivity(intent)
+        }
     }
 
     fun openAutoStartSettings(context: Context): Boolean {

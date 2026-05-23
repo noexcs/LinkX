@@ -6,6 +6,9 @@ import com.noexcs.indolent.agent.PersistedSession
 import com.noexcs.indolent.agent.SessionMetadata
 import com.noexcs.indolent.agent.SessionPersistence
 import com.noexcs.indolent.agent.SessionType
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -13,15 +16,14 @@ class FileChatHistoryProvider(context: Context) : SessionPersistence {
 
     private val dir = File(context.filesDir, "sessions").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
-    private val syncLock = Any()
+    private val mutex = Mutex()
 
     override suspend fun save(
         sessionId: String,
         messages: List<LLMMessage>,
         title: String,
         type: SessionType
-    ) {
-        synchronized(syncLock) {
+    ) = mutex.withLock {
             val file = File(dir, "${sessionId}.json")
             val existingCreatedAt = if (file.exists()) {
                 try {
@@ -38,22 +40,19 @@ class FileChatHistoryProvider(context: Context) : SessionPersistence {
                 type = type
             )
             file.writeText(json.encodeToString(PersistedSession.serializer(), sessionData))
-        }
     }
 
-    override suspend fun load(sessionId: String): List<LLMMessage>? {
-        return synchronized(syncLock) {
-            val file = File(dir, "$sessionId.json")
-            if (!file.exists()) null
-            else try {
-                json.decodeFromString(PersistedSession.serializer(), file.readText()).messages
-            } catch (_: Exception) { null }
-        }
+    override suspend fun load(sessionId: String): List<LLMMessage>? = mutex.withLock {
+        val file = File(dir, "$sessionId.json")
+        if (!file.exists()) null
+        else try {
+            json.decodeFromString(PersistedSession.serializer(), file.readText()).messages
+        } catch (_: Exception) { null }
     }
 
-    override fun listSessions(): List<SessionMetadata> {
-        synchronized(syncLock) {
-            return dir.listFiles { f -> f.extension == "json" }
+    override fun listSessions(): List<SessionMetadata> = runBlocking {
+        mutex.withLock {
+            dir.listFiles { f -> f.extension == "json" }
                 ?.mapNotNull { file ->
                     try {
                         val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
@@ -71,16 +70,17 @@ class FileChatHistoryProvider(context: Context) : SessionPersistence {
         }
     }
 
-    override fun delete(sessionId: String) {
-        synchronized(syncLock) {
+    override fun delete(sessionId: String) = runBlocking {
+        mutex.withLock {
             File(dir, "$sessionId.json").delete()
+            Unit
         }
     }
 
-    override fun rename(sessionId: String, newTitle: String) {
-        synchronized(syncLock) {
+    override fun rename(sessionId: String, newTitle: String) = runBlocking {
+        mutex.withLock {
             val file = File(dir, "$sessionId.json")
-            if (!file.exists()) return
+            if (!file.exists()) return@withLock
             try {
                 val sessionData = json.decodeFromString(PersistedSession.serializer(), file.readText())
                 val updated = sessionData.copy(title = newTitle, updatedAt = System.currentTimeMillis())

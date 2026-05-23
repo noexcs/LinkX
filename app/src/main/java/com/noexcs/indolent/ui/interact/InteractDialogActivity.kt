@@ -38,6 +38,8 @@ class InteractDialogActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        radioSelection = savedInstanceState?.getInt("radioSelection") ?: 0
+
         window?.apply {
             addFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND)
             setDimAmount(0.6f)
@@ -236,6 +238,11 @@ class InteractDialogActivity : ComponentActivity() {
         val min = parts.getOrNull(0)?.toIntOrNull() ?: 0
         val max = parts.getOrNull(1)?.toIntOrNull() ?: 100
         return if (min < max) Pair(min, max) else Pair(max, min)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putInt("radioSelection", radioSelection)
     }
 
     private fun sendResult(requestId: String, answer: String) {

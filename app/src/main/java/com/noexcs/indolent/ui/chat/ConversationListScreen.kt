@@ -21,6 +21,9 @@ import com.noexcs.indolent.R
 import com.noexcs.indolent.data.FileChatHistoryProvider
 import com.noexcs.indolent.agent.SessionMetadata
 import com.noexcs.indolent.agent.SessionType
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,15 +33,21 @@ fun ConversationDrawerContent(
     onNewChat: () -> Unit,
     refreshTrigger: Int = 0
 ) {
-    var conversations by remember { mutableStateOf(repository.listSessions().filter { it.type == SessionType.CONVERSATION }) }
+    var conversations by remember { mutableStateOf(emptyList<SessionMetadata>()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
     var conversationToDelete by remember { mutableStateOf<SessionMetadata?>(null) }
     var conversationToRename by remember { mutableStateOf<SessionMetadata?>(null) }
     var renameText by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
     fun refresh() {
-        conversations = repository.listSessions().filter { it.type == SessionType.CONVERSATION }
+        scope.launch(Dispatchers.IO) {
+            val loaded = repository.listSessions().filter { it.type == SessionType.CONVERSATION }
+            withContext(Dispatchers.Main) {
+                conversations = loaded
+            }
+        }
     }
 
     // Refresh when trigger changes or on initial load
@@ -107,6 +116,7 @@ fun ConversationDrawerContent(
                         .clickable {
                             onLoad(meta.sessionId)
                             searchActive = false
+                            searchQuery = ""
                         },
                     colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surface),
                 )
@@ -167,9 +177,13 @@ fun ConversationDrawerContent(
             text = { Text(stringResource(R.string.delete_conversation_message, title)) },
             confirmButton = {
                 TextButton(onClick = {
-                    repository.delete(meta.sessionId)
-                    refresh()
-                    conversationToDelete = null
+                    scope.launch(Dispatchers.IO) {
+                        repository.delete(meta.sessionId)
+                        withContext(Dispatchers.Main) {
+                            refresh()
+                            conversationToDelete = null
+                        }
+                    }
                 }) {
                     Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
                 }
@@ -200,10 +214,16 @@ fun ConversationDrawerContent(
                 TextButton(
                     onClick = {
                         if (renameText.isNotBlank()) {
-                            repository.rename(meta.sessionId, renameText.trim())
-                            refresh()
+                            scope.launch(Dispatchers.IO) {
+                                repository.rename(meta.sessionId, renameText.trim())
+                                withContext(Dispatchers.Main) {
+                                    refresh()
+                                    conversationToRename = null
+                                }
+                            }
+                        } else {
+                            conversationToRename = null
                         }
-                        conversationToRename = null
                     },
                     enabled = renameText.isNotBlank()
                 ) {
@@ -243,54 +263,52 @@ private fun DrawerConversationItem(
         modifier = Modifier.height(48.dp),
         shape = MaterialTheme.shapes.medium,
         badge = {
-            Box {
-                IconButton(
-                    onClick = { isMenuExpanded = true },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        Icons.Default.MoreVert,
-                        contentDescription = stringResource(R.string.options),
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                    )
-                }
-                if (isMenuExpanded) {
-                    ModalBottomSheet(
-                        onDismissRequest = { isMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.rename)) },
-                            onClick = {
-                                isMenuExpanded = false
-                                onRename()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Edit,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = { Text(stringResource(R.string.delete)) },
-                            onClick = {
-                                isMenuExpanded = false
-                                onDelete()
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(18.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                        )
-                    }
-                }
+            IconButton(
+                onClick = { isMenuExpanded = true },
+                modifier = Modifier.size(32.dp)
+            ) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.options),
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                )
             }
         }
     )
+    if (isMenuExpanded) {
+        ModalBottomSheet(
+            onDismissRequest = { isMenuExpanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.rename)) },
+                onClick = {
+                    isMenuExpanded = false
+                    onRename()
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.delete)) },
+                onClick = {
+                    isMenuExpanded = false
+                    onDelete()
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            )
+        }
+    }
 }

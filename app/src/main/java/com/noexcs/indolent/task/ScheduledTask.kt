@@ -12,7 +12,8 @@ data class ScheduledTask(
     val prompt: String,
     val notifyEnabled: Boolean = true,
     val enabled: Boolean = true,
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val dayOfWeek: Int? = null  // 1=Sunday..7=Saturday, for WEEKLY frequency
 )
 
 @Serializable

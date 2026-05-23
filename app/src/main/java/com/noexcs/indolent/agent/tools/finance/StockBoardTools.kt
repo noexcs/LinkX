@@ -59,7 +59,7 @@ object StockBoardIndustryNameEmTool : AgentTool {
         try {
             PythonInit.ensureStarted()
             val mod = Python.getInstance().getModule("stock_board")
-            mod.callAttr("stock_board_industry_name_em").toString()
+            mod.callAttr("stock_board_industry_name_em")?.toString() ?: "No result"
         } catch (e: Exception) {
             Lumberjack.e("StockBoardTools", "Error in stock_board_industry_name_em", e)
             "Error: ${e.message}"
@@ -75,7 +75,7 @@ object StockBoardConceptNameEmTool : AgentTool {
         try {
             PythonInit.ensureStarted()
             val mod = Python.getInstance().getModule("stock_board")
-            mod.callAttr("stock_board_concept_name_em").toString()
+            mod.callAttr("stock_board_concept_name_em")?.toString() ?: "No result"
         } catch (e: Exception) {
             Lumberjack.e("StockBoardTools", "Error in stock_board_concept_name_em", e)
             "Error: ${e.message}"

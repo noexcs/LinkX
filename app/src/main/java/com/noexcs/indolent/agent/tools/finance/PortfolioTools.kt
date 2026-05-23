@@ -98,7 +98,7 @@ object PortfolioListTool : AgentTool {
         try {
             PythonInit.ensureStarted()
             val mod = Python.getInstance().getModule("portfolio")
-            mod.callAttr("portfolio_list").toString()
+            mod.callAttr("portfolio_list")?.toString() ?: "No result"
         } catch (e: Exception) {
             Lumberjack.e("PortfolioTools", "Error in portfolio_list", e)
             "Error: ${e.message}"
@@ -114,7 +114,7 @@ object PortfolioSummaryTool : AgentTool {
         try {
             PythonInit.ensureStarted()
             val mod = Python.getInstance().getModule("portfolio")
-            mod.callAttr("portfolio_summary").toString()
+            mod.callAttr("portfolio_summary")?.toString() ?: "No result"
         } catch (e: Exception) {
             Lumberjack.e("PortfolioTools", "Error in portfolio_summary", e)
             "Error: ${e.message}"
@@ -130,7 +130,7 @@ object PortfolioAnalyzeAllTool : AgentTool {
         try {
             PythonInit.ensureStarted()
             val mod = Python.getInstance().getModule("portfolio")
-            mod.callAttr("portfolio_analyze_all").toString()
+            mod.callAttr("portfolio_analyze_all")?.toString() ?: "No result"
         } catch (e: Exception) {
             Lumberjack.e("PortfolioTools", "Error in portfolio_analyze_all", e)
             "Error: ${e.message}"

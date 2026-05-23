@@ -29,6 +29,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -62,7 +63,10 @@ fun ConditionalTriggerListScreen(
     val context = LocalContext.current
     val triggerRepo = remember { ConditionalTriggerRepository(context.applicationContext) }
     val executionRepo = remember { TaskExecutionRepository(context.applicationContext) }
-    val triggers = remember { triggerRepo.listAll() }
+    var triggers by remember { mutableStateOf(triggerRepo.listAll()) }
+    LaunchedEffect(Unit) {
+        triggers = triggerRepo.listAll()
+    }
     var historyTriggerId by remember { mutableStateOf<String?>(null) }
 
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -203,7 +207,10 @@ private fun ConditionalExecutionHistorySheet(
     onViewInChat: (TaskExecutionRecord) -> Unit,
     onDismiss: () -> Unit
 ) {
-    val records = remember { executionRepo.listByTaskId(triggerId) }
+    var records by remember { mutableStateOf(executionRepo.listByTaskId(triggerId)) }
+    LaunchedEffect(triggerId) {
+        records = executionRepo.listByTaskId(triggerId)
+    }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
 
