@@ -176,13 +176,6 @@ class AudioControlTool(context: Context) : AgentTool {
             else -> return "Error: Unknown ringer mode '$mode'. Use \"normal\", \"vibrate\", or \"silent\"."
         }
 
-        // Check if we're allowed (DND can block this)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            if (ringerMode == AudioManager.RINGER_MODE_SILENT && !audioManager.isVolumeFixed) {
-                // OK
-            }
-        }
-
         audioManager.ringerMode = ringerMode
         Lumberjack.i("AudioControlTool", "Set ringer mode to $mode")
         return "OK: Ringer mode set to $mode"

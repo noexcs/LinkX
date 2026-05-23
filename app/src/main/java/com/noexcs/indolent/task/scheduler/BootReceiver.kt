@@ -7,18 +7,25 @@ import com.noexcs.indolent.data.SettingsManager
 import com.noexcs.indolent.logging.Lumberjack
 import com.noexcs.indolent.task.conditional.ConditionMonitorScheduler
 import com.noexcs.indolent.task.heartbeat.HeartbeatScheduler
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
             Lumberjack.i(TAG, "Boot completed, rescheduling tasks and heartbeat")
-            TaskScheduler(context.applicationContext).rescheduleAll()
-            val settings = SettingsManager(context.applicationContext)
-            if (settings.heartbeatEnabled) {
-                HeartbeatScheduler(context.applicationContext).schedule()
-            }
-            if (settings.conditionMonitorEnabled) {
-                ConditionMonitorScheduler(context.applicationContext).schedule()
+            goAsync()
+            val appContext = context.applicationContext
+            CoroutineScope(Dispatchers.IO).launch {
+                TaskScheduler(appContext).rescheduleAll()
+                val settings = SettingsManager(appContext)
+                if (settings.heartbeatEnabled) {
+                    HeartbeatScheduler(appContext).schedule()
+                }
+                if (settings.conditionMonitorEnabled) {
+                    ConditionMonitorScheduler(appContext).schedule()
+                }
             }
         }
     }

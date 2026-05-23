@@ -294,6 +294,7 @@
     <string name="tool_calendar">Calendar</string>
     <string name="tool_get_current_time">Get Current Time</string>
     <string name="tool_http_request">HTTP Request</string>
+    <string name="tool_search_memory">Search Memory</string>
     <string name="tool_create_conditional_trigger">Create Conditional Trigger</string>
     <string name="tool_list_conditional_triggers">List Conditional Triggers</string>
     <string name="tool_edit_conditional_trigger">Edit Conditional Trigger</string>

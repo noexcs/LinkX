@@ -9,11 +9,11 @@ class ScheduledTaskRepository(context: Context) {
     private val dir = File(context.filesDir, "scheduled_tasks").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
-    fun save(task: ScheduledTask) {
+    @Synchronized fun save(task: ScheduledTask) {
         File(dir, "${task.id}.json").writeText(json.encodeToString(task))
     }
 
-    fun load(id: String): ScheduledTask? {
+    @Synchronized fun load(id: String): ScheduledTask? {
         val file = File(dir, "$id.json")
         if (!file.exists()) return null
         return try {
@@ -24,7 +24,7 @@ class ScheduledTaskRepository(context: Context) {
         }
     }
 
-    fun listAll(): List<ScheduledTask> {
+    @Synchronized fun listAll(): List<ScheduledTask> {
         return dir.listFiles { f -> f.extension == "json" }
             ?.mapNotNull { file ->
                 try {
@@ -38,11 +38,13 @@ class ScheduledTaskRepository(context: Context) {
             ?: emptyList()
     }
 
-    fun delete(id: String) {
-        File(dir, "$id.json").delete()
+    @Synchronized fun delete(id: String) {
+        if (!File(dir, "$id.json").delete()) {
+            Lumberjack.w("ScheduledTaskRepository", "Failed to delete: $id")
+        }
     }
 
-    fun resolveByPrefix(prefix: String): ScheduledTask? {
+    @Synchronized fun resolveByPrefix(prefix: String): ScheduledTask? {
         // Try exact match first
         load(prefix)?.let { return it }
         // Prefix match

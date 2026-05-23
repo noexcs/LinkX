@@ -7,7 +7,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.core.content.edit
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.noexcs.indolent.agent.LLMProvider
+import com.noexcs.indolent.logging.Lumberjack
 
 object LocaleNotifier {
     private val _version = mutableLongStateOf(0L)
@@ -28,6 +31,24 @@ class SettingsManager(context: Context) {
     private val prefs = context.getSharedPreferences("agent_settings", Context.MODE_PRIVATE)
     private val appContext = context.applicationContext
 
+    private val securePrefs by lazy {
+        try {
+            val masterKey = MasterKey.Builder(context)
+                .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                .build()
+            EncryptedSharedPreferences.create(
+                context,
+                "agent_secure_settings",
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Lumberjack.e("SettingsManager", "EncryptedSharedPreferences unavailable, falling back to plaintext", e)
+            null
+        }
+    }
+
     var userSystemPrompt: String
         get() = prefs.getString("user_system_prompt", "") ?: ""
         set(value) = prefs.edit { putString("user_system_prompt", value) }
@@ -46,8 +67,11 @@ class SettingsManager(context: Context) {
         set(value) = prefs.edit { putString("base_url", value) }
 
     var apiKey: String
-        get() = prefs.getString("api_key", "") ?: ""
-        set(value) = prefs.edit { putString("api_key", value) }
+        get() = securePrefs?.getString("api_key", null) ?: prefs.getString("api_key", "") ?: ""
+        set(value) {
+            val sp = securePrefs ?: prefs
+            sp.edit { putString("api_key", value) }
+        }
 
     var model: String
         get() = prefs.getString("model", "") ?: ""

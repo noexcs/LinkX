@@ -1,6 +1,7 @@
 package com.noexcs.indolent.task.heartbeat
 
 import android.content.Context
+import com.noexcs.indolent.logging.Lumberjack
 import kotlinx.serialization.json.Json
 import java.io.File
 
@@ -8,11 +9,11 @@ class HeartbeatRecordRepository(context: Context) {
     private val dir = File(context.filesDir, "heartbeat/records").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
-    fun save(record: HeartbeatRecord) {
+    @Synchronized fun save(record: HeartbeatRecord) {
         File(dir, "${record.id}.json").writeText(json.encodeToString(record))
     }
 
-    fun listAll(): List<HeartbeatRecord> {
+    @Synchronized fun listAll(): List<HeartbeatRecord> {
         return dir.listFiles { f -> f.extension == "json" }
             ?.mapNotNull { file ->
                 try {
@@ -23,13 +24,24 @@ class HeartbeatRecordRepository(context: Context) {
             ?: emptyList()
     }
 
-    fun lastRecord(): HeartbeatRecord? = listAll().firstOrNull()
+    @Synchronized fun lastRecord(): HeartbeatRecord? {
+        val latestFile = dir.listFiles { f -> f.extension == "json" }
+            ?.maxByOrNull { it.lastModified() }
+            ?: return null
+        return try {
+            json.decodeFromString<HeartbeatRecord>(latestFile.readText())
+        } catch (_: Exception) {
+            null
+        }
+    }
 
-    fun pruneOldRecords(keep: Int = 50) {
+    @Synchronized fun pruneOldRecords(keep: Int = 50) {
         val records = listAll()
         if (records.size > keep) {
             records.drop(keep).forEach { record ->
-                File(dir, "${record.id}.json").delete()
+                if (!File(dir, "${record.id}.json").delete()) {
+                    Lumberjack.w("HeartbeatRecordRepository", "Failed to delete record: ${record.id}")
+                }
             }
         }
     }

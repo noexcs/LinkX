@@ -86,8 +86,10 @@ class WriteFileTool(private val context: Context) : AgentTool {
 
         if (createDirs) {
             file.parentFile?.mkdirs()
-        } else if (!file.parentFile?.exists()!!) {
-            return "Error: Parent directory does not exist — ${file.parentFile?.absolutePath}. Set create_dirs=true to auto-create."
+        } else if (file.parentFile == null) {
+            return "Error: Cannot write to root path — ${file.absolutePath}"
+        } else if (!file.parentFile!!.exists()) {
+            return "Error: Parent directory does not exist — ${file.parentFile!!.absolutePath}. Set create_dirs=true to auto-create."
         }
 
         val existedBefore = file.exists()

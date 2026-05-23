@@ -157,7 +157,6 @@ private fun ChatContent(
     val snackbarHostState = remember { SnackbarHostState() }
     val copiedMsg = stringResource(R.string.copied)
 
-    LaunchedEffect(refreshTrigger) { /* trigger recomposition */ }
 
     // Track whether user has manually scrolled away from bottom
     var userScrolledUp by remember { mutableStateOf(false) }

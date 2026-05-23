@@ -184,8 +184,9 @@ class CalendarTool(context: Context) : AgentTool {
             add(end.toString())
             if (calendarId != null) add(calendarId.toString())
             if (query != null) {
-                add("%$query%")
-                add("%$query%")
+                val escaped = query.replace("%", "\\%").replace("_", "\\_")
+                add("%$escaped%")
+                add("%$escaped%")
             }
         }
 

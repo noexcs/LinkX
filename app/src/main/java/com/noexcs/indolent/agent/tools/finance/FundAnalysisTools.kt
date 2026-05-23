@@ -48,8 +48,3 @@ object FundVsBenchmarkTool : AgentTool {
         }
     }
 }
-
-val fund_analysis_tools = listOf(
-    FundPerformanceTool,
-    FundVsBenchmarkTool
-)

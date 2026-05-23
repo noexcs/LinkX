@@ -249,14 +249,20 @@ private fun PdfContent(content: DisplayContent) {
                 try {
                     val fd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
                     val renderer = PdfRenderer(fd)
-                    pageCount = renderer.pageCount
-                    val page = renderer.openPage(currentPage.coerceIn(0, pageCount - 1))
-                    val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-                    page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-                    imageView.setImageBitmap(bitmap)
-                    page.close()
-                    renderer.close()
-                    fd.close()
+                    try {
+                        pageCount = renderer.pageCount
+                        val page = renderer.openPage(currentPage.coerceIn(0, pageCount - 1))
+                        try {
+                            val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+                            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                            imageView.setImageBitmap(bitmap)
+                        } finally {
+                            page.close()
+                        }
+                    } finally {
+                        renderer.close()
+                        fd.close()
+                    }
                 } catch (e: Exception) {
                     renderError = "Failed to render PDF: ${e.message}"
                 }

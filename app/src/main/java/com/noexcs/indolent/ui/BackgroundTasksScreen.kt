@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -90,7 +91,7 @@ private fun ScheduledTaskListContent(
     var batteryOptimizationIgnored by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    var pendingDeleteTask by remember { mutableStateOf<ScheduledTask?>(null) }
+    val pendingDeleteTasks = remember { mutableStateMapOf<String, ScheduledTask>() }
 
     var notificationPermissionGranted by remember {
         mutableStateOf(
@@ -197,7 +198,7 @@ private fun ScheduledTaskListContent(
                                 tasks = repo.listAll()
                             },
                             onDelete = {
-                                pendingDeleteTask = task
+                                pendingDeleteTasks[task.id] = task
                                 tasks = tasks.filter { it.id != task.id }
                                 coroutineScope.launch {
                                     val autoDismissJob = coroutineScope.launch {
@@ -212,16 +213,15 @@ private fun ScheduledTaskListContent(
                                     autoDismissJob.cancel()
                                     when (result) {
                                         SnackbarResult.ActionPerformed -> {
-                                            pendingDeleteTask = null
+                                            pendingDeleteTasks.remove(task.id)
                                             tasks = repo.listAll()
                                         }
                                         SnackbarResult.Dismissed -> {
-                                            pendingDeleteTask?.let { t ->
+                                            pendingDeleteTasks.remove(task.id)?.let { t ->
                                                 scheduler.cancel(t.id)
                                                 executionRepo.deleteByTaskId(t.id)
                                                 repo.delete(t.id)
                                             }
-                                            pendingDeleteTask = null
                                             tasks = repo.listAll()
                                         }
                                     }
@@ -268,8 +268,10 @@ private fun ConditionalTriggerListContent(
     val context = LocalContext.current
     val triggerRepo = remember { ConditionalTriggerRepository(context.applicationContext) }
     val executionRepo = remember { TaskExecutionRepository(context.applicationContext) }
-    val triggers = remember { triggerRepo.listAll() }
+    var triggers by remember { mutableStateOf(triggerRepo.listAll()) }
     var historyTriggerId by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) { triggers = triggerRepo.listAll() }
     var selectedRecord by remember { mutableStateOf<TaskExecutionRecord?>(null) }
 
     if (triggers.isEmpty()) {

@@ -77,10 +77,19 @@ class LLMClient(
             }
             if (toolsJson != null) put("tools", toolsJson)
             request.toolChoice?.let { put("tool_choice", buildToolChoice(it)) }
-            request.thinkingEnabled?.let { enabled ->
-                put("thinking", JSONObject().put("type", if (enabled) "enabled" else "disabled"))
+            when (request.thinkingEnabled) {
+                true -> {
+                    put("thinking", JSONObject().put("type", "enabled"))
+                    if (!request.reasoningEffort.isNullOrEmpty()) put("reasoning_effort", request.reasoningEffort)
+                }
+                false -> {
+                    put("thinking", JSONObject().put("type", "disabled"))
+                    // Do NOT send reasoning_effort when thinking is disabled — the API rejects it
+                }
+                null -> {
+                    if (!request.reasoningEffort.isNullOrEmpty()) put("reasoning_effort", request.reasoningEffort)
+                }
             }
-            if (!request.reasoningEffort.isNullOrEmpty()) put("reasoning_effort", request.reasoningEffort)
             if (!request.responseFormat.isNullOrEmpty()) {
                 put("response_format", JSONObject().put("type", request.responseFormat))
             }

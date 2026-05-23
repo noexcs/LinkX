@@ -27,11 +27,6 @@ class Agent(
 ) {
     private val client = LLMClient(baseUrl, apiKey)
 
-    // ── Token tracking for calibration ──
-
-    /** Running actual token count from API usage responses (approximate). */
-    private var lastActualPromptTokens: Int = 0
-
     fun run(
         history: MutableList<LLMMessage>,
         message: String,
@@ -41,22 +36,8 @@ class Agent(
         history += LLMMessage(role = "user", content = message)
         val toolMap = tools.associateBy { it.name }
 
-        // Check for incomplete prior response — use prefix completion to resume
-        var prefixContent: String? = null
-        var prefixMsgIndex: Int = -1
-        if (history.size >= 2) {
-            val prevAssistant = history[history.size - 2]
-            if (prevAssistant.role == "assistant" && prevAssistant.content.endsWith(INCOMPLETE_RESPONSE_MARKER)) {
-                prefixContent = prevAssistant.content.removeSuffix(INCOMPLETE_RESPONSE_MARKER)
-                prefixMsgIndex = history.size - 2
-                history.removeAt(history.lastIndex) // drop the user message we just added
-                history[prefixMsgIndex] = prevAssistant.copy(
-                    content = prefixContent!!,
-                    prefix = true
-                )
-            }
-        }
-        val useBeta = prefixContent != null
+        val prefix = findPrefixCompletion(history)
+        val useBeta = prefix != null
 
         for (round in 0 until maxIterations) {
             maybeManageContext(history, systemPrompt, tools) { event -> emit(event) }
@@ -86,6 +67,7 @@ class Agent(
                     streamError = null
                     break
                 } catch (e: Exception) {
+                    if (e is kotlinx.coroutines.CancellationException) throw e
                     streamError = e
                     if (attempt < maxRetries - 1 && e is java.io.IOException) {
                         emit(AgentEvent.StreamRetry(attempt + 2, e.message ?: "IO error"))
@@ -106,11 +88,10 @@ class Agent(
 
             val toolCalls = buildToolCalls(toolAcc) { emit(it) }
 
-            if (prefixContent != null && prefixMsgIndex in history.indices && history[prefixMsgIndex].prefix == true) {
-                // Prefix completion: replace the prefix message with prefix + continuation
-                history[prefixMsgIndex] = LLMMessage(
+            if (prefix != null && prefix.index in history.indices && history[prefix.index].prefix == true) {
+                history[prefix.index] = LLMMessage(
                     role = "assistant",
-                    content = prefixContent + textBuf.toString(),
+                    content = prefix.content + textBuf.toString(),
                     toolCalls = toolCalls.ifEmpty { null },
                     reasoningContent = reasoningBuf.toString().ifEmpty { null }
                 )
@@ -170,22 +151,8 @@ class Agent(
         history += LLMMessage(role = "user", content = message)
         val toolMap = tools.associateBy { it.name }
 
-        // Check for incomplete prior response — use prefix completion to resume
-        var prefixContent: String? = null
-        var prefixMsgIndex: Int = -1
-        if (history.size >= 2) {
-            val prevAssistant = history[history.size - 2]
-            if (prevAssistant.role == "assistant" && prevAssistant.content.endsWith(INCOMPLETE_RESPONSE_MARKER)) {
-                prefixContent = prevAssistant.content.removeSuffix(INCOMPLETE_RESPONSE_MARKER)
-                prefixMsgIndex = history.size - 2
-                history.removeAt(history.lastIndex)
-                history[prefixMsgIndex] = prevAssistant.copy(
-                    content = prefixContent!!,
-                    prefix = true
-                )
-            }
-        }
-        val useBeta = prefixContent != null
+        val prefix = findPrefixCompletion(history)
+        val useBeta = prefix != null
 
         for (round in 0 until maxIterations) {
             maybeManageContext(history, systemPrompt, tools) { }
@@ -208,12 +175,10 @@ class Agent(
                 return history.toList()
             }
 
-            response.usage?.let { lastActualPromptTokens = it.promptTokens }
-
-            if (prefixContent != null && prefixMsgIndex in history.indices && history[prefixMsgIndex].prefix == true) {
-                history[prefixMsgIndex] = LLMMessage(
+            if (prefix != null && prefix.index in history.indices && history[prefix.index].prefix == true) {
+                history[prefix.index] = LLMMessage(
                     role = "assistant",
-                    content = prefixContent + response.content,
+                    content = prefix.content + response.content,
                     toolCalls = response.toolCalls,
                     reasoningContent = response.reasoningContent
                 )
@@ -327,9 +292,8 @@ class Agent(
 
         // Usage stats (final chunk with stream_options.include_usage)
         json.optJSONObject("usage")?.let { u ->
-            lastActualPromptTokens = u.optInt("prompt_tokens", 0)
             emit(AgentEvent.Usage(
-                promptTokens = lastActualPromptTokens,
+                promptTokens = u.optInt("prompt_tokens", 0),
                 completionTokens = u.optInt("completion_tokens", 0),
                 totalTokens = u.optInt("total_tokens", 0)
             ))
@@ -434,6 +398,19 @@ class Agent(
             Lumberjack.e("Agent", "Failed to parse tool arguments JSON", e)
             emptyMap()
         }
+    }
+
+    private class PrefixResult(val content: String, val index: Int)
+
+    private fun findPrefixCompletion(history: MutableList<LLMMessage>): PrefixResult? {
+        if (history.size < 2) return null
+        val prevAssistant = history[history.size - 2]
+        if (prevAssistant.role != "assistant" || !prevAssistant.content.endsWith(INCOMPLETE_RESPONSE_MARKER)) return null
+        val content = prevAssistant.content.removeSuffix(INCOMPLETE_RESPONSE_MARKER)
+        val index = history.size - 2
+        history.removeAt(history.lastIndex)
+        history[index] = prevAssistant.copy(content = content, prefix = true)
+        return PrefixResult(content, index)
     }
 
     private val clipboardPlaceholder = Regex("""\{\{agent_clipboard(?::(\w+))?\}\}""")
@@ -632,7 +609,7 @@ class Agent(
     }
 
     private fun estimateSystemTokens(systemPrompt: String): Long {
-        return systemPrompt.length / 2.5.toLong()
+        return (systemPrompt.length / 2.5).toLong()
     }
 
     // ── internal accumulator for streaming tool calls ──

@@ -9,11 +9,11 @@ class ConditionalTriggerRepository(context: Context) {
     private val dir = File(context.filesDir, "conditional_triggers").also { it.mkdirs() }
     private val json = Json { ignoreUnknownKeys = true; prettyPrint = true }
 
-    fun save(trigger: ConditionalTrigger) {
+    @Synchronized fun save(trigger: ConditionalTrigger) {
         File(dir, "${trigger.id}.json").writeText(json.encodeToString(trigger))
     }
 
-    fun load(id: String): ConditionalTrigger? {
+    @Synchronized fun load(id: String): ConditionalTrigger? {
         val file = File(dir, "$id.json")
         if (!file.exists()) return null
         return try {
@@ -24,7 +24,7 @@ class ConditionalTriggerRepository(context: Context) {
         }
     }
 
-    fun listAll(): List<ConditionalTrigger> {
+    @Synchronized fun listAll(): List<ConditionalTrigger> {
         return dir.listFiles { f -> f.extension == "json" }
             ?.mapNotNull { file ->
                 try {
@@ -38,13 +38,15 @@ class ConditionalTriggerRepository(context: Context) {
             ?: emptyList()
     }
 
-    fun listEnabled(): List<ConditionalTrigger> = listAll().filter { it.enabled }
+    @Synchronized fun listEnabled(): List<ConditionalTrigger> = listAll().filter { it.enabled }
 
-    fun delete(id: String) {
-        File(dir, "$id.json").delete()
+    @Synchronized fun delete(id: String) {
+        if (!File(dir, "$id.json").delete()) {
+            Lumberjack.w(TAG, "Failed to delete trigger: $id")
+        }
     }
 
-    fun resolveByPrefix(prefix: String): ConditionalTrigger? {
+    @Synchronized fun resolveByPrefix(prefix: String): ConditionalTrigger? {
         load(prefix)?.let { return it }
         val matches = listAll().filter { it.id.startsWith(prefix) }
         return when (matches.size) {

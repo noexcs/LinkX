@@ -22,10 +22,10 @@ object PythonInit {
             try {
                 System.loadLibrary("gfortran")
                 Python.start(AndroidPlatform(context))
+                started = true
             } catch (e: Exception) {
                 Lumberjack.w("PythonInit", "Python already started by another caller")
             }
-            started = true
             // Init portfolio storage
             try {
                 val mod = Python.getInstance().getModule("portfolio")

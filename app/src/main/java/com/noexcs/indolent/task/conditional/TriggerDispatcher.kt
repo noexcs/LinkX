@@ -15,6 +15,8 @@ import com.noexcs.indolent.task.TaskExecutionRepository
 import com.noexcs.indolent.task.conditional.conditionProvider.BatteryConditionProvider
 import com.noexcs.indolent.task.conditional.conditionProvider.PowerConditionProvider
 import com.noexcs.indolent.task.conditional.conditionProvider.SettingConditionProvider
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -23,7 +25,9 @@ import java.util.UUID
 
 class TriggerDispatcher(private val context: Context) {
 
-    suspend fun dispatch(trigger: ConditionalTrigger) {
+    private val dispatchMutex = Mutex()
+
+    suspend fun dispatch(trigger: ConditionalTrigger) = dispatchMutex.withLock {
         val now = System.currentTimeMillis()
         val repo = ConditionalTriggerRepository(context)
 

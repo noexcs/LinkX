@@ -77,25 +77,23 @@ class ConditionEvaluator(private val context: Context) {
         return when (condition.operator) {
             ConditionOperator.EQUAL -> actualValue != null && actualValue == targetValue
             ConditionOperator.NOT_EQUAL -> actualValue != null && actualValue != targetValue
-            ConditionOperator.GREATER_THAN -> compare(actualValue, targetValue) > 0
-            ConditionOperator.LESS_THAN -> compare(actualValue, targetValue) < 0
-            ConditionOperator.GREATER_OR_EQUAL -> compare(actualValue, targetValue) >= 0
-            ConditionOperator.LESS_OR_EQUAL -> compare(actualValue, targetValue) <= 0
+            ConditionOperator.GREATER_THAN -> compare(actualValue, targetValue)?.let { it > 0 } ?: false
+            ConditionOperator.LESS_THAN -> compare(actualValue, targetValue)?.let { it < 0 } ?: false
+            ConditionOperator.GREATER_OR_EQUAL -> compare(actualValue, targetValue)?.let { it >= 0 } ?: false
+            ConditionOperator.LESS_OR_EQUAL -> compare(actualValue, targetValue)?.let { it <= 0 } ?: false
             ConditionOperator.CHANGED -> hasChanged(condition, actualValue)
             ConditionOperator.BECOMES_TRUE -> becomesBoolean(condition, actualValue, true)
             ConditionOperator.BECOMES_FALSE -> becomesBoolean(condition, actualValue, false)
         }
     }
 
-    private fun compare(actual: String?, target: String?): Int {
-        if (actual == null || target == null) return -2  // invalid comparison
-        // Try numeric comparison first
+    private fun compare(actual: String?, target: String?): Int? {
+        if (actual == null || target == null) return null
         val aNum = actual.toDoubleOrNull()
         val tNum = target.toDoubleOrNull()
         if (aNum != null && tNum != null) {
             return aNum.compareTo(tNum)
         }
-        // Fall back to string comparison
         return actual.compareTo(target)
     }
 

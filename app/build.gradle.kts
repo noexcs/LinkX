@@ -172,6 +172,8 @@ dependencies {
     implementation(libs.onnxruntime.android)
     // Tantivy via JitPack — BM25 keyword retrieval (Rust JNI)
     implementation(libs.tantivy.android)
+    // Encrypted SharedPreferences for secure API key storage
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     testImplementation(libs.junit)
     testImplementation("org.jetbrains.kotlin:kotlin-test")
     testImplementation("org.json:json:20240303")

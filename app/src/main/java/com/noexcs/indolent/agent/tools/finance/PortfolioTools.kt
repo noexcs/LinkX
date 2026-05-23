@@ -137,12 +137,3 @@ object PortfolioAnalyzeAllTool : AgentTool {
         }
     }
 }
-
-val portfolio_tools = listOf(
-    PortfolioAddTool,
-    PortfolioUpdateTool,
-    PortfolioRemoveTool,
-    PortfolioListTool,
-    PortfolioSummaryTool,
-    PortfolioAnalyzeAllTool
-)

@@ -8,7 +8,7 @@ enum class Level(val priority: Int, val label: String) {
     E(4, "E"),
     F(5, "F");
 
-    val atLeast: (Level) -> Boolean = { other -> this.priority >= other.priority }
+    fun atLeast(other: Level): Boolean = this.priority >= other.priority
 
     companion object {
         fun fromLabel(label: String): Level? = when (label.uppercase()) {

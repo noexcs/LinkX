@@ -67,37 +67,36 @@ class LinkXAccessibilityService : AccessibilityService() {
         val root = rootInActiveWindow
             ?: return "Error: No active window. The device may be locked or on the home screen with no accessible content."
 
-        val nodes = mutableListOf<NodeDesc>()
-        flattenTree(root, nodes, 0)
+        try {
+            val nodes = mutableListOf<NodeDesc>()
+            flattenTree(root, nodes, 0)
 
-        val filtered = when (mode) {
-            "full" -> nodes
-            "interactive" -> nodes.filter { it.isClickable || it.isScrollable || it.isEditable || it.text.isNotBlank() }
-            else -> nodes.filter { it.isClickable || it.isScrollable || it.isEditable || it.text.isNotBlank() || it.depth <= 2 }
-        }
-
-        val textFiltered = if (filterText.isNullOrBlank()) {
-            filtered
-        } else {
-            filtered.filter {
-                it.text.contains(filterText, ignoreCase = true) ||
-                    it.contentDesc.contains(filterText, ignoreCase = true) ||
-                    it.resourceId.contains(filterText, ignoreCase = true)
+            val filtered = when (mode) {
+                "full" -> nodes
+                "interactive" -> nodes.filter { it.isClickable || it.isScrollable || it.isEditable || it.text.isNotBlank() }
+                else -> nodes.filter { it.isClickable || it.isScrollable || it.isEditable || it.text.isNotBlank() || it.depth <= 2 }
             }
-        }
 
-        val maxNodes = 150
-        val displayNodes = if (textFiltered.size > maxNodes) textFiltered.take(maxNodes) else textFiltered
+            val textFiltered = if (filterText.isNullOrBlank()) {
+                filtered
+            } else {
+                filtered.filter {
+                    it.text.contains(filterText, ignoreCase = true) ||
+                        it.contentDesc.contains(filterText, ignoreCase = true) ||
+                        it.resourceId.contains(filterText, ignoreCase = true)
+                }
+            }
 
-        root.recycle()
+            val maxNodes = 150
+            val displayNodes = if (textFiltered.size > maxNodes) textFiltered.take(maxNodes) else textFiltered
 
-        if (displayNodes.isEmpty()) {
-            return "No matching UI elements found on screen."
-        }
+            if (displayNodes.isEmpty()) {
+                return "No matching UI elements found on screen."
+            }
 
-        return buildString {
-            appendLine("Screen: ${screenWidth}x${screenHeight} | mode=$mode | elements=${displayNodes.size}")
-            if (textFiltered.size > maxNodes) appendLine("(truncated from ${textFiltered.size})")
+            return buildString {
+                appendLine("Screen: ${screenWidth}x${screenHeight} | mode=$mode | elements=${displayNodes.size}")
+                if (textFiltered.size > maxNodes) appendLine("(truncated from ${textFiltered.size})")
             appendLine()
             for ((i, node) in displayNodes.withIndex()) {
                 val indent = "  ".repeat(node.depth.coerceAtMost(6))
@@ -125,6 +124,9 @@ class LinkXAccessibilityService : AccessibilityService() {
 
                 appendLine()
             }
+        }
+        } finally {
+            root.recycle()
         }
     }
 

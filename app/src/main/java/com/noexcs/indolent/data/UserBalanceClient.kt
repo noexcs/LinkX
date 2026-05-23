@@ -8,6 +8,12 @@ import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
 
+private val balanceHttpClient = OkHttpClient.Builder()
+    .connectTimeout(15, TimeUnit.SECONDS)
+    .readTimeout(15, TimeUnit.SECONDS)
+    .writeTimeout(15, TimeUnit.SECONDS)
+    .build()
+
 data class BalanceInfo(
     val currency: String,
     val totalBalance: String,
@@ -21,18 +27,13 @@ data class UserBalanceResponse(
 )
 
 suspend fun fetchUserBalance(baseUrl: String, apiKey: String): UserBalanceResponse = withContext(Dispatchers.IO) {
-    val http = OkHttpClient.Builder()
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
-
     val request = Request.Builder()
         .url("$baseUrl/user/balance")
         .addHeader("Authorization", "Bearer $apiKey")
         .addHeader("Accept", "application/json")
         .build()
 
-    val response = http.newCall(request).execute()
+    val response = balanceHttpClient.newCall(request).execute()
     if (!response.isSuccessful) {
         throw IOException("HTTP ${response.code}: ${response.message}")
     }

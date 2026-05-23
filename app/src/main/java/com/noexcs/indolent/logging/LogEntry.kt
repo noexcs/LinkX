@@ -16,18 +16,20 @@ data class LogEntry(
     val pid: Int
 ) {
     fun format(): String {
-        val time = sdf.format(Date(timestamp))
+        val time = sdf.get().format(Date(timestamp))
         val tb = if (throwable != null) "\n$throwable" else ""
         return "$time [$pid/${thread.take(12)}] [${level.label}] $tag: $message$tb"
     }
 
     fun toShortString(): String {
-        val time = sdf.format(Date(timestamp))
+        val time = sdf.get().format(Date(timestamp))
         return "$time [${level.label}] $tag: $message"
     }
 
     companion object {
-        private val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
+        private val sdf = ThreadLocal.withInitial {
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.getDefault())
+        }
 
         fun create(level: Level, tag: String, message: String, throwable: Throwable? = null): LogEntry {
             return LogEntry(

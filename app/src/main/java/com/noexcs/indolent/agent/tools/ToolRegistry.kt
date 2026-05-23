@@ -26,6 +26,7 @@ object ToolRegistry {
         ToolInfo("calendar", R.string.tool_calendar, ToolGroup.COMMON),
         ToolInfo("get_current_time", R.string.tool_get_current_time, ToolGroup.COMMON),
         ToolInfo("http_request", R.string.tool_http_request, ToolGroup.COMMON),
+        ToolInfo("search_memory", R.string.tool_search_memory, ToolGroup.COMMON),
 
         // Conditional
         ToolInfo("create_conditional_trigger", R.string.tool_create_conditional_trigger, ToolGroup.CONDITIONAL),

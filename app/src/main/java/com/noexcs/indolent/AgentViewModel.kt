@@ -467,4 +467,9 @@ class AgentViewModel(
             )
         }
     }
+
+    override fun onCleared() {
+        super.onCleared()
+        onConversationUpdated = null
+    }
 }

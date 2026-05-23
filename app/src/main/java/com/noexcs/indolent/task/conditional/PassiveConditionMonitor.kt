@@ -50,11 +50,16 @@ class PassiveConditionMonitor(private val context: Context) {
                 batteryReceiver,
                 IntentFilter(Intent.ACTION_BATTERY_CHANGED)
             )
-            context.contentResolver.registerContentObserver(
-                Settings.System.CONTENT_URI,
-                true,
-                settingsObserver
-            )
+            try {
+                context.contentResolver.registerContentObserver(
+                    Settings.System.CONTENT_URI,
+                    true,
+                    settingsObserver
+                )
+            } catch (e: Exception) {
+                context.unregisterReceiver(batteryReceiver)
+                throw e
+            }
             registered = true
             Lumberjack.i(TAG, "Passive monitoring started (battery + settings)")
         } catch (e: Exception) {
@@ -64,14 +69,24 @@ class PassiveConditionMonitor(private val context: Context) {
 
     fun stop() {
         if (!registered) return
+        var receiverUnregistered = false
+        var observerUnregistered = false
         try {
             context.unregisterReceiver(batteryReceiver)
-            context.contentResolver.unregisterContentObserver(settingsObserver)
-            registered = false
-            Lumberjack.d(TAG, "Passive monitoring stopped")
+            receiverUnregistered = true
         } catch (e: Exception) {
-            Lumberjack.e(TAG, "Error stopping passive monitoring", e)
+            Lumberjack.e(TAG, "Error unregistering battery receiver", e)
         }
+        try {
+            context.contentResolver.unregisterContentObserver(settingsObserver)
+            observerUnregistered = true
+        } catch (e: Exception) {
+            Lumberjack.e(TAG, "Error unregistering settings observer", e)
+        }
+        if (receiverUnregistered && observerUnregistered) {
+            registered = false
+        }
+        Lumberjack.d(TAG, "Passive monitoring stopped")
     }
 
     private fun evaluateAndDispatch() {
