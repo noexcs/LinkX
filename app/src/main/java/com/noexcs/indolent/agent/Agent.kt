@@ -72,7 +72,7 @@ class Agent(
                 messages = builtMessages,
                 stream = true,
                 toolDefinitions = toolDefs(tools),
-                thinkingEnabled = if (thinkingEnabled) true else null,
+                thinkingEnabled = thinkingEnabled,
                 reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null,
                 useBetaEndpoint = useBeta
             )
@@ -195,7 +195,7 @@ class Agent(
                 messages = buildMessages(systemPrompt, history),
                 stream = false,
                 toolDefinitions = toolDefs(tools),
-                thinkingEnabled = if (thinkingEnabled) true else null,
+                thinkingEnabled = thinkingEnabled,
                 reasoningEffort = if (reasoningEffort.isNotEmpty()) reasoningEffort else null,
                 useBetaEndpoint = useBeta
             )
