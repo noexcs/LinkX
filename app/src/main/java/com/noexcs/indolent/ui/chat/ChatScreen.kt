@@ -290,6 +290,7 @@ private fun ChatContent(
                 enabled = !isLoading,
                 onSend = {
                     if (input.isNotBlank()) {
+                        userScrolledUp = false
                         viewModel.sendMessage(input.trim())
                         input = ""
                         scope.launch { scrollState.animateScrollTo(scrollState.maxValue) }

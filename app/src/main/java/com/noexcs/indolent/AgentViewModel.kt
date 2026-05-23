@@ -475,6 +475,7 @@ class AgentViewModel(
                 clearMessages()
             }
             sessionId = id
+            session.sessionId = id
         }
     }
 }

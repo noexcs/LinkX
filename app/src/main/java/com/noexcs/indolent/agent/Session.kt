@@ -21,7 +21,7 @@ data class ContextConfig(
 )
 
 class Session(
-    val sessionId: String = UUID.randomUUID().toString(),
+    var sessionId: String = UUID.randomUUID().toString(),
     private val agent: Agent,
     private val persistence: SessionPersistence? = null,
     val type: SessionType = SessionType.CONVERSATION
