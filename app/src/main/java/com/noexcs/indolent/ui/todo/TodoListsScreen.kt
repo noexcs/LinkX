@@ -78,6 +78,8 @@ fun TodoListsScreen(
     var myDayCount by remember { mutableIntStateOf(0) }
     var importantCount by remember { mutableIntStateOf(0) }
     var plannedCount by remember { mutableIntStateOf(0) }
+    var totalCount by remember { mutableIntStateOf(0) }
+    var completedCount by remember { mutableIntStateOf(0) }
     val refresh = { refreshTrigger++ }
     val scope = rememberCoroutineScope()
 
@@ -86,6 +88,9 @@ fun TodoListsScreen(
         myDayCount = todoItemRepository.listMyDayItems().size
         importantCount = todoItemRepository.listImportantItems().size
         plannedCount = todoItemRepository.listPlannedItems().size
+        val all = todoItemRepository.listAll()
+        totalCount = all.size
+        completedCount = all.count { it.isCompleted }
     }
 
     AnimatedContent(
@@ -102,6 +107,8 @@ fun TodoListsScreen(
                 myDayCount = myDayCount,
                 importantCount = importantCount,
                 plannedCount = plannedCount,
+                totalCount = totalCount,
+                completedCount = completedCount,
                 onBack = onBack,
                 onSmartListClick = { type -> currentView = TodoView.SmartList(type) },
                 onListClick = { list -> currentView = TodoView.ListDetail(list.id, list.name) },
@@ -228,6 +235,53 @@ fun TodoListsScreen(
     }
 }
 
+@Composable
+private fun TodayHeroSection(
+    totalCount: Int,
+    completedCount: Int,
+) {
+    val dateFormat = remember { java.text.SimpleDateFormat("EEEE, MMMM d", java.util.Locale.getDefault()) }
+    val today = remember { dateFormat.format(java.util.Date()) }
+    val progress = if (totalCount > 0) completedCount.toFloat() / totalCount else 0f
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f),
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            Text(
+                text = today,
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = if (totalCount > 0)
+                    "$completedCount of $totalCount ${stringResource(R.string.tasks_count)}"
+                else
+                    stringResource(R.string.no_tasks),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            LinearProgressIndicator(
+                progress = { progress },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(MaterialTheme.shapes.small),
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TodoListsContent(
@@ -235,6 +289,8 @@ private fun TodoListsContent(
     myDayCount: Int,
     importantCount: Int,
     plannedCount: Int,
+    totalCount: Int,
+    completedCount: Int,
     onBack: () -> Unit,
     onSmartListClick: (SmartListType) -> Unit,
     onListClick: (TodoList) -> Unit,
@@ -257,6 +313,14 @@ private fun TodoListsContent(
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // Hero section — today overview
+            item {
+                TodayHeroSection(
+                    totalCount = totalCount,
+                    completedCount = completedCount,
+                )
+            }
+
             // Smart Lists section
             item {
                 SmartListCard(
