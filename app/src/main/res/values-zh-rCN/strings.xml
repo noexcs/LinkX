@@ -389,7 +389,7 @@
     <!-- Todo & Notes -->
     <string name="chat_tab">对话</string>
     <string name="todo_lists">任务</string>
-    <string name="background_tasks">后台</string>
+    <string name="background_tasks">自动化</string>
     <string name="notes">笔记</string>
     <string name="my_day">我的一天</string>
     <string name="important">重要</string>

@@ -10,6 +10,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -46,32 +48,284 @@ import kotlinx.coroutines.launch
 fun BackgroundTasksScreen(
     onViewInChat: (TaskExecutionRecord) -> Unit,
 ) {
-    var selectedTab by remember { mutableStateOf(0) }
+    AutomationsContent(onViewInChat = onViewInChat)
+}
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
-        TabRow(selectedTabIndex = selectedTab) {
-            Tab(
-                selected = selectedTab == 0,
-                onClick = { selectedTab = 0 },
-                text = { Text(stringResource(R.string.scheduled_tasks)) }
-            )
-            Tab(
-                selected = selectedTab == 1,
-                onClick = { selectedTab = 1 },
-                text = { Text(stringResource(R.string.conditional_triggers)) }
+// ─── Automations Content ─────────────────────────────────────────────────────────
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AutomationsContent(
+    onViewInChat: (TaskExecutionRecord) -> Unit = {}
+) {
+    val context = LocalContext.current
+    val repo = remember { ScheduledTaskRepository(context.applicationContext) }
+    val executionRepo = remember { TaskExecutionRepository(context.applicationContext) }
+    val scheduler = remember { TaskScheduler(context.applicationContext) }
+    val triggerRepo = remember { ConditionalTriggerRepository(context.applicationContext) }
+    var tasks by remember { mutableStateOf(repo.listAll()) }
+    var triggers by remember { mutableStateOf(triggerRepo.listAll()) }
+    var showSheet by remember { mutableStateOf(false) }
+    var editingTask by remember { mutableStateOf<ScheduledTask?>(null) }
+    var historyTaskId by remember { mutableStateOf<String?>(null) }
+    var historyTriggerId by remember { mutableStateOf<String?>(null) }
+    var batteryOptimizationIgnored by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+    var pendingUndoTask by remember { mutableStateOf<ScheduledTask?>(null) }
+
+    var notificationPermissionGranted by remember {
+        mutableStateOf(
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                    PackageManager.PERMISSION_GRANTED
+        )
+    }
+    val notificationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> notificationPermissionGranted = granted }
+
+    LaunchedEffect(Unit) {
+        if (!notificationPermissionGranted) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+        batteryOptimizationIgnored =
+            DeviceOptimizationHelper.isIgnoringBatteryOptimizations(context)
+        triggers = triggerRepo.listAll()
+    }
+
+    fun trySchedule(task: ScheduledTask) {
+        if (!scheduler.schedule(task)) {
+            Toast.makeText(
+                context,
+                context.getString(R.string.exact_alarm_permission_needed),
+                Toast.LENGTH_LONG
+            ).show()
+            context.startActivity(
+                Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
+                    data = Uri.parse("package:${context.packageName}")
+                }
             )
         }
-        when (selectedTab) {
-            0 -> ScheduledTaskListContent(onViewInChat = onViewInChat)
-            1 -> ConditionalTriggerListContent(onViewInChat = onViewInChat)
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { editingTask = null; showSheet = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary,
+            ) {
+                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_task))
+            }
+        }
+    ) { padding ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            // Battery optimization warning
+            if (!batteryOptimizationIgnored) {
+                item(key = "battery_warning") {
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                        shape = MaterialTheme.shapes.medium,
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(
+                                Icons.Default.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(20.dp),
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    "Battery optimization may prevent tasks from running on time.",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onErrorContainer,
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    TextButton(onClick = {
+                                        DeviceOptimizationHelper.openBatteryOptimizationSettings(context)
+                                    }) { Text("Disable optimization") }
+                                    TextButton(onClick = {
+                                        if (!DeviceOptimizationHelper.openAutoStartSettings(context)) {
+                                            Toast.makeText(context, "Auto-start settings not found for this device.", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }) { Text("Auto-start") }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Section: Scheduled
+            item(key = "section_scheduled") {
+                Text(
+                    stringResource(R.string.scheduled_tasks),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
+
+            if (tasks.isEmpty()) {
+                item(key = "empty_scheduled") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(R.string.no_tasks),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            } else {
+                items(tasks, key = { it.id }) { task ->
+                    AutomationsTaskCard(
+                        task = task,
+                        onClick = { editingTask = task; showSheet = true },
+                        onToggle = { enabled ->
+                            val updated = task.copy(enabled = enabled)
+                            repo.save(updated)
+                            if (enabled) trySchedule(updated) else scheduler.cancel(task.id)
+                            tasks = repo.listAll()
+                        },
+                        onDelete = {
+                            scheduler.cancel(task.id)
+                            executionRepo.deleteByTaskId(task.id)
+                            repo.delete(task.id)
+                            pendingUndoTask = task
+                            tasks = tasks.filter { it.id != task.id }
+                            coroutineScope.launch {
+                                val result = snackbarHostState.showSnackbar(
+                                    message = context.getString(R.string.task_deleted, task.title),
+                                    actionLabel = context.getString(R.string.undo),
+                                    duration = SnackbarDuration.Short
+                                )
+                                if (result == SnackbarResult.ActionPerformed) {
+                                    repo.save(task)
+                                    if (task.enabled) trySchedule(task)
+                                    tasks = repo.listAll()
+                                }
+                                pendingUndoTask = null
+                            }
+                        },
+                        onHistory = { historyTaskId = task.id },
+                    )
+                }
+            }
+
+            // Section: Triggers
+            item(key = "section_triggers") {
+                Text(
+                    stringResource(R.string.conditional_triggers),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(vertical = 4.dp),
+                )
+            }
+
+            if (triggers.isEmpty()) {
+                item(key = "empty_triggers") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            stringResource(R.string.no_conditional_triggers),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+                }
+            } else {
+                items(triggers, key = { it.id }) { trigger ->
+                    AutomationsTriggerCard(
+                        trigger = trigger,
+                        onHistory = { historyTriggerId = trigger.id },
+                    )
+                }
+            }
+
+            // Bottom spacer for FAB
+            item { Spacer(modifier = Modifier.height(72.dp)) }
+        }
+    }
+
+    if (showSheet) {
+        ScheduledTaskEditSheet(
+            task = editingTask,
+            onDismiss = { showSheet = false },
+            onSave = { task ->
+                repo.save(task)
+                if (task.enabled) trySchedule(task) else scheduler.cancel(task.id)
+                tasks = repo.listAll()
+                showSheet = false
+            }
+        )
+    }
+
+    if (historyTaskId != null) {
+        ExecutionHistorySheet(
+            taskId = historyTaskId!!,
+            executionRepo = executionRepo,
+            onViewInChat = onViewInChat,
+            onDismiss = { historyTaskId = null }
+        )
+    }
+
+    if (historyTriggerId != null) {
+        val records = remember(historyTriggerId) { executionRepo.listByTaskId(historyTriggerId!!) }
+        val dateFormat = remember { SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()) }
+        val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+        ModalBottomSheet(
+            onDismissRequest = { historyTriggerId = null },
+            sheetState = sheetState
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp)
+                    .padding(bottom = 32.dp)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    stringResource(R.string.execution_history),
+                    style = MaterialTheme.typography.titleMedium
+                )
+                if (records.isEmpty()) {
+                    Text(
+                        stringResource(R.string.no_execution_records),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    records.forEach { record ->
+                        TriggerHistoryItem(record, dateFormat, onClick = { onViewInChat(record) })
+                    }
+                }
+            }
         }
     }
 }
 
-// ─── Scheduled Task List Content ────────────────────────────────────────────────
+// ─── Scheduled Task List Content (kept for ScheduledTaskListScreen sub-navigation) ─
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -413,6 +667,110 @@ internal fun TaskCard(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AutomationsTaskCard(
+    task: ScheduledTask,
+    onClick: () -> Unit,
+    onToggle: (Boolean) -> Unit,
+    onDelete: () -> Unit,
+    onHistory: () -> Unit
+) {
+    val freqLabel = when (task.frequency) {
+        TaskFrequency.DAILY -> stringResource(R.string.freq_daily)
+        TaskFrequency.WEEKDAYS -> stringResource(R.string.freq_weekdays)
+        TaskFrequency.WEEKLY -> stringResource(R.string.freq_weekly)
+        TaskFrequency.ONCE -> stringResource(R.string.freq_once)
+    }
+    val timeStr = "%02d:%02d".format(task.hour, task.minute)
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete(); true
+            } else false
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.errorContainer, MaterialTheme.shapes.medium)
+                    .padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                Icon(
+                    Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.delete),
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false,
+    ) {
+        Card(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            ),
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(10.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (task.enabled) Color(0xFF43A047)
+                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                            )
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        task.title,
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.weight(1f),
+                    )
+                    Switch(checked = task.enabled, onCheckedChange = onToggle)
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "$freqLabel · $timeStr",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                if (task.prompt.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = task.prompt,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    TextButton(onClick = onHistory) {
+                        Text(stringResource(R.string.history), style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
 // ─── Scheduled Task Edit Sheet ──────────────────────────────────────────────────
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -599,6 +957,88 @@ private fun TriggerCard(
                 )
             },
         )
+    }
+}
+
+@Composable
+private fun AutomationsTriggerCard(
+    trigger: ConditionalTrigger,
+    onHistory: () -> Unit,
+) {
+    val conditionsText = trigger.conditions.joinToString(", ") { cond ->
+        val opDisplay = when (cond.operator) {
+            ConditionOperator.EQUAL -> "="
+            ConditionOperator.NOT_EQUAL -> "≠"
+            ConditionOperator.GREATER_THAN -> ">"
+            ConditionOperator.LESS_THAN -> "<"
+            ConditionOperator.GREATER_OR_EQUAL -> "≥"
+            ConditionOperator.LESS_OR_EQUAL -> "≤"
+            ConditionOperator.CHANGED -> "changed"
+            ConditionOperator.BECOMES_TRUE -> "→true"
+            ConditionOperator.BECOMES_FALSE -> "→false"
+        }
+        "${cond.source.name}.${cond.field} $opDisplay ${cond.targetValue ?: ""}"
+    }
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ),
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(10.dp)
+                        .clip(CircleShape)
+                        .background(
+                            if (trigger.enabled) Color(0xFF43A047)
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                        )
+                )
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(
+                    trigger.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.weight(1f),
+                )
+                Text(
+                    if (trigger.enabled) stringResource(R.string.enabled) else stringResource(R.string.disabled),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (trigger.enabled) Color(0xFF43A047) else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = conditionsText,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (trigger.prompt.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Text(
+                    text = trigger.prompt,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onHistory) {
+                    Text(stringResource(R.string.history), style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
     }
 }
 

@@ -462,7 +462,7 @@
     <!-- Todo & Notes -->
     <string name="chat_tab">Chat</string>
     <string name="todo_lists">Tasks</string>
-    <string name="background_tasks">Background</string>
+    <string name="background_tasks">Automations</string>
     <string name="notes">Notes</string>
     <string name="my_day">My Day</string>
     <string name="important">Important</string>
