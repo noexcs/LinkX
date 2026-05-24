@@ -1,18 +1,22 @@
 package com.noexcs.indolent.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.outlined.CheckCircle
-import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.outlined.AutoAwesome
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -51,6 +55,12 @@ fun SystemPromptSettingsScreen(
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
     val savedMsg = stringResource(R.string.settings_saved)
+    val listState = rememberLazyListState()
+    var fabExpanded by remember { mutableStateOf(true) }
+
+    LaunchedEffect(listState.firstVisibleItemIndex, listState.isScrollInProgress) {
+        fabExpanded = listState.firstVisibleItemIndex == 0 && !listState.isScrollInProgress
+    }
 
     val effectiveTrigger = resumeTrigger + localRefreshCounter
 
@@ -77,6 +87,22 @@ fun SystemPromptSettingsScreen(
         onEditPrompt(promptId)
     }
 
+    fun duplicatePrompt(prompt: SystemPromptItem) {
+        scope.launch {
+            val copy = prompt.copy(
+                id = UUID.randomUUID().toString(),
+                name = "${prompt.name} (copy)",
+                createdAt = System.currentTimeMillis(),
+                updatedAt = System.currentTimeMillis(),
+            )
+            repository.save(copy)
+            localRefreshCounter++
+        }
+    }
+
+    val activePrompt = prompts.find { it.id == activeId }
+    val otherPrompts = prompts.filter { it.id != activeId }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -95,49 +121,100 @@ fun SystemPromptSettingsScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
+            ExtendedFloatingActionButton(
                 onClick = { navigateToEditor(null) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.add_note))
-            }
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = {
+                    AnimatedVisibility(visible = fabExpanded, enter = fadeIn(), exit = fadeOut()) {
+                        Text(stringResource(R.string.new_prompt_label))
+                    }
+                },
+                expanded = fabExpanded,
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
         }
     ) { padding ->
         if (prompts.isEmpty()) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+                    .padding(padding)
+                    .padding(horizontal = 32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
+                Icon(
+                    Icons.Outlined.AutoAwesome,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f),
+                    modifier = Modifier.size(48.dp)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
                 Text(
                     stringResource(R.string.no_prompts),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    stringResource(R.string.no_prompts_subtitle),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                 )
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(prompts, key = { it.id }) { prompt ->
-                    val isActive = prompt.id == activeId
-                    PromptCard(
-                        prompt = prompt,
-                        isActive = isActive,
-                        onActivate = {
-                            activeId = prompt.id
-                            settingsManager.activeSystemPromptId = prompt.id
-                            localRefreshCounter++
-                        },
-                        onEdit = { navigateToEditor(prompt.id) },
-                        onDelete = { showDeleteConfirm = prompt }
-                    )
+                // Hero: Active prompt
+                if (activePrompt != null) {
+                    item(key = "hero") {
+                        SectionHeader(stringResource(R.string.prompt_current_persona))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        ActivePromptHeroCard(
+                            prompt = activePrompt,
+                            onEdit = { navigateToEditor(activePrompt.id) },
+                            onMenuAction = { action ->
+                                when (action) {
+                                    "duplicate" -> duplicatePrompt(activePrompt)
+                                    "delete" -> showDeleteConfirm = activePrompt
+                                }
+                            }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+
+                // Section: Your Prompts
+                if (otherPrompts.isNotEmpty()) {
+                    item(key = "section_header") {
+                        SectionHeader(stringResource(R.string.prompt_your_prompts))
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    items(otherPrompts, key = { it.id }) { prompt ->
+                        PromptCard(
+                            prompt = prompt,
+                            isActive = false,
+                            onEdit = { navigateToEditor(prompt.id) },
+                            onMenuAction = { action ->
+                                when (action) {
+                                    "activate" -> {
+                                        activeId = prompt.id
+                                        settingsManager.activeSystemPromptId = prompt.id
+                                        localRefreshCounter++
+                                    }
+                                    "duplicate" -> duplicatePrompt(prompt)
+                                    "delete" -> showDeleteConfirm = prompt
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
@@ -174,14 +251,125 @@ fun SystemPromptSettingsScreen(
     }
 }
 
+// ── Active Hero Card ──
+
+@Composable
+private fun ActivePromptHeroCard(
+    prompt: SystemPromptItem,
+    onEdit: () -> Unit,
+    onMenuAction: (String) -> Unit,
+) {
+    val bgColor = Color(prompt.color)
+    var showMenu by remember { mutableStateOf(false) }
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.large)
+            .clickable(onClick = onEdit),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = bgColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.Top
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    if (prompt.icon.isNotBlank()) {
+                        Text(prompt.icon, style = MaterialTheme.typography.headlineMedium)
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    Text(
+                        prompt.name.ifBlank { stringResource(R.string.prompt_untitled) },
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black else Color.White,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    if (prompt.content.isNotBlank()) {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            prompt.content.replace("\n", " ").take(200),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = (if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black else Color.White).copy(alpha = 0.75f),
+                            maxLines = 3,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+                Box {
+                    IconButton(onClick = { showMenu = true }) {
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = null,
+                            tint = if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black.copy(alpha = 0.6f) else Color.White.copy(alpha = 0.7f),
+                        )
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.prompt_duplicate)) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                            onClick = { showMenu = false; onMenuAction("duplicate") }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            onClick = { showMenu = false; onMenuAction("delete") }
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(prompt.updatedAt)),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = (if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black else Color.White).copy(alpha = 0.5f),
+                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = (if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black else Color.White).copy(alpha = 0.15f),
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            Icons.Default.Check,
+                            contentDescription = null,
+                            tint = if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black else Color.White,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Text(
+                            stringResource(R.string.prompt_active),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (bgColor.red + bgColor.green + bgColor.blue > 1.8f) Color.Black else Color.White,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ── Regular Prompt Card ──
+
 @Composable
 private fun PromptCard(
     prompt: SystemPromptItem,
     isActive: Boolean,
-    onActivate: () -> Unit,
     onEdit: () -> Unit,
-    onDelete: () -> Unit,
+    onMenuAction: (String) -> Unit,
 ) {
+    var showMenu by remember { mutableStateOf(false) }
+
     ElevatedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -194,11 +382,17 @@ private fun PromptCard(
         ),
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Header: name + active badge
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                // Color dot
+                Surface(
+                    modifier = Modifier.size(10.dp),
+                    shape = RoundedCornerShape(50),
+                    color = Color(prompt.color),
+                ) {}
+                Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = prompt.name.ifBlank { stringResource(R.string.prompt_untitled) },
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
@@ -207,25 +401,40 @@ private fun PromptCard(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (isActive) {
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Surface(
-                        shape = RoundedCornerShape(6.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.size(36.dp)
                     ) {
-                        Text(
-                            text = stringResource(R.string.prompt_active),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onPrimaryContainer,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                        Icon(
+                            Icons.Default.MoreVert,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                    DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.prompt_set_active)) },
+                            leadingIcon = { Icon(Icons.Default.Check, contentDescription = null) },
+                            onClick = { showMenu = false; onMenuAction("activate") }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.prompt_duplicate)) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                            onClick = { showMenu = false; onMenuAction("duplicate") }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.error) },
+                            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                            onClick = { showMenu = false; onMenuAction("delete") }
                         )
                     }
                 }
             }
 
-            // Content preview
             if (prompt.content.isNotBlank()) {
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = prompt.content.replace("\n", " ").take(160),
                     style = MaterialTheme.typography.bodySmall,
@@ -235,76 +444,29 @@ private fun PromptCard(
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Footer: date + actions
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(prompt.updatedAt)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Activate capsule
-                    Surface(
-                        onClick = onActivate,
-                        shape = RoundedCornerShape(50),
-                        color = if (isActive) MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerHighest,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                if (isActive) Icons.Filled.CheckCircle else Icons.Outlined.CheckCircle,
-                                contentDescription = null,
-                                tint = if (isActive) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                stringResource(R.string.prompt_active),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = if (isActive) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            )
-                        }
-                    }
-                    // Delete capsule
-                    Surface(
-                        onClick = onDelete,
-                        shape = RoundedCornerShape(50),
-                        color = MaterialTheme.colorScheme.surfaceContainerHighest,
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Icon(
-                                Icons.Outlined.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                modifier = Modifier.size(18.dp)
-                            )
-                            Text(
-                                stringResource(R.string.delete),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            )
-                        }
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                SimpleDateFormat("yyyy/MM/dd", Locale.getDefault()).format(Date(prompt.updatedAt)),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+            )
         }
     }
 }
+
+// ── Section Header ──
+
+@Composable
+private fun SectionHeader(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelLarge,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+        modifier = Modifier.padding(horizontal = 4.dp)
+    )
+}
+
+// ── Migration ──
 
 private suspend fun migrateLegacyPrompt(
     repository: SystemPromptRepository,
