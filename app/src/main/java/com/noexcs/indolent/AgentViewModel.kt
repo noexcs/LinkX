@@ -105,7 +105,11 @@ class AgentViewModel(
             return
         }
         if (apiKey.isBlank()) {
-            error.value = "API key is not configured. Please set it in Settings."
+            if (!settingsManager.isEncryptionAvailable()) {
+                error.value = "API key secure storage is unavailable. The saved API key cannot be read. Please re-enter your API key in Settings."
+            } else {
+                error.value = "API key is not configured. Please set it in Settings."
+            }
             return
         }
 

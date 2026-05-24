@@ -83,7 +83,7 @@ class BatteryInfoTool(context: Context) : AgentTool {
 
             // Time to charge estimate (API 28+)
             val timeToChargeMs = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P && bm != null) {
-                bm.computeChargeTimeRemaining() / 1_000_000 // nanos → millis
+                bm.computeChargeTimeRemaining() / 1_000 // microseconds → milliseconds
             } else -1L
 
             buildString {
@@ -104,7 +104,7 @@ class BatteryInfoTool(context: Context) : AgentTool {
                 if (statusStr == "charging" && timeToChargeMs > 0) {
                     val mins = timeToChargeMs / 60_000
                     appendLine("timeToFull: ${mins}min (${mins / 60}h ${mins % 60}m)")
-                } else if (statusStr == "discharging" && pct > 0 && currentNow < 0) {
+                } else if (statusStr == "discharging" && pct > 0 && currentNow != Int.MIN_VALUE && currentNow < 0) {
                     // Rough estimate: remaining capacity / discharge rate
                     // chargeRemaining is in μAh, currentNow is in μA (negative when discharging)
                     if (chargeRemaining > 0) {

@@ -56,6 +56,7 @@ class HeartbeatWorker(
                 )
             } catch (e: IllegalStateException) {
                 Lumberjack.w("HeartbeatWorker", "${e.message}")
+                HeartbeatScheduler(applicationContext).scheduleWithInterval(null)
                 return finishWithError(nm, e.message ?: "Configuration error", startTime)
             }
 
@@ -123,6 +124,7 @@ class HeartbeatWorker(
             nm.notify(COMPLETE_NOTIFICATION_ID, buildCompleteNotification(null, errorMsg, durationMs))
             nm.cancel(START_NOTIFICATION_ID)
 
+            HeartbeatScheduler(applicationContext).scheduleWithInterval(null)
             Result.retry()
         }
     }

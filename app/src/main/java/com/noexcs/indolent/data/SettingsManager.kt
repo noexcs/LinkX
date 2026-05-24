@@ -48,7 +48,7 @@ class SettingsManager(context: Context) {
             null
         }
     }
-    private val encryptionFailed = securePrefs == null
+    private val encryptionFailed by lazy { securePrefs == null }
 
     var userSystemPrompt: String
         get() = prefs.getString("user_system_prompt", "") ?: ""

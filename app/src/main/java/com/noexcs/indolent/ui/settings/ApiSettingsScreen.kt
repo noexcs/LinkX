@@ -198,6 +198,15 @@ fun ApiSettingsScreen(
                     colors = settingsFieldColors()
                 )
 
+                if (!settingsManager.isEncryptionAvailable()) {
+                    Text(
+                        "Secure storage unavailable. API key cannot be saved or read. Check device security configuration.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+
                 OutlinedTextField(
                     value = baseUrl,
                     onValueChange = { baseUrl = it; markChanged() },

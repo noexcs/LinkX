@@ -31,39 +31,52 @@ class TriggerDispatcher(private val context: Context) {
         val now = System.currentTimeMillis()
         val repo = ConditionalTriggerRepository(context)
 
-        // Cooldown check
-        if (trigger.lastTriggeredAt > 0 && (now - trigger.lastTriggeredAt) < trigger.cooldownMs) {
-            Lumberjack.d(TAG, "Trigger '${trigger.title}' is in cooldown (last=${trigger.lastTriggeredAt}, cooldownMs=${trigger.cooldownMs})")
+        // Reload from repository to get latest state under the lock.
+        // The parameter 'trigger' may be stale if another coroutine already dispatched it.
+        val currentTrigger = repo.load(trigger.id) ?: run {
+            Lumberjack.w(TAG, "Trigger '${trigger.title}' (${trigger.id}) not found in repository, skipping")
             return
         }
 
-        // Daily cap check
+        // Re-check enabled — trigger may have been disabled since loading
+        if (!currentTrigger.enabled) {
+            Lumberjack.d(TAG, "Trigger '${currentTrigger.title}' is disabled, skipping")
+            return
+        }
+
+        // Cooldown check against reloaded state
+        if (currentTrigger.lastTriggeredAt > 0 && (now - currentTrigger.lastTriggeredAt) < currentTrigger.cooldownMs) {
+            Lumberjack.d(TAG, "Trigger '${currentTrigger.title}' is in cooldown (last=${currentTrigger.lastTriggeredAt}, cooldownMs=${currentTrigger.cooldownMs})")
+            return
+        }
+
+        // Daily cap check against reloaded state
         val today = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(now))
-        val fireCount = if (trigger.fireCountDate == today) trigger.fireCount else 0
-        if (fireCount >= trigger.maxFiresPerDay) {
-            Lumberjack.d(TAG, "Trigger '${trigger.title}' reached daily cap ($fireCount/${trigger.maxFiresPerDay})")
+        val fireCount = if (currentTrigger.fireCountDate == today) currentTrigger.fireCount else 0
+        if (fireCount >= currentTrigger.maxFiresPerDay) {
+            Lumberjack.d(TAG, "Trigger '${currentTrigger.title}' reached daily cap ($fireCount/${currentTrigger.maxFiresPerDay})")
             return
         }
 
-        // Update state before execution to prevent race conditions
-        val updatedTrigger = trigger.copy(
+        // Update state before execution using reloaded data
+        val updatedTrigger = currentTrigger.copy(
             lastTriggeredAt = now,
             fireCount = fireCount + 1,
             fireCountDate = today
         )
         repo.save(updatedTrigger)
 
-        Lumberjack.i(TAG, "Dispatching trigger: '${trigger.title}' (${trigger.id})")
+        Lumberjack.i(TAG, "Dispatching trigger: '${currentTrigger.title}' (${currentTrigger.id})")
 
-        val contextualPrompt = buildContextualPrompt(trigger)
+        val contextualPrompt = buildContextualPrompt(currentTrigger)
 
         try {
             val clipboardStore = AgentClipboardStore()
             val session = try {
-                BackgroundSessionRunner.create(context, trigger.id, SessionType.CONDITIONAL_TRIGGER,
+                BackgroundSessionRunner.create(context, currentTrigger.id, SessionType.CONDITIONAL_TRIGGER,
                     clipboardStore = clipboardStore)
             } catch (e: IllegalStateException) {
-                Lumberjack.w(TAG, "${e.message}, skipping trigger: ${trigger.id}")
+                Lumberjack.w(TAG, "${e.message}, skipping trigger: ${currentTrigger.id}")
                 return
             }
             session.context = BackgroundSessionRunner.buildContextConfig(
@@ -86,14 +99,14 @@ class TriggerDispatcher(private val context: Context) {
                 session.execute(contextualPrompt, tools)
             } ?: listOf(LLMMessage(role = "system", content = "Conditional trigger execution timed out after 5 minutes."))
 
-            Lumberjack.i(TAG, "Trigger '${trigger.title}' completed (${reply.size} messages)")
+            Lumberjack.i(TAG, "Trigger '${currentTrigger.title}' completed (${reply.size} messages)")
             session.save()
 
             // Save execution record
             val record = TaskExecutionRecord(
                 id = UUID.randomUUID().toString(),
-                taskId = trigger.id,
-                taskTitle = trigger.title,
+                taskId = currentTrigger.id,
+                taskTitle = currentTrigger.title,
                 prompt = contextualPrompt,
                 status = ExecutionStatus.SUCCESS,
                 result = reply,
@@ -103,17 +116,17 @@ class TriggerDispatcher(private val context: Context) {
             TaskExecutionRepository(context).save(record)
 
             // Notify if enabled
-            if (trigger.notifyEnabled) {
+            if (currentTrigger.notifyEnabled) {
                 val replyText = reply.lastOrNull { it.role == "assistant" }?.content ?: ""
-                showNotification(trigger.title, replyText.take(200))
+                showNotification(currentTrigger.title, replyText.take(200))
             }
 
         } catch (e: Exception) {
-            Lumberjack.e(TAG, "Trigger '${trigger.title}' failed", e)
+            Lumberjack.e(TAG, "Trigger '${currentTrigger.title}' failed", e)
             val record = TaskExecutionRecord(
                 id = UUID.randomUUID().toString(),
-                taskId = trigger.id,
-                taskTitle = trigger.title,
+                taskId = currentTrigger.id,
+                taskTitle = currentTrigger.title,
                 prompt = contextualPrompt,
                 status = ExecutionStatus.FAILURE,
                 errorMessage = e.message ?: "Unknown error",

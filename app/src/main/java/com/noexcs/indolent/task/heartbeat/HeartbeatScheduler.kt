@@ -17,7 +17,9 @@ class HeartbeatScheduler(private val context: Context) {
 
     fun canScheduleExact(): Boolean = alarmManager.canScheduleExactAlarms()
 
-    fun schedule(): Boolean {
+    fun schedule(): Boolean = scheduleWithInterval(null)
+
+    fun scheduleWithInterval(intervalMs: Long? = null): Boolean {
         val settings = SettingsManager(context)
         if (!settings.heartbeatEnabled) {
             Lumberjack.d(TAG, "Heartbeat disabled, skipping schedule")
@@ -28,8 +30,8 @@ class HeartbeatScheduler(private val context: Context) {
             return false
         }
 
-        val intervalMs = settings.heartbeatIntervalMinutes * 60_000L
-        val triggerTime = System.currentTimeMillis() + intervalMs
+        val effectiveInterval = intervalMs ?: (settings.heartbeatIntervalMinutes * 60_000L)
+        val triggerTime = System.currentTimeMillis() + effectiveInterval
         val pendingIntent = buildPendingIntent()
 
         alarmManager.setAlarmClock(
@@ -38,7 +40,7 @@ class HeartbeatScheduler(private val context: Context) {
         )
         val timeStr = SimpleDateFormat("HH:mm", Locale.getDefault())
             .format(Date(triggerTime))
-        Lumberjack.i(TAG, "Heartbeat scheduled — next at $timeStr (every ${settings.heartbeatIntervalMinutes} min)")
+        Lumberjack.i(TAG, "Heartbeat scheduled — next at $timeStr (every ${effectiveInterval / 60_000} min)")
         return true
     }
 
