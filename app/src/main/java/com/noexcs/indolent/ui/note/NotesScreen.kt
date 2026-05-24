@@ -1,8 +1,11 @@
 package com.noexcs.indolent.ui.note
 
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -89,8 +92,14 @@ fun NotesScreen(
     AnimatedContent(
         targetState = currentView,
         transitionSpec = {
-            fadeIn(animationSpec = androidx.compose.animation.core.tween(300)) togetherWith
-                fadeOut(animationSpec = androidx.compose.animation.core.tween(300))
+            val isEnteringEditor = targetState is NoteView.Edit
+            val isLeavingEditor = initialState is NoteView.Edit
+            if (isEnteringEditor || isLeavingEditor) {
+                (fadeIn(tween(300)) + scaleIn(tween(400), initialScale = 0.92f)) togetherWith
+                    (fadeOut(tween(200)) + scaleOut(tween(300), targetScale = 1.06f))
+            } else {
+                fadeIn(tween(300)) togetherWith fadeOut(tween(300))
+            }
         },
         label = "noteView"
     ) { view ->
