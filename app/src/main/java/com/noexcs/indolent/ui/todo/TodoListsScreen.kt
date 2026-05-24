@@ -377,7 +377,7 @@ private fun SmartListCard(
                     if (count > 0) "$count ${stringResource(R.string.tasks_count)}" else stringResource(
                         R.string.no_tasks
                     ),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }

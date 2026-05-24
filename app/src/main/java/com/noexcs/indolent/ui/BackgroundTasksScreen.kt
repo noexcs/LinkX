@@ -162,7 +162,7 @@ private fun ScheduledTaskListContent(
                                 ) {
                                     Text(
                                         "Battery optimization may prevent tasks from running on time.",
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onErrorContainer
                                     )
                                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -401,7 +401,7 @@ internal fun TaskCard(
                 supportingContent = {
                     Text(
                         "$freqLabel · $timeStr",
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },

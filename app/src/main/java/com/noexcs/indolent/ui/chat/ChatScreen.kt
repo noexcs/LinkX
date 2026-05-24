@@ -321,7 +321,7 @@ private fun MessageInputBox(
     val hasText = input.isNotBlank()
 
     Surface(
-        shape = RoundedCornerShape(32.dp),
+        shape = com.noexcs.indolent.ui.theme.PillShape,
         color = MaterialTheme.colorScheme.surfaceContainerHighest,
         tonalElevation = 2.dp,
         shadowElevation = if (hasText) 2.dp else 0.dp,
@@ -371,7 +371,7 @@ private fun MessageInputBox(
                 modifier = Modifier
                     .padding(bottom = 4.dp)
                     .size(48.dp),
-                shape = RoundedCornerShape(18.dp),
+                shape = MaterialTheme.shapes.medium,
                 colors = IconButtonDefaults.filledIconButtonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -403,7 +403,7 @@ private fun EmptyState() {
             Box(
                 modifier = Modifier
                     .size(72.dp)
-                    .clip(RoundedCornerShape(36.dp))
+                    .clip(androidx.compose.foundation.shape.CircleShape)
                     .background(
                         MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                     ),
@@ -442,7 +442,7 @@ private fun ThinkingIndicator() {
     Row(
         modifier = Modifier
             .padding(start = 8.dp, top = 8.dp, bottom = 4.dp)
-            .clip(RoundedCornerShape(20.dp))
+            .clip(MaterialTheme.shapes.large)
             .background(MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.6f))
             .padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -568,7 +568,7 @@ private fun ToolCallBubble(
 
     // Downward expansion — natural without reverseLayout
     Surface(
-        shape = RoundedCornerShape(20.dp),
+        shape = MaterialTheme.shapes.large,
         color = surfaceColor,
         onClick = { if (hasDetail) expanded = !expanded },
         modifier = Modifier
@@ -591,7 +591,7 @@ private fun ToolCallBubble(
                         .background(MaterialTheme.colorScheme.secondary)
                 )
                 Surface(
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f),
                 ) {
                     Text(
@@ -617,7 +617,7 @@ private fun ToolCallBubble(
             if (canReopen) {
                 Surface(
                     onClick = { contentDisplayManager.show(displayContentId!!) },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = MaterialTheme.shapes.small,
                     color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 4.dp),
                 ) {

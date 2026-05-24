@@ -23,7 +23,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
+
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
@@ -335,7 +335,7 @@ private fun NoteGridCard(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.elevatedCardColors(containerColor = bgColor),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
     ) {
         Column(
             modifier = Modifier.padding(12.dp)
@@ -353,7 +353,7 @@ private fun NoteGridCard(
             if (note.content.isNotBlank()) {
                 Text(
                     note.content,
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.labelMedium,
                     color = onBgColor.copy(alpha = 0.8f),
                     maxLines = 6,
                     overflow = TextOverflow.Ellipsis,
@@ -364,7 +364,7 @@ private fun NoteGridCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     note.labels.take(3).forEach { label ->
                         Surface(
-                            shape = RoundedCornerShape(4.dp),
+                            shape = MaterialTheme.shapes.extraSmall,
                             color = onBgColor.copy(alpha = 0.15f),
                             modifier = Modifier.clickable { onLabelClick(label) }
                         ) {
@@ -419,7 +419,7 @@ private fun NoteListItem(
             .fillMaxWidth()
             .clickable(onClick = onClick),
         colors = CardDefaults.elevatedCardColors(containerColor = bgColor),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
     ) {
         Row(
             modifier = Modifier.padding(12.dp),
@@ -438,7 +438,7 @@ private fun NoteListItem(
                 if (note.content.isNotBlank()) {
                     Text(
                         note.content.take(100),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = onBgColor.copy(alpha = 0.7f),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
@@ -449,7 +449,7 @@ private fun NoteListItem(
                     Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         note.labels.take(3).forEach { label ->
                             Surface(
-                                shape = RoundedCornerShape(4.dp),
+                                shape = MaterialTheme.shapes.extraSmall,
                                 color = onBgColor.copy(alpha = 0.15f),
                                 modifier = Modifier.clickable { onLabelClick(label) }
                             ) {

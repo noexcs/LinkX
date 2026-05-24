@@ -108,7 +108,7 @@ fun GroupCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ElevatedCard(
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -150,7 +150,7 @@ fun GroupCardItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
@@ -158,8 +158,8 @@ fun GroupCardItem(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -189,7 +189,7 @@ fun SectionCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     ElevatedCard(
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -209,8 +209,8 @@ fun SectionCard(
             )
             Text(
                 subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             content()
         }
@@ -261,14 +261,14 @@ fun ExpandableToolGroupCard(
     var expanded by remember { mutableStateOf(false) }
 
     ElevatedCard(
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         modifier = modifier
             .fillMaxWidth()
-            .clip(MaterialTheme.shapes.large)
+            .clip(MaterialTheme.shapes.medium)
             .clickable { expanded = !expanded },
     ) {
         Column(
@@ -291,8 +291,8 @@ fun ExpandableToolGroupCard(
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = if (expanded) Int.MAX_VALUE else 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -373,7 +373,7 @@ fun MenuItemCard(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.large,
+        shape = MaterialTheme.shapes.medium,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -388,7 +388,7 @@ fun MenuItemCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.titleSmall,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -396,8 +396,8 @@ fun MenuItemCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -425,7 +425,7 @@ fun ThemePreviewMini(
         modifier = Modifier
             .width(width)
             .height(height)
-            .clip(MaterialTheme.shapes.medium)
+            .clip(MaterialTheme.shapes.small)
             .background(scheme.background)
             .padding(8.dp),
     ) {
