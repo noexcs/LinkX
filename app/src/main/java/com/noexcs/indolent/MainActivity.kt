@@ -35,6 +35,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -203,33 +204,35 @@ private fun MainContent() {
     }
 
     Scaffold(
-        topBar = {
+        bottomBar = {
             if (isRoot) {
-                Surface(
-                    modifier = Modifier.statusBarsPadding(),
-                    color = MaterialTheme.colorScheme.surface,
+                NavigationBar(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 2.dp,
                 ) {
-                    TabRow(selectedTabIndex = pagerState.currentPage) {
-                        navItems.forEachIndexed { index, item ->
-                            val selected = pagerState.currentPage == index
-                            Tab(
-                                selected = selected,
-                                onClick = {
-                                    if (index != pagerState.currentPage) {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(index)
-                                        }
+                    navItems.forEachIndexed { index, item ->
+                        val selected = pagerState.currentPage == index
+                        NavigationBarItem(
+                            selected = selected,
+                            onClick = {
+                                if (index != pagerState.currentPage) {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(index)
                                     }
-                                },
-                                text = { Text(stringResource(item.labelRes)) },
-                                icon = {
-                                    Icon(
-                                        if (selected) item.selectedIcon else item.unselectedIcon,
-                                        contentDescription = stringResource(item.labelRes),
-                                    )
                                 }
-                            )
-                        }
+                            },
+                            icon = {
+                                Icon(
+                                    if (selected) item.selectedIcon else item.unselectedIcon,
+                                    contentDescription = stringResource(item.labelRes),
+                                )
+                            },
+                            label = { Text(stringResource(item.labelRes)) },
+                            alwaysShowLabel = index < 3,
+                            colors = NavigationBarItemDefaults.colors(
+                                indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                            ),
+                        )
                     }
                 }
             }
@@ -239,7 +242,8 @@ private fun MainContent() {
             HorizontalPager(
                 state = pagerState,
                 modifier = Modifier
-                    .padding(top = scaffoldPadding.calculateTopPadding())
+                    .statusBarsPadding()
+                    .padding(bottom = scaffoldPadding.calculateBottomPadding())
                     .fillMaxSize()
                     .background(MaterialTheme.colorScheme.surface),
                 beyondViewportPageCount = navItems.size,
