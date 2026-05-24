@@ -16,6 +16,7 @@ import com.noexcs.indolent.agent.MessageRoleMapper
 import com.noexcs.indolent.agent.Session
 import com.noexcs.indolent.agent.SessionType
 import com.noexcs.indolent.agent.skills.SkillRepository
+import com.noexcs.indolent.prompt.SystemPromptRepository
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolProvider
 import com.noexcs.indolent.agent.tools.common.AgentClipboardStore
@@ -329,7 +330,7 @@ class AgentViewModel(
 
         return ContextConfig(
             baseInstruction = "You are a helpful Android assistant.",
-            userSystemPrompt = settingsManager.userSystemPrompt,
+            userSystemPrompt = loadActiveSystemPrompt(appContext, settingsManager),
             memory = retrievedMemory.ifEmpty { memoryManager.read() },
             retrievedMemory = retrievedMemory,
             activeSkillContent = skillRepository.getActiveSkillContent(),
@@ -340,6 +341,16 @@ class AgentViewModel(
 
     suspend fun buildTools(): List<AgentTool> {
         return ToolProvider.build(appContext, settingsManager, memoryManager, contentDisplayManager, clipboardStore, historyProvider = { session?.history })
+    }
+
+    private suspend fun loadActiveSystemPrompt(context: Context, settings: SettingsManager): String {
+        val activeId = settings.activeSystemPromptId ?: return settings.userSystemPrompt
+        return try {
+            SystemPromptRepository(context).load(activeId)?.content ?: ""
+        } catch (e: Exception) {
+            Lumberjack.e("AgentViewModel", "Failed to load active system prompt", e)
+            ""
+        }
     }
 
     fun clearMessages() {

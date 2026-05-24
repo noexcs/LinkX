@@ -92,6 +92,7 @@
 
         <activity android:name=".ui.settings.ApiSettingsActivity" android:exported="false" />
         <activity android:name=".ui.settings.SystemPromptSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SystemPromptEditActivity" android:exported="false" />
         <activity android:name=".ui.settings.MemorySettingsActivity" android:exported="false" />
         <activity android:name=".ui.settings.ToolSettingsActivity" android:exported="false" />
         <activity android:name=".ui.settings.HeartbeatSettingsActivity" android:exported="false" />

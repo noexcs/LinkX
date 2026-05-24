@@ -149,7 +149,7 @@ object ToolProvider {
             if (useSettingTools) {
                 if (isToolEnabled("system_setting")) add(SystemSettingTool(appContext))
                 if (isToolEnabled("audio_control")) add(AudioControlTool(appContext))
-                if (isToolEnabled("app_setting")) add(AppSettingTool(settings))
+                if (isToolEnabled("app_setting")) add(AppSettingTool(settings, appContext))
                 if (isToolEnabled("set_color_theme")) add(SetColorThemeTool(settings))
             }
             if (useInteractTools) {

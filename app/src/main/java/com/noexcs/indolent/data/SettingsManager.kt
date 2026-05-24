@@ -54,6 +54,13 @@ class SettingsManager(context: Context) {
         get() = prefs.getString("user_system_prompt", "") ?: ""
         set(value) = prefs.edit { putString("user_system_prompt", value) }
 
+    var activeSystemPromptId: String?
+        get() = prefs.getString("active_system_prompt_id", null)
+        set(value) {
+            if (value != null) prefs.edit { putString("active_system_prompt_id", value) }
+            else prefs.edit { remove("active_system_prompt_id") }
+        }
+
     var providerType: LLMProvider?
         get() {
             val id = prefs.getString("provider_type", "deepseek") ?: "deepseek"

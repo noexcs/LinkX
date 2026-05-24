@@ -59,6 +59,16 @@
     <string name="section_system_prompt">自定义系统提示词</string>
     <string name="section_system_prompt_subtitle">在每次对话中添加到基础提示词之前</string>
     <string name="system_prompt_placeholder">例如：始终使用中文回复…</string>
+    <string name="new_prompt">新建提示词</string>
+    <string name="edit_prompt">编辑提示词</string>
+    <string name="prompt_name_hint">提示词名称…</string>
+    <string name="prompt_content_hint">输入自定义系统提示词…</string>
+    <string name="no_prompts">暂无自定义提示词，点击 + 创建</string>
+    <string name="delete_prompt_title">删除提示词</string>
+    <string name="delete_prompt_message">确定删除此提示词？此操作无法撤销。</string>
+    <string name="prompt_untitled">未命名</string>
+    <string name="prompt_active">已生效</string>
+    <string name="prompt_discard_message">放弃未保存的更改？</string>
     <string name="edit_content">编辑</string>
     <string name="view_content">查看</string>
     <string name="empty_content">空</string>

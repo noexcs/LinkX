@@ -70,7 +70,7 @@ object BackgroundSessionRunner {
 
         return ContextConfig(
             baseInstruction = baseInstruction,
-            userSystemPrompt = settings.userSystemPrompt,
+            userSystemPrompt = loadActiveSystemPrompt(appContext, settings),
             memory = getMemoryManager(appContext).read(),
             activeSkillContent = skillRepo.getActiveSkillContent(),
             clipboardInstruction = clipboardInstruction,
@@ -135,6 +135,16 @@ object BackgroundSessionRunner {
             """.trimIndent()
         } else {
             "Use screen_read, screen_click, screen_screenshot, screen_scroll, screen_input tools to interact with the device screen. The accessibility service must be enabled."
+        }
+    }
+
+    private fun loadActiveSystemPrompt(context: Context, settings: SettingsManager): String {
+        val activeId = settings.activeSystemPromptId ?: return settings.userSystemPrompt
+        return try {
+            val repo = com.noexcs.indolent.prompt.SystemPromptRepository(context)
+            kotlinx.coroutines.runBlocking { repo.load(activeId)?.content ?: "" }
+        } catch (e: Exception) {
+            ""
         }
     }
 }

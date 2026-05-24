@@ -1,12 +1,14 @@
 package com.noexcs.indolent.agent.tools.setting
 
+import android.content.Context
 import com.noexcs.indolent.agent.tools.AgentTool
 import com.noexcs.indolent.agent.tools.ToolParameter
 import com.noexcs.indolent.data.SettingsManager
 import com.noexcs.indolent.data.fetchUserBalance
 import com.noexcs.indolent.logging.Lumberjack
+import com.noexcs.indolent.prompt.SystemPromptRepository
 
-class AppSettingTool(private val settings: SettingsManager) : AgentTool {
+class AppSettingTool(private val settings: SettingsManager, private val context: Context) : AgentTool {
 
     override val name = "app_setting"
     override val description = """
@@ -209,7 +211,11 @@ class AppSettingTool(private val settings: SettingsManager) : AgentTool {
 
         return when (def.type) {
             "string" -> {
-                settings.setRawString(key, value)
+                if (key == "user_system_prompt") {
+                    setActivePromptContent(value)
+                } else {
+                    settings.setRawString(key, value)
+                }
                 "OK: $key set to \"$value\""
             }
             "boolean" -> {
@@ -245,7 +251,7 @@ class AppSettingTool(private val settings: SettingsManager) : AgentTool {
             "thinking_enabled" -> settings.thinkingEnabled.toString()
             "reasoning_effort" -> settings.reasoningEffort
             "language" -> settings.language.ifEmpty { "(system default)" }
-            "user_system_prompt" -> settings.userSystemPrompt.ifEmpty { "(empty)" }
+            "user_system_prompt" -> getActivePromptContent().ifEmpty { "(empty)" }
             "fund_tools_enabled" -> settings.fundToolsEnabled.toString()
             "termux_tools_enabled" -> settings.termuxToolsEnabled.toString()
             "common_tools_enabled" -> settings.commonToolsEnabled.toString()
@@ -267,6 +273,36 @@ class AppSettingTool(private val settings: SettingsManager) : AgentTool {
             "condition_monitor_interval_minutes" -> settings.conditionMonitorIntervalMinutes.toString()
             else -> "(unknown)"
         }
+    }
+
+    private fun getActivePromptContent(): String {
+        val activeId = settings.activeSystemPromptId ?: return settings.userSystemPrompt
+        return try {
+            kotlinx.coroutines.runBlocking { SystemPromptRepository(context).load(activeId)?.content ?: "" }
+        } catch (e: Exception) {
+            Lumberjack.e("AppSettingTool", "Failed to load active system prompt", e)
+            ""
+        }
+    }
+
+    private fun setActivePromptContent(value: String) {
+        val activeId = settings.activeSystemPromptId
+        if (activeId != null) {
+            try {
+                kotlinx.coroutines.runBlocking {
+                    val repo = SystemPromptRepository(context)
+                    val prompt = repo.load(activeId)
+                    if (prompt != null) {
+                        repo.save(prompt.copy(content = value, updatedAt = System.currentTimeMillis()))
+                        return@runBlocking
+                    }
+                }
+                return
+            } catch (e: Exception) {
+                Lumberjack.e("AppSettingTool", "Failed to update active system prompt", e)
+            }
+        }
+        settings.setRawString("user_system_prompt", value)
     }
 
     private fun maskValue(value: String): String {
