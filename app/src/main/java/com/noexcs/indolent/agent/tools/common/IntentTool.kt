@@ -176,7 +176,7 @@ class IntentTool(context: Context) : AgentTool {
                 val scheme = uri.scheme?.lowercase()
                 if (scheme == "content") {
                     val authority = uri.authority?.lowercase() ?: ""
-                    if (blockedContentAuthorities.any { authority.contains(it) }) {
+                    if (authority in blockedContentAuthorities) {
                         return "Error: Access to content provider '$authority' is blocked for privacy reasons."
                     }
                 }

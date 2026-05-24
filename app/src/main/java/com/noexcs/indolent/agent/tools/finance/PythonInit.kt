@@ -23,8 +23,8 @@ object PythonInit {
                 System.loadLibrary("gfortran")
                 Python.start(AndroidPlatform(context))
                 started = true
-            } catch (e: Exception) {
-                Lumberjack.w("PythonInit", "Python already started by another caller")
+            } catch (e: Throwable) {
+                Lumberjack.w("PythonInit", "Python init failed: ${e.message}")
             }
             // Init portfolio storage
             try {

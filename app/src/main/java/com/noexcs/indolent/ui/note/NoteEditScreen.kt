@@ -50,6 +50,7 @@ fun NoteEditScreen(
     onDelete: (String) -> Unit,
 ) {
     val isNew = note == null
+    val noteId = remember { note?.id ?: UUID.randomUUID().toString() }
     var title by remember { mutableStateOf(note?.title ?: "") }
     var content by remember { mutableStateOf(note?.content ?: "") }
     var color by remember { mutableStateOf(note?.color ?: 0xFF2D2D2D) }
@@ -74,7 +75,7 @@ fun NoteEditScreen(
             val labels = labelsText.split(",").map { it.trim() }.filter { it.isNotEmpty() }
             onSave(
                 NoteItem(
-                    id = note?.id ?: UUID.randomUUID().toString(),
+                    id = noteId,
                     title = title.trim(),
                     content = content.trim(),
                     color = color,

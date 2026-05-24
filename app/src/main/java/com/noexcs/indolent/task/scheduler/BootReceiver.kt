@@ -13,8 +13,9 @@ import kotlinx.coroutines.launch
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_BOOT_COMPLETED) {
-            Lumberjack.i(TAG, "Boot completed, rescheduling tasks and heartbeat")
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED ||
+            intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+            Lumberjack.i(TAG, "${intent.action}, rescheduling tasks and heartbeat")
             val pendingResult = goAsync()
             val appContext = context.applicationContext
             CoroutineScope(Dispatchers.IO).launch {

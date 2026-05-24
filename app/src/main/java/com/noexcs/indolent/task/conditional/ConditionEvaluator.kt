@@ -102,7 +102,7 @@ class ConditionEvaluator(private val context: Context) {
         val previous = prefs.getString(key, null)
         val actual = actualValue ?: return false
 
-        if (previous != actual) {
+        if (previous != null && previous != actual) {
             prefs.edit().putString(key, actual).apply()
             Lumberjack.d(TAG, "State changed for $key: $previous -> $actual")
             return true
@@ -120,6 +120,9 @@ class ConditionEvaluator(private val context: Context) {
         if (actualValue != null) {
             prefs.edit().putString(key, actualValue).apply()
         }
+
+        // On first evaluation, seed the baseline without triggering
+        if (previous == null) return false
 
         // "becomes_true": was NOT true, now IS true
         // "becomes_false": was true, now IS NOT true

@@ -125,11 +125,12 @@
             </intent-filter>
         </receiver>
 
-        <!-- Boot receiver to reschedule alarms -->
+        <!-- Boot/update receiver to reschedule alarms -->
         <receiver android:name=".task.scheduler.BootReceiver"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
             </intent-filter>
         </receiver>
 

@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -40,7 +39,6 @@ import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.UUID
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -91,7 +89,7 @@ private fun ScheduledTaskListContent(
     var batteryOptimizationIgnored by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
-    val pendingDeleteTasks = remember { mutableStateMapOf<String, ScheduledTask>() }
+    var pendingUndoTask by remember { mutableStateOf<ScheduledTask?>(null) }
 
     var notificationPermissionGranted by remember {
         mutableStateOf(
@@ -198,39 +196,24 @@ private fun ScheduledTaskListContent(
                                 tasks = repo.listAll()
                             },
                             onDelete = {
-                                pendingDeleteTasks[task.id] = task
+                                // Delete eagerly; undo re-inserts. Survives config change.
+                                scheduler.cancel(task.id)
+                                executionRepo.deleteByTaskId(task.id)
+                                repo.delete(task.id)
+                                pendingUndoTask = task
                                 tasks = tasks.filter { it.id != task.id }
                                 coroutineScope.launch {
-                                    var undoTriggered = false
-                                    val autoDismissJob = coroutineScope.launch {
-                                        delay(15_000)
-                                        if (!undoTriggered) {
-                                            snackbarHostState.currentSnackbarData?.dismiss()
-                                        }
-                                    }
                                     val result = snackbarHostState.showSnackbar(
                                         message = context.getString(R.string.task_deleted, task.title),
                                         actionLabel = context.getString(R.string.undo),
-                                        duration = SnackbarDuration.Indefinite
+                                        duration = SnackbarDuration.Short
                                     )
-                                    autoDismissJob.cancel()
-                                    when (result) {
-                                        SnackbarResult.ActionPerformed -> {
-                                            undoTriggered = true
-                                            pendingDeleteTasks.remove(task.id)
-                                            tasks = repo.listAll()
-                                        }
-                                        SnackbarResult.Dismissed -> {
-                                            if (!undoTriggered) {
-                                                pendingDeleteTasks.remove(task.id)?.let { t ->
-                                                    scheduler.cancel(t.id)
-                                                    executionRepo.deleteByTaskId(t.id)
-                                                    repo.delete(t.id)
-                                                }
-                                                tasks = repo.listAll()
-                                            }
-                                        }
+                                    if (result == SnackbarResult.ActionPerformed) {
+                                        repo.save(task)
+                                        if (task.enabled) trySchedule(task)
+                                        tasks = repo.listAll()
                                     }
+                                    pendingUndoTask = null
                                 }
                             },
                             onHistory = { historyTaskId = task.id }

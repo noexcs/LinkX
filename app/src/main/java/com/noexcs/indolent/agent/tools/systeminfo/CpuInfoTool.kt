@@ -214,10 +214,25 @@ class CpuInfoTool(context: Context) : AgentTool {
 
     private fun countOnlineCpus(): Int {
         return try {
-            File("/sys/devices/system/cpu/")
-                .listFiles()
-                ?.count { it.isDirectory && it.name.matches(Regex("cpu[0-9]+")) }
-                ?: 0
+            val onlineFile = File("/sys/devices/system/cpu/online")
+            if (onlineFile.isFile) {
+                val content = onlineFile.readText().trim()
+                // Format: comma-separated ranges like "0-3,5,7"
+                content.split(",").sumOf { part ->
+                    val range = part.split("-")
+                    if (range.size == 2) {
+                        val (start, end) = range[0].trim().toInt() to range[1].trim().toInt()
+                        (end - start + 1).coerceAtLeast(0)
+                    } else {
+                        1
+                    }
+                }
+            } else {
+                File("/sys/devices/system/cpu/")
+                    .listFiles()
+                    ?.count { it.isDirectory && it.name.matches(Regex("cpu[0-9]+")) }
+                    ?: 0
+            }
         } catch (e: Exception) {
             0
         }
