@@ -277,6 +277,11 @@
     <string name="section_skill_settings_subtitle">Manage AI skills — specialized instructions for different tasks</string>
     <string name="section_about_subtitle">App version, licenses, and information</string>
 
+    <!-- Settings groups -->
+    <string name="section_group_personalization">Personalization</string>
+    <string name="section_group_ai_config">AI Configuration</string>
+    <string name="section_group_system">System &amp; Info</string>
+
     <!-- Appearance -->
     <string name="theme_system">System default</string>
     <string name="theme_light">Light</string>
@@ -292,6 +297,11 @@
     <string name="section_seed_color_subtitle">Pick a color to generate a complete Material You theme</string>
     <string name="section_dynamic_color">Dynamic Color</string>
     <string name="section_dynamic_color_subtitle">Derive colors from your wallpaper for a personalized look</string>
+    <string name="section_contrast">Contrast</string>
+    <string name="section_contrast_subtitle">Adjust color contrast for improved readability</string>
+    <string name="contrast_standard">Balanced</string>
+    <string name="contrast_medium">Enhanced</string>
+    <string name="contrast_high">High visibility</string>
     <string name="seed_color_presets">Presets</string>
     <string name="seed_color_custom">Custom</string>
 

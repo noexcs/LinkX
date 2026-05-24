@@ -113,6 +113,11 @@ class MainActivity : ComponentActivity() {
             themeKey = preloadSettings.themeKey
             dynamicColor = preloadSettings.dynamicColor
             seedColor = Color(preloadSettings.seedColor)
+            contrastLevel = when (preloadSettings.contrastLevel) {
+                "medium" -> com.noexcs.indolent.ui.theme.ContrastLevel.Medium
+                "high" -> com.noexcs.indolent.ui.theme.ContrastLevel.High
+                else -> com.noexcs.indolent.ui.theme.ContrastLevel.Standard
+            }
         }
         com.noexcs.indolent.ui.theme.ThemeRegistry.loadDynamic(preloadSettings.dynamicThemesJson)
 

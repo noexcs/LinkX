@@ -10,6 +10,7 @@ fun SettingsActivityTheme(content: @Composable () -> Unit) {
         themeKey = ThemeState.themeKey,
         dynamicColor = ThemeState.dynamicColor,
         seedColor = ThemeState.seedColor,
+        contrastLevel = ThemeState.contrastLevel,
     ) {
         content()
     }

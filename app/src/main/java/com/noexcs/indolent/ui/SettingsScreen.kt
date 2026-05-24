@@ -11,32 +11,28 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.SettingsManager
-import com.noexcs.indolent.ui.settings.MenuItemCard
-import com.noexcs.indolent.ui.settings.SectionCard
+import com.noexcs.indolent.ui.settings.GroupCard
+import com.noexcs.indolent.ui.settings.GroupCardItem
+
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.Alignment
 
 private data class LanguageOption(val tag: String, val labelRes: Int)
 
@@ -63,10 +59,55 @@ fun SettingsScreen(
     onNavigateToSkillSettings: () -> Unit = {}
 ) {
     var selectedLanguage by remember { mutableStateOf(settingsManager.language) }
+    var showLanguageSheet by remember { mutableStateOf(false) }
+    val languageLabel = languageOptions.find { it.tag == selectedLanguage }
+        ?.let { stringResource(it.labelRes) } ?: stringResource(R.string.language_system)
 
-    fun applyLanguage(tag: String) {
-        selectedLanguage = tag
-        settingsManager.language = tag
+    // Language bottom sheet
+    if (showLanguageSheet) {
+        ModalBottomSheet(
+            onDismissRequest = { showLanguageSheet = false },
+            sheetState = rememberModalBottomSheetState(),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.section_language),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp)
+                )
+                languageOptions.forEach { option ->
+                    val selected = selectedLanguage == option.tag
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable {
+                                selectedLanguage = option.tag
+                                settingsManager.language = option.tag
+                                showLanguageSheet = false
+                            }
+                            .padding(horizontal = 24.dp, vertical = 14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            text = stringResource(option.labelRes),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f),
+                        )
+                        RadioButton(
+                            selected = selected,
+                            onClick = null,
+                        )
+                    }
+                }
+            }
+        }
     }
 
     Column(
@@ -75,85 +116,70 @@ fun SettingsScreen(
             .imePadding()
             .verticalScroll(scrollState)
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        MenuItemCard(
-            title = stringResource(R.string.title_api_settings),
-            subtitle = stringResource(R.string.section_api_settings_subtitle),
-            onClick = onNavigateToApiSettings
-        )
-
-        MenuItemCard(
-            title = stringResource(R.string.title_system_prompt_settings),
-            subtitle = stringResource(R.string.section_system_prompt_subtitle),
-            onClick = onNavigateToSystemPromptSettings
-        )
-
-        MenuItemCard(
-            title = stringResource(R.string.title_memory_settings),
-            subtitle = stringResource(R.string.section_memory_subtitle),
-            onClick = onNavigateToMemorySettings
-        )
-
-        MenuItemCard(
-            title = stringResource(R.string.title_tool_settings),
-            subtitle = stringResource(R.string.section_tool_settings_subtitle),
-            onClick = onNavigateToToolSettings
-        )
-
-        MenuItemCard(
-            title = stringResource(R.string.title_heartbeat_settings),
-            subtitle = stringResource(R.string.section_heartbeat_settings_subtitle),
-            onClick = onNavigateToHeartbeatSettings
-        )
-
-        MenuItemCard(
-            title = stringResource(R.string.title_usage_stats),
-            subtitle = stringResource(R.string.section_usage_stats_subtitle),
-            onClick = onNavigateToUsageStats
-        )
-
-        MenuItemCard(
-            title = stringResource(R.string.title_appearance),
-            subtitle = stringResource(R.string.section_appearance_subtitle),
-            onClick = onNavigateToAppearance
-        )
-
-        // Language setting stays inline on the main page
-        SectionCard(
-            title = stringResource(R.string.section_language),
-            subtitle = stringResource(R.string.section_language_subtitle)
-        ) {
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-                languageOptions.forEachIndexed { index, option ->
-                    SegmentedButton(
-                        selected = selectedLanguage == option.tag,
-                        onClick = { applyLanguage(option.tag) },
-                        shape = SegmentedButtonDefaults.itemShape(index, languageOptions.size),
-                    ) {
-                        Text(
-                            stringResource(option.labelRes),
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
-            }
+        // ── AI Configuration ───────────────────────────────────
+        GroupCard(title = stringResource(R.string.section_group_ai_config)) {
+            GroupCardItem(
+                title = stringResource(R.string.title_api_settings),
+                subtitle = stringResource(R.string.section_api_settings_subtitle),
+                onClick = onNavigateToApiSettings,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.title_system_prompt_settings),
+                subtitle = stringResource(R.string.section_system_prompt_subtitle),
+                onClick = onNavigateToSystemPromptSettings,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.title_memory_settings),
+                subtitle = stringResource(R.string.section_memory_subtitle),
+                onClick = onNavigateToMemorySettings,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.title_tool_settings),
+                subtitle = stringResource(R.string.section_tool_settings_subtitle),
+                onClick = onNavigateToToolSettings,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.title_heartbeat_settings),
+                subtitle = stringResource(R.string.section_heartbeat_settings_subtitle),
+                onClick = onNavigateToHeartbeatSettings,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.title_skill_settings),
+                subtitle = stringResource(R.string.section_skill_settings_subtitle),
+                onClick = onNavigateToSkillSettings,
+            )
         }
 
-        MenuItemCard(
-            title = stringResource(R.string.title_skill_settings),
-            subtitle = stringResource(R.string.section_skill_settings_subtitle),
-            onClick = onNavigateToSkillSettings
-        )
+        // ── Personalization ────────────────────────────────────
+        GroupCard(title = stringResource(R.string.section_group_personalization)) {
+            GroupCardItem(
+                title = stringResource(R.string.title_appearance),
+                subtitle = stringResource(R.string.section_appearance_subtitle),
+                onClick = onNavigateToAppearance,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.section_language),
+                subtitle = languageLabel,
+                onClick = { showLanguageSheet = true },
+            )
+        }
 
-        MenuItemCard(
-            title = stringResource(R.string.title_about),
-            subtitle = stringResource(R.string.section_about_subtitle),
-            onClick = onNavigateToAbout
-        )
+        // ── System & Info ──────────────────────────────────────
+        GroupCard(title = stringResource(R.string.section_group_system)) {
+            GroupCardItem(
+                title = stringResource(R.string.title_usage_stats),
+                subtitle = stringResource(R.string.section_usage_stats_subtitle),
+                onClick = onNavigateToUsageStats,
+            )
+            GroupCardItem(
+                title = stringResource(R.string.title_about),
+                subtitle = stringResource(R.string.section_about_subtitle),
+                onClick = onNavigateToAbout,
+            )
+        }
 
         Spacer(modifier = Modifier.height(16.dp))
     }
-
 }
-

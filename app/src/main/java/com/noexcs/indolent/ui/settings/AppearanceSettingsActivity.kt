@@ -21,6 +21,7 @@ class AppearanceSettingsActivity : ComponentActivity() {
                     onDynamicColorChanged = { ThemeState.dynamicColor = it },
                     onSeedColorChanged = { ThemeState.applySeedColor(it) },
                     onBack = { onBackPressedDispatcher.onBackPressed() },
+                    onContrastLevelChanged = { ThemeState.contrastLevel = it },
                 )
             }
         }

@@ -223,6 +223,11 @@
     <string name="section_appearance_subtitle">自定义主题和显示选项</string>
     <string name="section_about_subtitle">应用版本、许可证和信息</string>
 
+    <!-- Settings groups -->
+    <string name="section_group_personalization">个性化</string>
+    <string name="section_group_ai_config">AI 配置</string>
+    <string name="section_group_system">系统 &amp; 信息</string>
+
     <!-- Appearance -->
     <string name="theme_system">跟随系统</string>
     <string name="theme_light">浅色</string>
@@ -231,6 +236,20 @@
     <string name="section_theme_mode_subtitle">选择浅色、深色或跟随系统</string>
     <string name="section_dynamic_color">动态取色</string>
     <string name="section_dynamic_color_subtitle">从壁纸提取色彩，打造个性化外观</string>
+    <string name="section_seed_color">种子色</string>
+    <string name="section_seed_color_subtitle">选择一个颜色来生成完整的 Material You 主题</string>
+    <string name="section_contrast">对比度</string>
+    <string name="section_contrast_subtitle">调整颜色对比度以提高可读性</string>
+    <string name="contrast_standard">平衡</string>
+    <string name="contrast_medium">增强</string>
+    <string name="contrast_high">高可见性</string>
+    <string name="seed_color_presets">预设</string>
+    <string name="seed_color_custom">自定义</string>
+    <string name="theme_aurora">极光</string>
+    <string name="theme_matcha">抹茶</string>
+    <string name="theme_cyber">赛博</string>
+    <string name="theme_neutral">中性</string>
+    <string name="theme_seed">自定义种子色</string>
 
     <!-- About -->
     <string name="about_description">一款帮助你自动化 Android 设备的 AI 助手与任务代理。使用 Material Design 3 Expressive 和 Jetpack Compose 构建。</string>

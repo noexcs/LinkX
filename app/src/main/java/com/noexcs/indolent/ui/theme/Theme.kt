@@ -267,6 +267,8 @@ val CrimsonScheme = lightColorScheme(
     outline = Color(0xFF85736F),
 )
 
+enum class ThemeCategory { Light, Dark, Expressive, Custom }
+
 data class ThemeDescriptor(
     val key: String,
     val labelRes: Int = 0,
@@ -275,6 +277,8 @@ data class ThemeDescriptor(
     val supportsDynamicColor: Boolean = false,
     val usesSeedColor: Boolean = false,
     val colorScheme: ColorScheme? = null,
+    val mood: String = "",
+    val category: ThemeCategory = ThemeCategory.Light,
 )
 
 val SunsetOrangeScheme = lightColorScheme(
@@ -435,19 +439,32 @@ fun seedColorScheme(seedColor: Color, darkTheme: Boolean): ColorScheme {
 
 object ThemeRegistry {
     private val builtIn = listOf(
-        ThemeDescriptor("system", R.string.theme_system, isDark = false, supportsDynamicColor = true),
-        ThemeDescriptor("light", R.string.theme_light, isDark = false, colorScheme = LightColorScheme),
-        ThemeDescriptor("dark", R.string.theme_dark, isDark = true, colorScheme = DarkColorScheme),
-        ThemeDescriptor("aurora", R.string.theme_aurora, isDark = false, colorScheme = AuroraLightScheme),
-        ThemeDescriptor("matcha", R.string.theme_matcha, isDark = false, colorScheme = MatchaLightScheme),
-        ThemeDescriptor("cyber", R.string.theme_cyber, isDark = true, colorScheme = CyberDarkScheme),
-        ThemeDescriptor("neutral", R.string.theme_neutral, isDark = false, colorScheme = NeutralLightScheme),
-        ThemeDescriptor("crimson", R.string.theme_crimson, isDark = false, colorScheme = CrimsonScheme),
-        ThemeDescriptor("sunset_orange", R.string.theme_sunset_orange, isDark = false, colorScheme = SunsetOrangeScheme),
-        ThemeDescriptor("golden_yellow", R.string.theme_golden_yellow, isDark = false, colorScheme = GoldenYellowScheme),
-        ThemeDescriptor("emerald_green", R.string.theme_emerald_green, isDark = false, colorScheme = EmeraldGreenScheme),
-        ThemeDescriptor("cyan_blue", R.string.theme_cyan_blue, isDark = false, colorScheme = CyanBlueScheme),
-        ThemeDescriptor("seed", R.string.theme_seed, isDark = false, usesSeedColor = true),
+        ThemeDescriptor("system", R.string.theme_system, isDark = false, supportsDynamicColor = true,
+            mood = "Follows your system", category = ThemeCategory.Custom),
+        ThemeDescriptor("light", R.string.theme_light, isDark = false, colorScheme = LightColorScheme,
+            mood = "Clear and focused", category = ThemeCategory.Light),
+        ThemeDescriptor("dark", R.string.theme_dark, isDark = true, colorScheme = DarkColorScheme,
+            mood = "Deep and immersive", category = ThemeCategory.Dark),
+        ThemeDescriptor("aurora", R.string.theme_aurora, isDark = false, colorScheme = AuroraLightScheme,
+            mood = "Dreamy neon purple", category = ThemeCategory.Expressive),
+        ThemeDescriptor("matcha", R.string.theme_matcha, isDark = false, colorScheme = MatchaLightScheme,
+            mood = "Calm natural green", category = ThemeCategory.Expressive),
+        ThemeDescriptor("cyber", R.string.theme_cyber, isDark = true, colorScheme = CyberDarkScheme,
+            mood = "Futuristic electric", category = ThemeCategory.Expressive),
+        ThemeDescriptor("neutral", R.string.theme_neutral, isDark = false, colorScheme = NeutralLightScheme,
+            mood = "Understated and clean", category = ThemeCategory.Light),
+        ThemeDescriptor("crimson", R.string.theme_crimson, isDark = false, colorScheme = CrimsonScheme,
+            mood = "Bold warm red", category = ThemeCategory.Expressive),
+        ThemeDescriptor("sunset_orange", R.string.theme_sunset_orange, isDark = false, colorScheme = SunsetOrangeScheme,
+            mood = "Warm and inviting", category = ThemeCategory.Expressive),
+        ThemeDescriptor("golden_yellow", R.string.theme_golden_yellow, isDark = false, colorScheme = GoldenYellowScheme,
+            mood = "Rich and radiant", category = ThemeCategory.Expressive),
+        ThemeDescriptor("emerald_green", R.string.theme_emerald_green, isDark = false, colorScheme = EmeraldGreenScheme,
+            mood = "Fresh and vibrant", category = ThemeCategory.Expressive),
+        ThemeDescriptor("cyan_blue", R.string.theme_cyan_blue, isDark = false, colorScheme = CyanBlueScheme,
+            mood = "Cool ocean breeze", category = ThemeCategory.Expressive),
+        ThemeDescriptor("seed", R.string.theme_seed, isDark = false, usesSeedColor = true,
+            mood = "Your personal color", category = ThemeCategory.Custom),
     )
 
     private val _dynamicThemes = mutableListOf<ThemeDescriptor>()
@@ -482,7 +499,8 @@ object ThemeRegistry {
                 val scheme = seedColorScheme(seedColor, isDark)
                 _dynamicThemes.add(ThemeDescriptor(
                     key = key, label = label, isDark = isDark,
-                    usesSeedColor = false, colorScheme = scheme
+                    usesSeedColor = false, colorScheme = scheme,
+                    mood = "Custom theme", category = ThemeCategory.Custom,
                 ))
             }
         } catch (_: Exception) { }
@@ -518,6 +536,7 @@ object ThemeState {
     var dynamicColor by mutableStateOf(true)
     var seedColor by mutableStateOf(Color.Unspecified)
     var dynamicThemesVersion by mutableStateOf(0)
+    var contrastLevel by mutableStateOf(ContrastLevel.Standard)
 
     fun applyTheme(key: String) {
         themeKey = key
@@ -541,10 +560,10 @@ object ThemeState {
 
 @Composable
 fun IndolentTheme(
-    themeKey: String = "system",
-    dynamicColor: Boolean = true,
-    seedColor: Color = Color.Unspecified,
-    contrastLevel: ContrastLevel = ContrastLevel.Standard,
+    themeKey: String = ThemeState.themeKey,
+    dynamicColor: Boolean = ThemeState.dynamicColor,
+    seedColor: Color = ThemeState.seedColor,
+    contrastLevel: ContrastLevel = ThemeState.contrastLevel,
     content: @Composable () -> Unit
 ) {
     val descriptor = remember(themeKey) { ThemeRegistry.findByKey(themeKey) }

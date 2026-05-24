@@ -3,8 +3,10 @@ package com.noexcs.indolent.ui.settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
@@ -34,17 +36,188 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import androidx.compose.ui.res.stringResource
 import com.noexcs.indolent.agent.tools.ToolInfo
+import com.noexcs.indolent.ui.theme.ThemeDescriptor
 
 @Composable
 fun settingsFieldColors() = OutlinedTextFieldDefaults.colors(
     focusedBorderColor = MaterialTheme.colorScheme.primary,
     unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
 )
+
+// ── Settings list items ──────────────────────────────────────────
+
+@Composable
+fun SettingsListItem(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    leading: (@Composable () -> Unit)? = null,
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (leading != null) {
+            leading()
+            Spacer(modifier = Modifier.width(12.dp))
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+            modifier = Modifier.size(20.dp),
+        )
+    }
+}
+
+// ── Group card (container + divider-separated items) ─────────────
+
+@Composable
+fun GroupCard(
+    title: String,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ElevatedCard(
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = modifier.fillMaxWidth(),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp),
+            )
+            content()
+        }
+    }
+}
+
+@Composable
+fun GroupCardItem(
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable () -> Unit)? = null,
+) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        HorizontalDivider(
+            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f),
+            modifier = Modifier.padding(horizontal = 16.dp),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable(onClick = onClick)
+                .padding(horizontal = 16.dp, vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            if (trailing != null) {
+                Spacer(modifier = Modifier.width(8.dp))
+                trailing()
+            } else {
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+        }
+    }
+}
+
+// ── Section card (standalone) ────────────────────────────────────
+
+@Composable
+fun SectionCard(
+    title: String,
+    subtitle: String,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    ElevatedCard(
+        shape = MaterialTheme.shapes.large,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Text(
+                title,
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                subtitle,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+            content()
+        }
+    }
+}
+
+// ── Tool toggle cards ────────────────────────────────────────────
 
 @Composable
 fun ToolToggleCard(
@@ -91,7 +264,7 @@ fun ExpandableToolGroupCard(
         shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
         modifier = modifier
             .fillMaxWidth()
@@ -104,7 +277,6 @@ fun ExpandableToolGroupCard(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            // Header row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -148,10 +320,8 @@ fun ExpandableToolGroupCard(
                 }
             }
 
-            // Extra content slot (e.g. Termux permission UI)
             extraContent?.invoke(this)
 
-            // Expandable per-tool list
             AnimatedVisibility(
                 visible = expanded,
                 enter = expandVertically(),
@@ -190,40 +360,7 @@ fun ExpandableToolGroupCard(
     }
 }
 
-@Composable
-fun SectionCard(
-    title: String,
-    subtitle: String,
-    content: @Composable ColumnScope.() -> Unit
-) {
-    ElevatedCard(
-        shape = MaterialTheme.shapes.large,
-        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-        ),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                title,
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-            content()
-        }
-    }
-}
+// ── Legacy MenuItemCard (kept for backward compat) ───────────────
 
 @Composable
 fun MenuItemCard(
@@ -239,7 +376,7 @@ fun MenuItemCard(
         shape = MaterialTheme.shapes.large,
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
         colors = CardDefaults.elevatedCardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
         ),
     ) {
         Row(
@@ -251,7 +388,7 @@ fun MenuItemCard(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     title,
-                    style = MaterialTheme.typography.titleSmall,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -270,7 +407,155 @@ fun MenuItemCard(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                modifier = Modifier.size(24.dp)
+                modifier = Modifier.size(20.dp)
+            )
+        }
+    }
+}
+
+// ── Mini UI preview for theme cards ──────────────────────────────
+
+@Composable
+fun ThemePreviewMini(
+    scheme: androidx.compose.material3.ColorScheme,
+    width: Dp = 160.dp,
+    height: Dp = 100.dp,
+) {
+    Box(
+        modifier = Modifier
+            .width(width)
+            .height(height)
+            .clip(MaterialTheme.shapes.medium)
+            .background(scheme.background)
+            .padding(8.dp),
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            // Mini top bar
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(12.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(scheme.surfaceContainerHigh)
+            )
+            // Mini content card
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(28.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(scheme.surfaceContainerHigh)
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(28.dp)
+                        .clip(MaterialTheme.shapes.small)
+                        .background(scheme.surfaceContainer)
+                )
+            }
+            // Mini chip row
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(scheme.primary)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(scheme.secondary)
+                )
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(scheme.tertiary)
+                )
+            }
+        }
+        // Mini FAB
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(22.dp)
+                .clip(MaterialTheme.shapes.small)
+                .background(scheme.primaryContainer)
+        )
+    }
+}
+
+// ── Hero card for current theme ──────────────────────────────────
+
+@Composable
+fun ThemeHeroCard(
+    descriptor: ThemeDescriptor,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val scheme = descriptor.colorScheme
+        ?: MaterialTheme.colorScheme // fallback for system/dynamic
+
+    ElevatedCard(
+        shape = MaterialTheme.shapes.extraLarge,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.extraLarge)
+            .clickable(onClick = onClick),
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = descriptor.label.ifEmpty { stringResource(descriptor.labelRes) },
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                if (descriptor.mood.isNotEmpty()) {
+                    Text(
+                        text = descriptor.mood,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                // Color accent dots
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    listOf(
+                        MaterialTheme.colorScheme.primary,
+                        MaterialTheme.colorScheme.secondary,
+                        MaterialTheme.colorScheme.tertiary,
+                    ).forEach { color ->
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(MaterialTheme.shapes.extraSmall)
+                                .background(color)
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            // Mini preview on the right
+            ThemePreviewMini(
+                scheme = if (descriptor.colorScheme != null) descriptor.colorScheme else MaterialTheme.colorScheme,
+                width = 120.dp,
+                height = 72.dp,
             )
         }
     }

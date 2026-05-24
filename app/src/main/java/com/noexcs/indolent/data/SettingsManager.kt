@@ -218,6 +218,10 @@ class SettingsManager(context: Context) {
         get() = prefs.getBoolean("dynamic_color", true)
         set(value) = prefs.edit { putBoolean("dynamic_color", value) }
 
+    var contrastLevel: String
+        get() = prefs.getString("contrast_level", "standard") ?: "standard"
+        set(value) = prefs.edit { putString("contrast_level", value) }
+
     fun isSkillEnabled(skillName: String): Boolean =
         prefs.getBoolean("skill_enabled_$skillName", true)
 
