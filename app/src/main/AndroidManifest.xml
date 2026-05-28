@@ -101,6 +101,8 @@
         <activity android:name=".ui.settings.AboutActivity" android:exported="false" />
         <activity android:name=".ui.settings.SkillSettingsActivity" android:exported="false" />
         <activity android:name=".ui.settings.McpSettingsActivity" android:exported="false" />
+        <activity android:name=".ui.BackgroundTasksActivity" android:exported="false" />
+        <activity android:name=".ui.settings.SettingsActivity" android:exported="false" />
         
         <!-- Receiver to get Termux command results via PendingIntent.getBroadcast -->
         <receiver android:name=".agent.termux.TermuxResultReceiver" android:exported="false" />

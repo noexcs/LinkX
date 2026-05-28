@@ -11,20 +11,21 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Psychology
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
+
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.noexcs.indolent.R
 import com.noexcs.indolent.data.FileChatHistoryProvider
-import com.noexcs.indolent.data.SettingsManager
+
 import com.noexcs.indolent.agent.SessionMetadata
 import com.noexcs.indolent.agent.SessionType
 import kotlinx.coroutines.Dispatchers
@@ -38,12 +39,10 @@ fun ConversationDrawerContent(
     repository: FileChatHistoryProvider,
     onLoad: (String) -> Unit,
     onNewChat: () -> Unit,
+    onNavigateToAutomations: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     refreshTrigger: Int = 0
 ) {
-    val context = LocalContext.current
-    val settingsManager = remember { SettingsManager(context.applicationContext) }
-    val modelName = settingsManager.model.ifBlank { "LinkX" }
-
     var conversations by remember { mutableStateOf(emptyList<SessionMetadata>()) }
     var searchQuery by remember { mutableStateOf("") }
     var searchActive by remember { mutableStateOf(false) }
@@ -106,33 +105,23 @@ fun ConversationDrawerContent(
     ModalDrawerSheet(
         drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        // Model info header
-        Row(
+        // Automations entry
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.background_tasks)) },
+            leadingContent = {
+                Icon(
+                    Icons.Default.Schedule,
+                    contentDescription = stringResource(R.string.background_tasks),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Default.Psychology,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(24.dp),
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "LinkX",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = modelName,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
+                .clickable { onNavigateToAutomations() },
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent,
+            ),
+        )
 
         HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
@@ -240,6 +229,26 @@ fun ConversationDrawerContent(
                 }
             }
         }
+
+        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+
+        // Settings entry (pinned to bottom)
+        ListItem(
+            headlineContent = { Text(stringResource(R.string.settings)) },
+            leadingContent = {
+                Icon(
+                    Icons.Default.Settings,
+                    contentDescription = stringResource(R.string.settings),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToSettings() },
+            colors = ListItemDefaults.colors(
+                containerColor = Color.Transparent,
+            ),
+        )
     }
 
     // Delete dialog

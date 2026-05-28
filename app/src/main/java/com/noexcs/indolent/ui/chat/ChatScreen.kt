@@ -98,6 +98,8 @@ import kotlinx.coroutines.launch
 fun ChatScreen(
     viewModel: AgentViewModel,
     conversationRepository: FileChatHistoryProvider,
+    onNavigateToAutomations: () -> Unit,
+    onNavigateToSettings: () -> Unit,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -123,6 +125,14 @@ fun ChatScreen(
                 onNewChat = {
                     viewModel.newConversation()
                     scope.launch { drawerState.close() }
+                },
+                onNavigateToAutomations = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToAutomations()
+                },
+                onNavigateToSettings = {
+                    scope.launch { drawerState.close() }
+                    onNavigateToSettings()
                 },
                 refreshTrigger = refreshTrigger
             )
