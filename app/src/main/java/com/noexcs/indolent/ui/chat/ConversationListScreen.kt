@@ -123,8 +123,6 @@ fun ConversationDrawerContent(
             ),
         )
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
         // Search
         DockedSearchBar(
             inputField = {
@@ -184,8 +182,6 @@ fun ConversationDrawerContent(
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-
         if (filtered.isEmpty()) {
             Box(
                 modifier = Modifier
@@ -229,8 +225,6 @@ fun ConversationDrawerContent(
                 }
             }
         }
-
-        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
 
         // Settings entry (pinned to bottom)
         ListItem(

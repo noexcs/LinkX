@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -98,6 +99,8 @@ import kotlinx.coroutines.launch
 fun ChatScreen(
     viewModel: AgentViewModel,
     conversationRepository: FileChatHistoryProvider,
+    currentPage: Int,
+    onNavigateToPage: (Int) -> Unit,
     onNavigateToAutomations: () -> Unit,
     onNavigateToSettings: () -> Unit,
 ) {
@@ -142,6 +145,8 @@ fun ChatScreen(
             viewModel = viewModel,
             conversationRepository = conversationRepository,
             refreshTrigger = refreshTrigger,
+            currentPage = currentPage,
+            onNavigateToPage = onNavigateToPage,
             onOpenDrawer = { scope.launch { drawerState.open() } },
         )
     }
@@ -155,6 +160,8 @@ private fun ChatContent(
     viewModel: AgentViewModel,
     conversationRepository: FileChatHistoryProvider,
     refreshTrigger: Int,
+    currentPage: Int,
+    onNavigateToPage: (Int) -> Unit,
     onOpenDrawer: () -> Unit,
 ) {
     val messages = viewModel.messages
@@ -206,12 +213,16 @@ private fun ChatContent(
                 .imePadding()
                 .background(MaterialTheme.colorScheme.surface)
         ) {
-            // Actions bar
+            // Actions bar with fused tabs
+            val tabLabels = listOf(
+                stringResource(R.string.chat_tab),
+                stringResource(R.string.todo_lists),
+                stringResource(R.string.notes),
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 4.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onOpenDrawer) {
@@ -220,6 +231,26 @@ private fun ChatContent(
                         contentDescription = stringResource(R.string.conversations),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                }
+                Row(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    tabLabels.forEachIndexed { index, label ->
+                        val selected = currentPage == index
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (selected)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                            modifier = Modifier
+                                .clickable { onNavigateToPage(index) }
+                                .padding(horizontal = 10.dp, vertical = 4.dp),
+                        )
+                    }
                 }
                 IconButton(onClick = { viewModel.newConversation() }) {
                     Icon(

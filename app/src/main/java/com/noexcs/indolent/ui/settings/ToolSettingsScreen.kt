@@ -95,6 +95,14 @@ fun ToolSettingsScreen(
     var showExitDialog by remember { mutableStateOf(false) }
     val termuxPermission = "com.termux.permission.RUN_COMMAND"
     var hasTermuxPermission by remember { mutableStateOf(false) }
+    val isTermuxInstalled = remember {
+        try {
+            context.packageManager.getPackageInfo("com.termux", 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) {
+            false
+        }
+    }
     var hasAllFilesAccess by remember { mutableStateOf(FsUtils.hasAllFilesAccess(context)) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -229,7 +237,14 @@ fun ToolSettingsScreen(
                     markChanged()
                 },
                 extraContent = {
-                    if (!hasTermuxPermission) {
+                    if (!isTermuxInstalled) {
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "Termux is not installed",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                    } else if (!hasTermuxPermission) {
                         Spacer(modifier = Modifier.height(4.dp))
                         Text(
                             text = "RUN_COMMAND permission not granted",

@@ -1,6 +1,7 @@
 package com.noexcs.indolent
 
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -72,8 +73,13 @@ class MainActivity : ComponentActivity() {
         }
         enableEdgeToEdge()
 
-        // Load theme settings synchronously before first composition to prevent flash
+        // Disable Termux tools if Termux is not installed
         val preloadSettings = SettingsManager(applicationContext)
+        if (!isTermuxInstalled()) {
+            preloadSettings.termuxToolsEnabled = false
+        }
+
+        // Load theme settings synchronously before first composition to prevent flash
         com.noexcs.indolent.ui.theme.ThemeState.apply {
             themeKey = preloadSettings.themeKey
             dynamicColor = preloadSettings.dynamicColor
@@ -94,6 +100,15 @@ class MainActivity : ComponentActivity() {
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
         com.noexcs.indolent.data.LocaleNotifier.notifyChanged()
+    }
+
+    private fun isTermuxInstalled(): Boolean {
+        return try {
+            packageManager.getPackageInfo("com.termux", 0)
+            true
+        } catch (_: PackageManager.NameNotFoundException) {
+            false
+        }
     }
 }
 
@@ -139,43 +154,14 @@ private fun MainContent() {
         }
     }
 
-    Scaffold(
-        bottomBar = {
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                tonalElevation = 2.dp,
-            ) {
-                navItems.forEachIndexed { index, item ->
-                    val selected = pagerState.currentPage == index
-                    NavigationBarItem(
-                        selected = selected,
-                        onClick = {
-                            if (index != pagerState.currentPage) {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(index)
-                                }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                if (selected) item.selectedIcon else item.unselectedIcon,
-                                contentDescription = stringResource(item.labelRes),
-                            )
-                        },
-                        label = { Text(stringResource(item.labelRes)) },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                        ),
-                    )
-                }
-            }
-        }
-    ) { scaffoldPadding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .statusBarsPadding()
+    ) {
         HorizontalPager(
             state = pagerState,
             modifier = Modifier
-                .statusBarsPadding()
-                .padding(bottom = scaffoldPadding.calculateBottomPadding())
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.surface),
             beyondViewportPageCount = navItems.size,
@@ -185,6 +171,10 @@ private fun MainContent() {
                 Screen.Chat -> ChatScreen(
                     viewModel = viewModel,
                     conversationRepository = conversationRepository,
+                    currentPage = pagerState.currentPage,
+                    onNavigateToPage = { page ->
+                        coroutineScope.launch { pagerState.animateScrollToPage(page) }
+                    },
                     onNavigateToAutomations = {
                         context.startActivity(Intent(context, BackgroundTasksActivity::class.java))
                     },
